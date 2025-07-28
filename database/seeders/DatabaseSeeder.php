@@ -13,16 +13,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::firstOrCreate(
+        $this->call([
+            RoleSeeder::class,
+        ]);
+
+        $admin = User::firstOrCreate(
             ['email' => 'super-admin@alco.cyberlabs.co.id'],
             [
                 'name' => 'Super Admin',
                 'password' => '4Lc0@dm1nistrat0r0917',
             ]
         );
-        
-        $this->call([
-            RoleSeeder::class,
-        ]);
+        $admin->assignRole('super_admin');
     }
 }

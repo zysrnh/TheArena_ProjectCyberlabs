@@ -17,19 +17,19 @@ class RoleSeeder extends Seeder
         $adminViewRole = Role::firstOrCreate(['name' => 'admin_view']);
         $adminEditorRole = Role::firstOrCreate(['name' => 'admin_editor']);
 
-        $adminViewRole->syncPermission([
+        $adminViewRole->givePermissionTo([
             'view_any_registration',
             'view_registration',
         ]);
 
-        $adminEditorRole->syncPermission([
+        $adminEditorRole->givePermissionTo([
             'view_any_registration',
             'view_registration',
             'create_registration',
             'update_registration',
         ]);
 
-        $webAdminRole->syncPermission([
+        $webAdminRole->givePermissionTo([
             'view_any_registration',
             'view_registration',
             'create_registration',
