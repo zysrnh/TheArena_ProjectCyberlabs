@@ -34,6 +34,7 @@ return new class extends Migration
             $table->index('registration_id');
             $table->index('message_sid');
             $table->index('status');
+            $table->softDeletes();
         });
     }
 
