@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -19,6 +20,10 @@ class Registration extends Model
         'last_blasted_at',
         'last_successful_sent_at',
         'whatsapp_send_attempts',
+    ];
+
+    protected $appends = [
+        'qr_path',
     ];
 
     protected static function booted(): void
@@ -40,6 +45,13 @@ class Registration extends Model
         return [
             'extras' => 'array',
         ];
+    }
+
+    protected function qrPath(): Attribute
+    {
+        return Attribute::make(
+            get: fn (string $value) => asset('storage/qr_codes/' . $this->unique_code . '.png')
+        );
     }
 
     public function getMessageStatusAttribute()
