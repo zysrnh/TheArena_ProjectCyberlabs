@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Registration extends Model
 {
     use SoftDeletes;
-    
+
     protected $fillable = [
         'name',
         'email',
@@ -50,7 +50,7 @@ class Registration extends Model
     protected function qrPath(): Attribute
     {
         return Attribute::make(
-            get: fn (string $value) => asset('storage/qr_codes/' . $this->unique_code . '.png')
+            get: fn() => asset('storage/qr_codes/' . $this->unique_code . '.png')
         );
     }
 
@@ -102,5 +102,10 @@ class Registration extends Model
         } while (static::where('unique_code', $code)->exists());
 
         return $code;
+    }
+
+    public function seat()
+    {
+        return $this->hasOne(Seat::class);
     }
 }

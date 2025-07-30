@@ -5,8 +5,10 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\RegistrationResource\Pages;
 use App\Filament\Admin\Resources\RegistrationResource\RelationManagers;
 use App\Models\Registration;
+use App\Models\Seat;
 use Carbon\Carbon;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Infolists\Components\IconEntry;
@@ -45,6 +47,22 @@ class RegistrationResource extends Resource
                     ->label('Email')
                     ->required()
                     ->email(),
+                Select::make('seat_id')
+                    ->label('Seat Assignment')
+                    ->options(function ($get, $record) {
+                        return Seat::query()
+                            ->where(function ($query) use ($record) {
+                                $query->whereNull('registration_id');
+
+                                if ($record) {
+                                    $query->orWhere('registration_id', $record->id);
+                                }
+                            })
+                            ->pluck('label', 'id');
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
             ]);
     }
 
@@ -54,6 +72,7 @@ class RegistrationResource extends Resource
             ->columns([
                 TextColumn::make('name')
                     ->label('Nama')
+                    ->sortable()
                     ->description(fn(Registration $record): string => $record->phone),
                 TextColumn::make('email')
                     ->label('Email'),
@@ -69,6 +88,10 @@ class RegistrationResource extends Resource
                         ]);
                     })
                     ->visible(fn() => auth()->user()->can('update_registration')),
+                TextColumn::make('seat.label')
+                    ->label('Seat')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('attended_at')
                     ->label('Hadir pada')
                     ->dateTime('d F Y, H:i')
@@ -126,10 +149,7 @@ class RegistrationResource extends Resource
                 Action::make('preview')
                     ->label('Preview')
                     ->icon('heroicon-s-qr-code')
-                    ->url(
-                        fn(Registration $record) =>
-                        asset('storage/qr_codes/' . $record->unique_code . '.png')
-                    )
+                    ->url(fn(Registration $record) => $record->qr_path)
                     ->openUrlInNewTab()
             ])
             ->bulkActions([

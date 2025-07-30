@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\RegistrationResource\Pages;
 
 use App\Filament\Admin\Resources\RegistrationResource;
+use App\Models\Seat;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -31,5 +32,21 @@ class EditRegistration extends EditRecord
         }
 
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $seatId = $this->form->getState()['seat_id'];
+
+        if (!$this->record) return;
+
+        Seat::where('registration_id', $this->record->id)
+            ->update(['registration_id' => null]);
+
+        if ($seatId) {
+            // Assign selected seat
+            Seat::where('id', $seatId)
+                ->update(['registration_id' => $this->record->id]);
+        }
     }
 }
