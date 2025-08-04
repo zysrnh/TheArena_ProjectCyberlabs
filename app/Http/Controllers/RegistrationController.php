@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\GenerateQr;
+use App\Jobs\SendQrToWhatsapp;
 use App\Models\Registration;
 use App\Models\Seat;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -112,8 +114,11 @@ class RegistrationController extends Controller
 
                 // Update seat
                 $seat->update(['registration_id' => $registration->id]);
-                
-                GenerateQr::dispatch($registration);
+
+                Bus::chain([
+                    new GenerateQr($registration),
+                    new SendQrToWhatsapp($registration),
+                ])->dispatch();
 
                 return $registration;
             });
