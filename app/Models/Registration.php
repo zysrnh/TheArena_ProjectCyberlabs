@@ -16,6 +16,7 @@ class Registration extends Model
         'phone',
         'unique_code',
         'has_attended',
+        'is_approved',
         'attended_at',
         'last_blasted_at',
         'last_successful_sent_at',

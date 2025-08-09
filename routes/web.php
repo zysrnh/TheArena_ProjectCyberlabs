@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\VolunteerController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/registration');
@@ -15,4 +16,9 @@ Route::prefix('registration')->name('user.')->group(function () {
     Route::get('/{registration}/success', [RegistrationController::class, 'showRegistrationSuccess'])
         ->name('registration_success')
         ->middleware(['signed']);
+});
+
+Route::prefix('volunteer')->name('volunteer.')->group(function () {
+    Route::get('/', [VolunteerController::class, 'showVolunteerRegistration'])->name('registration');
+    Route::post('/', [VolunteerController::class, 'submitVolunteer'])->name('submit_registration');
 });

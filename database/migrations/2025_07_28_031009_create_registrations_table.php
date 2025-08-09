@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('unique_code')->nullable();
             $table->boolean('has_attended')->default(false);
+            $table->boolean('is_approved')->default(false);
             $table->timestamp('attended_at')->nullable();
             $table->timestamp('last_blasted_at')->nullable();
             $table->timestamp('last_successful_sent_at')->nullable();

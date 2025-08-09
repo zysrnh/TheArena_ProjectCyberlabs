@@ -20,6 +20,8 @@
         "clsx": "^2.1.1",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "react-hot-toast": "^2.5.2"
+        "react-hot-toast": "^2.5.2",
+        "react-use-wizard": "^2.3.0",
+        "zod": "^4.0.14"
     }
 }
