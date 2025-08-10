@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\GenerateQr;
 use App\Models\Event;
 use App\Models\Registration;
+use App\Settings\RegistrationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\URL;
@@ -12,8 +13,13 @@ use Inertia\Inertia;
 
 class RegistrationSACVipController extends Controller
 {
-    public function showWelcome()
+    public function showWelcome(RegistrationSettings $registrationSettings)
     {
+        $count = Registration::where('extras->type', 'vip')->count();
+        if ($registrationSettings->vip_limit >= 0 && $count >= $registrationSettings->vip_limit) {
+            return redirect()->route('full_registration');
+        }
+
         return Inertia::render('RegistrationWelcome', [
             'redirectTo' => route('sac_vip.registration'),
             'images' => [

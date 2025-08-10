@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FullRegistrationController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSACController;
 use App\Http\Controllers\RegistrationSACPersController;
@@ -21,6 +22,8 @@ Route::prefix('registration')->name('user.')->group(function () {
         ->name('registration_success')
         ->middleware(['signed']);
 });
+
+Route::get('/full', FullRegistrationController::class)->name('full_registration');
 
 Route::get('/registration/{registration}/success', RegistrationSuccessController::class)
     ->name('registration_success')
