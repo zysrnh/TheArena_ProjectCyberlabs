@@ -20,6 +20,9 @@ use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -73,13 +76,33 @@ class RegistrationResource extends Resource
                 TextColumn::make('name')
                     ->label('Nama')
                     ->sortable()
-                    ->description(fn(Registration $record): string => $record->phone),
+                    ->description(fn(Registration $record): string => $record->phone ?? ''),
                 TextColumn::make('email')
-                    ->label('Email'),
+                    ->label('Email')
+                    ->toggleable(),
+                TextColumn::make('extras_type')
+                    ->label('Tipe')
+                    ->getStateUsing(fn($record) => $record->extras['type'] ?? '-')
+                    ->toggleable(),
+                IconColumn::make('is_approved_display')
+                    ->label('Approved')
+                    ->boolean()
+                    ->getStateUsing(fn($record) => $record->is_approved)
+                    ->toggleable(),
+                ToggleColumn::make('is_approved')
+                    ->label('Ubah Approval')
+                    ->afterStateUpdated(function (bool $state, $record) {
+                        $record->update([
+                            'approved_at' => $state ? now() : null,
+                        ]);
+                    })
+                    ->visible(fn() => auth()->user()->can('update_registration'))
+                    ->toggleable(),
                 IconColumn::make('has_attended_display')
                     ->label('Telah Hadir')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->has_attended),
+                    ->getStateUsing(fn($record) => $record->has_attended)
+                    ->toggleable(),
                 ToggleColumn::make('has_attended')
                     ->label('Ubah Status Kehadiran')
                     ->afterStateUpdated(function (bool $state, $record) {
@@ -87,7 +110,8 @@ class RegistrationResource extends Resource
                             'attended_at' => $state ? now() : null,
                         ]);
                     })
-                    ->visible(fn() => auth()->user()->can('update_registration')),
+                    ->visible(fn() => auth()->user()->can('update_registration'))
+                    ->toggleable(),
                 TextColumn::make('seat.label')
                     ->label('Seat')
                     ->sortable()
@@ -106,6 +130,33 @@ class RegistrationResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
+                TernaryFilter::make('has_attended')
+                    ->label('Status Kehadiran')
+                    ->trueLabel('Hadir')
+                    ->falseLabel('Belum Hadir')
+                    ->placeholder('Semua'),
+                TernaryFilter::make('is_approved')
+                    ->label('Approval Status')
+                    ->trueLabel('Approved')
+                    ->falseLabel('Belum Approved')
+                    ->placeholder('Semua'),
+                SelectFilter::make('type')
+                    ->label('Tipe Registrasi')
+                    ->multiple()
+                    ->options([
+                        'vip' => 'VIP',
+                        'regular' => 'Umum/Regular',
+                        'pers' => 'Pers',
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (! empty($data['values'])) {
+                            $query->where(function ($q) use ($data) {
+                                foreach ($data['values'] as $value) {
+                                    $q->orWhereJsonContains('extras->type', $value);
+                                }
+                            });
+                        }
+                    }),
             ])
             ->actions([
                 Action::make('view registration')
