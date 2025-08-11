@@ -4,7 +4,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useEffect } from "react";
 import z from "zod";
 
-export default function RegistrationSACVip({ images }) {
+export default function RegistrationSACVip({ images, formData }) {
   const { flash } = usePage().props;
   const { data, setData, post, processing, errors, reset, setError } = useForm({
     name: "",
@@ -53,6 +53,16 @@ export default function RegistrationSACVip({ images }) {
       },
     });
   };
+
+  useEffect(() => {
+    if (formData) {
+      setData({
+        name: formData.name,
+        email: formData.email,
+        organization: formData.organization,
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!flash?.info) return;

@@ -39,6 +39,9 @@ Route::prefix('sac-vip')->name('sac_vip.')->group(function () {
     Route::get('/', [RegistrationSACVipController::class, 'showWelcome'])->name('welcome');
     Route::get('/registration', [RegistrationSACVipController::class, 'showForm'])->name('registration');
     Route::post('/registration', [RegistrationSACVipController::class, 'submitForm'])->name('submit_registration');
+
+    Route::get('/seat', [RegistrationSACVipController::class, 'showSeating'])->name('seat');
+    Route::post('/seat', [RegistrationSACVipController::class, 'chooseSeat'])->name('choose_seat');
 });
 
 Route::prefix('sac-pers')->name('sac_pers.')->group(function () {
