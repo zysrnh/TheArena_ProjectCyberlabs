@@ -15,7 +15,7 @@ class ScanController extends Controller
             'unique_code' => 'required|string',
             'is_vip'      => 'nullable|boolean',
             'is_pers'     => 'nullable|boolean',
-            'override'    => 'nullable|boolean',
+            'override'    => 'nullable',
         ]);
 
         // Find registration
@@ -30,7 +30,7 @@ class ScanController extends Controller
             $query->where('extras->is_pers', true);
         }
 
-        $registration = $query->first();
+        $registration = $query->with('seat')->first();
 
         // If not found
         if (!$registration) {
@@ -51,7 +51,7 @@ class ScanController extends Controller
         }
 
         // If override flag is set — just return model
-        if (!empty($validated['override']) && $validated['override']) {
+        if (!empty($validated['override']) && $request->boolean('override')) {
             return response()->json([
                 'success' => true,
                 'message' => 'Override active — returning registration data without marking attendance.',
@@ -69,8 +69,10 @@ class ScanController extends Controller
         }
 
         // Mark attendance
-        $registration->attended_at = now();
-        $registration->save();
+        $registration->update([
+            'attended_at' => now(),
+            'has_attended' => true,
+        ]);
 
         return response()->json([
             'success' => true,
