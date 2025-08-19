@@ -14,7 +14,11 @@ class EventSeeder extends Seeder
     public function run(): void
     {
         Event::create([
-            'name' => 'SBY Art Community',
+            'name' => 'Pelantikan IKAISMEI',
+        ]);
+        
+        Event::create([
+            'name' => 'Seminar IKAISMEI',
         ]);
     }
 }
