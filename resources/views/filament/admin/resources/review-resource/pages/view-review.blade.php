@@ -137,11 +137,11 @@
         </div>
     </div>
 
-    {{-- Comment --}}
+    {{-- Comment - FIXED CONTRAST --}}
     <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
         <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Komentar</h3>
-        <div class="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-            <p class="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{{ $record->comment }}</p>
+        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+            <p class="text-base text-gray-900 dark:text-gray-100 leading-relaxed whitespace-pre-wrap">{{ $record->comment }}</p>
         </div>
     </div>
 

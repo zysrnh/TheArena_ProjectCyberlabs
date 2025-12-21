@@ -33,7 +33,7 @@ class ReviewResource extends Resource
     {
         return $table
             ->columns([
-                // ✅ Status Badge
+                // Status Badge
                 Tables\Columns\BadgeColumn::make('is_approved')
                     ->label('Status')
                     ->formatStateUsing(fn (bool $state): string => $state ? 'Approved' : 'Pending')
@@ -47,52 +47,45 @@ class ReviewResource extends Resource
                     ])
                     ->sortable(),
 
+                // Client Name
                 Tables\Columns\TextColumn::make('client.name')
                     ->label('Client')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (Review $record): string => $record->client->email ?? '')
-                    ->weight('bold'),
+                    ->weight('semibold'),
 
-                // ✅ Update Rating Column - tampilkan semua rating
-                Tables\Columns\Layout\Split::make([
-                    Tables\Columns\TextColumn::make('rating_facilities')
-                        ->label('Fasilitas')
-                        ->formatStateUsing(fn (int $state): string => str_repeat('⭐', $state))
-                        ->size('sm'),
-                    
-                    Tables\Columns\TextColumn::make('rating_hospitality')
-                        ->label('Keramahan')
-                        ->formatStateUsing(fn (int $state): string => str_repeat('⭐', $state))
-                        ->size('sm'),
-                    
-                    Tables\Columns\TextColumn::make('rating_cleanliness')
-                        ->label('Kebersihan')
-                        ->formatStateUsing(fn (int $state): string => str_repeat('⭐', $state))
-                        ->size('sm'),
-                ])->from('md'),
-
-                Tables\Columns\TextColumn::make('comment')
-                    ->label('Komentar')
-                    ->limit(80)
+                // Client Email
+                Tables\Columns\TextColumn::make('client.email')
+                    ->label('Email')
                     ->searchable()
-                    ->wrap()
-                    ->tooltip(fn (Review $record): string => $record->comment),
+                    ->color('gray')
+                    ->toggleable(),
 
+                // Rating Rata-rata (Prominently displayed)
+                Tables\Columns\TextColumn::make('rating')
+                    ->label('Rating')
+                    ->formatStateUsing(fn ($state): string => '⭐ ' . number_format($state, 1) . '/5')
+                    ->badge()
+                    ->color('warning')
+                    ->sortable(),
+
+                // Booking Date
                 Tables\Columns\TextColumn::make('booking.booking_date')
-                    ->label('Tanggal Booking')
+                    ->label('Tgl Booking')
                     ->date('d M Y')
                     ->sortable()
                     ->placeholder('-')
                     ->toggleable(),
 
+                // Approved Date
                 Tables\Columns\TextColumn::make('approved_at')
                     ->label('Disetujui')
                     ->dateTime('d M Y H:i')
                     ->sortable()
                     ->placeholder('Belum disetujui')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
+                // Created Date
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y H:i')
@@ -102,26 +95,27 @@ class ReviewResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                // ✅ Filter Status Approval
+                // Filter Status
                 Tables\Filters\SelectFilter::make('is_approved')
                     ->label('Status')
                     ->options([
-                        true => 'Approved',
-                        false => 'Pending',
+                        '1' => '✓ Approved',
+                        '0' => '⏱ Pending',
                     ])
-                    ->default(false), // Default show pending reviews
+                    ->placeholder('Semua Status'),
 
-                Tables\Filters\SelectFilter::make('rating_facilities')
-                    ->label('Rating Fasilitas')
+                // Filter Average Rating
+                Tables\Filters\SelectFilter::make('rating')
+                    ->label('Rating Rata-rata')
                     ->options([
-                        1 => '⭐ 1 Star',
-                        2 => '⭐⭐ 2 Stars',
-                        3 => '⭐⭐⭐ 3 Stars',
-                        4 => '⭐⭐⭐⭐ 4 Stars',
-                        5 => '⭐⭐⭐⭐⭐ 5 Stars',
-                    ])
-                    ->multiple(),
+                        5 => '⭐⭐⭐⭐⭐ Excellent (5)',
+                        4 => '⭐⭐⭐⭐ Good (4)',
+                        3 => '⭐⭐⭐ Average (3)',
+                        2 => '⭐⭐ Poor (2)',
+                        1 => '⭐ Bad (1)',
+                    ]),
 
+                // Date Range Filter
                 Tables\Filters\Filter::make('created_at')
                     ->form([
                         Forms\Components\DatePicker::make('created_from')
@@ -142,7 +136,18 @@ class ReviewResource extends Resource
                     }),
             ])
             ->actions([
-                // ✅ Action Approve/Reject
+                // View Detail
+                Tables\Actions\ViewAction::make()
+                    ->label('Detail')
+                    ->modalHeading('Detail Review')
+                    ->modalWidth('2xl')
+                    ->slideOver()
+                    ->modalContent(fn (Review $record): \Illuminate\Contracts\View\View => view(
+                        'filament.admin.resources.review-resource.pages.view-review',
+                        ['record' => $record->load('client', 'booking')]
+                    )),
+
+                // Approve Action
                 Tables\Actions\Action::make('approve')
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
@@ -166,6 +171,7 @@ class ReviewResource extends Resource
                             ->send();
                     }),
 
+                // Reject Action
                 Tables\Actions\Action::make('reject')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
@@ -188,25 +194,16 @@ class ReviewResource extends Resource
                             ->body('Review telah ditolak dan disembunyikan.')
                             ->send();
                     }),
-
-                Tables\Actions\ViewAction::make()
-                    ->modalHeading('Detail Review')
-                    ->modalWidth('2xl')
-                    ->slideOver()
-                    ->modalContent(fn (Review $record): \Illuminate\Contracts\View\View => view(
-                        'filament.admin.resources.review-resource.pages.view-review',
-                        ['record' => $record->load('client', 'booking')]
-                    )),
                     
                 Tables\Actions\DeleteAction::make()
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Review')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus review ini? Tindakan ini tidak dapat dibatalkan.')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus review ini?')
                     ->modalSubmitActionLabel('Ya, Hapus'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // ✅ Bulk Approve
+                    // Bulk Approve
                     Tables\Actions\BulkAction::make('approve')
                         ->label('Approve Selected')
                         ->icon('heroicon-o-check-circle')
@@ -227,10 +224,7 @@ class ReviewResource extends Resource
                         }),
 
                     Tables\Actions\DeleteBulkAction::make()
-                        ->requiresConfirmation()
-                        ->modalHeading('Hapus Review Terpilih')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus semua review yang dipilih?')
-                        ->modalSubmitActionLabel('Ya, Hapus Semua'),
+                        ->requiresConfirmation(),
                 ]),
             ]);
     }
@@ -252,7 +246,7 @@ class ReviewResource extends Resource
         return false;
     }
 
-    // ✅ Badge untuk pending reviews
+    // Badge untuk pending reviews
     public static function getNavigationBadge(): ?string
     {
         $pendingCount = static::getModel()::where('is_approved', false)->count();
