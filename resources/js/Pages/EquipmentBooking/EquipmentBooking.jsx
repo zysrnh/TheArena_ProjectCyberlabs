@@ -184,13 +184,9 @@ export default function EquipmentBooking() {
 
                   {/* Content Section */}
                   <div className="bg-[#013064] text-white p-6 md:p-6 lg:p-10 xl:p-12 flex flex-col justify-center">
-                    <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold mb-3 md:mb-4">
+                    <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold mb-4 md:mb-6">
                       {equipment.name}
                     </h3>
-                    <p className="text-lg md:text-xl lg:text-2xl font-bold text-white mb-3 md:mb-4">
-                      {equipment.formatted_price}
-                      <span className="text-sm font-normal text-gray-300">/item</span>
-                    </p>
                     <p className="text-gray-300 text-sm md:text-base mb-4 md:mb-6 leading-relaxed break-words whitespace-normal" style={{ maxWidth: '40ch' }}>
                       {truncateDescription(equipment.description, 50)}
                     </p>

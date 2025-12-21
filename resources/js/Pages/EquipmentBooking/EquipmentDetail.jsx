@@ -79,32 +79,10 @@ export default function EquipmentDetail() {
   const handleAdminSelect = (phone) => {
     const message = `Halo, saya ingin menyewa peralatan:%0A%0A` +
       `Atas Nama: ${auth.client.name}%0A` +
-      `Barang yang akan dibooking: ${equipment.name}%0A` +
-      `Harga: ${equipment.formatted_price}/item%0A%0A` +
+      `Barang yang akan dibooking: ${equipment.name}%0A%0A` +
       `Saya ingin mendapatkan informasi lebih lanjut tentang cara booking dan ketersediaan.`;
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
     setShowAdminModal(false);
-  };
-
-  const formatDescription = (text, maxChars = 50) => {
-    if (!text) return '';
-    
-    const words = text.split(' ');
-    let lines = [];
-    let currentLine = '';
-    
-    words.forEach(word => {
-      if ((currentLine + word).length > maxChars) {
-        if (currentLine) lines.push(currentLine.trim());
-        currentLine = word + ' ';
-      } else {
-        currentLine += word + ' ';
-      }
-    });
-    
-    if (currentLine) lines.push(currentLine.trim());
-    
-    return lines.join('\n');
   };
 
   return (
@@ -385,9 +363,8 @@ export default function EquipmentDetail() {
               {/* Booking Box */}
               <div>
                 <div className="bg-[#003f84] p-6 lg:p-8">
-                  <h3 className="text-white text-2xl lg:text-3xl font-bold mb-8">
-                    {equipment.formatted_price}
-                    <span className="text-sm lg:text-base font-normal">/item</span>
+                  <h3 className="text-white text-xl lg:text-2xl font-bold mb-6">
+                    Tertarik dengan peralatan ini?
                   </h3>
 
                   <button
@@ -425,11 +402,7 @@ export default function EquipmentDetail() {
                       </div>
                       
                       <div className="flex-1 w-full">
-                        <h3 className="text-white text-xl sm:text-2xl font-bold mb-2">{item.name}</h3>
-                        <p className="text-white text-lg sm:text-xl font-semibold mb-3">
-                          {item.formatted_price}
-                          <span className="text-sm font-normal">/item</span>
-                        </p>
+                        <h3 className="text-white text-xl sm:text-2xl font-bold mb-3">{item.name}</h3>
                         {/* Mobile: Truncated description */}
                         <p className="text-white text-sm mb-4 leading-relaxed break-words whitespace-normal sm:hidden">
                           {truncateDescription(item.description, 100)}
