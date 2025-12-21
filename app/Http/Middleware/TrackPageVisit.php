@@ -6,30 +6,36 @@ use Closure;
 use App\Models\PageVisit;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class TrackPageVisit
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Hanya track GET requests dan bukan ajax/livewire
-        if ($request->isMethod('GET') && !$request->ajax() && !$request->header('X-Livewire')) {
-            // Cek apakah sudah visit dalam 30 menit terakhir (hindari spam)
-            $recentVisit = PageVisit::where('session_id', session()->getId())
-                ->where('url', $request->fullUrl())
-                ->where('visited_at', '>', Carbon::now()->subMinutes(30))
-                ->exists();
+        // Hanya track GET requests dan bukan ajax/livewire/assets
+        if ($request->isMethod('GET') 
+            && !$request->ajax() 
+            && !$request->header('X-Livewire')
+            && !str_starts_with($request->path(), 'livewire')
+            && !str_starts_with($request->path(), 'filament/assets')
+        ) {
+            $today = now()->format('Y-m-d');
+            $sessionId = session()->getId();
+            $cacheKey = "visit_tracked_{$today}_{$sessionId}";
 
-            if (!$recentVisit) {
-                PageVisit::create([
-                    'client_id' => auth()->guard('web')->id(), // NULL jika anonim
-                    'ip_address' => $request->ip(),
-                    'url' => $request->fullUrl(),
-                    'method' => $request->method(),
-                    'user_agent' => $request->userAgent(),
-                    'session_id' => session()->getId(),
-                    'visited_at' => now(),
-                ]);
+            // Cek apakah session ini sudah di-track hari ini
+            if (!Cache::has($cacheKey)) {
+                // Update atau create daily visit record
+                $dailyVisit = PageVisit::firstOrCreate(
+                    ['visit_date' => $today],
+                    ['total_visits' => 0]
+                );
+
+                // Increment total visits
+                $dailyVisit->increment('total_visits');
+
+                // Cache selama 24 jam (sampai besok)
+                Cache::put($cacheKey, true, now()->endOfDay());
             }
         }
 

@@ -3,28 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PageVisit extends Model
 {
-    public $timestamps = false;
+    public $timestamps = true; // Pake created_at & updated_at
     
     protected $fillable = [
-        'client_id',
-        'ip_address',
-        'url',
-        'method',
-        'user_agent',
-        'session_id',
-        'visited_at',
+        'visit_date',
+        'total_visits',
+        'ip_address', // Optional, bisa null
     ];
 
     protected $casts = [
-        'visited_at' => 'datetime',
+        'visit_date' => 'date',
     ];
-
-    public function client(): BelongsTo
-    {
-        return $this->belongsTo(Client::class);
-    }
 }
