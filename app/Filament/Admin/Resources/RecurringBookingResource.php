@@ -76,7 +76,10 @@ class RecurringBookingResource extends Resource
                             ->label('Periode Bulan')
                             ->options(function () {
                                 $months = [];
-                                for ($i = 0; $i < 3; $i++) {
+                                $currentYear = Carbon::now()->year;
+                                
+                                // Generate 12 bulan dari bulan sekarang
+                                for ($i = 0; $i < 12; $i++) {
                                     $date = Carbon::now()->addMonths($i);
                                     $months[$date->format('Y-m')] = $date->format('F Y');
                                 }
@@ -323,7 +326,21 @@ class RecurringBookingResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                // Modal View Action - FIXED!
+                Tables\Actions\Action::make('view_details')
+                    ->label('Lihat Detail')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->modalHeading(fn (Booking $record): string => 'Detail Booking Rutin #' . $record->id)
+                    ->modalContent(fn (Booking $record): \Illuminate\View\View => view(
+                        'filament.admin.resources.recurring-booking.view-modal',
+                        ['record' => $record]
+                    ))
+                    ->modalWidth('2xl')
+                    ->slideOver()
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close'),
+                
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => $record->status === 'pending'),
                 Tables\Actions\DeleteAction::make(),
