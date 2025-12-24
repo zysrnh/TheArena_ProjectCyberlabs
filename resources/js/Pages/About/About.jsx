@@ -208,6 +208,65 @@ export default function About() {
           </div>
         </div>
 
+        {/* Lapangan Kami Section - STATIC */}
+        <div className="grid md:grid-cols-2">
+          {/* Left Section - Image */}
+          <div className="relative h-[350px] md:h-[400px] lg:h-[450px]">
+            <img
+              src="https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200"
+              alt="Lapangan Basket The Arena"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Right Section - Content */}
+          <div className="bg-[#003f84] text-white p-6 md:p-10 lg:p-14 flex flex-col justify-center">
+            <h2 className="text-white text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 leading-tight">
+              Lapangan Kami
+            </h2>
+            
+            <div className="space-y-3 md:space-y-4 text-gray-200 text-xs md:text-sm lg:text-base leading-relaxed">
+              <p>
+                The Arena Basketball memiliki 4 lapangan basket berstandar internasional FIBA dengan jam operasional setiap hari:
+              </p>
+              <p className="text-lg md:text-xl font-semibold text-[#ffd22f]">
+                06.00 – 22.00 WIB
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* The Arena PVJ Section - STATIC */}
+        <div className="grid md:grid-cols-2">
+          {/* Left Section - Content */}
+          <div className="bg-[#003f84] text-white p-6 md:p-10 lg:p-14 flex flex-col justify-center order-2 md:order-1">
+            <h2 className="text-white text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 leading-tight">
+              The Arena PVJ
+            </h2>
+            <p className="text-[#ffd22f] text-base md:text-lg font-semibold mb-3 md:mb-4">
+              Basketball Courts & Healthy Lifestyle Space
+            </p>
+            
+            <div className="space-y-3 md:space-y-4 text-gray-200 text-xs md:text-sm lg:text-base leading-relaxed">
+              <p>
+                The Arena PVJ berlokasi di Paris Van Java Mall, Lantai P13, Bandung. Tersedia 1 lapangan basket indoor dengan material kayu jati berkualitas, memberikan pengalaman bermain yang optimal.
+              </p>
+              <p>
+                Kami mengundang Anda untuk merasakan pengalaman berolahraga di fasilitas terbaik yang dapat disesuaikan dengan kebutuhan latihan maupun acara.
+              </p>
+            </div>
+          </div>
+
+          {/* Right Section - Image */}
+          <div className="relative h-[350px] md:h-[400px] lg:h-[450px] order-1 md:order-2">
+            <img
+              src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?w=1200"
+              alt="The Arena PVJ"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
         {/* Fasilitas Section - Grid DYNAMIC dari Database */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {Array.isArray(facilities) && facilities.length > 0 ? (

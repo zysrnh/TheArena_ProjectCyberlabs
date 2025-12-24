@@ -72,28 +72,28 @@ export default function HomePage() {
   const totalReviewPages = Math.ceil(reviewsList.length / reviewsPerPage);
 
   // ✅ Get current facilities to display (3 items)
-  const currentFacilities = facilities.length > 0 
+  const currentFacilities = facilities.length > 0
     ? facilities.slice(currentFacilityIndex * 3, currentFacilityIndex * 3 + 3)
     : [
-        {
-          id: 1,
-          name: 'Makanan & Minuman',
-          image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
-          description: 'Nikmati berbagai pilihan makanan dan minuman'
-        },
-        {
-          id: 2,
-          name: 'Penitipan Barang',
-          image: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=800',
-          description: 'Loker aman untuk barang berharga Anda'
-        },
-        {
-          id: 3,
-          name: 'Toilet dan Kamar Mandi',
-          image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=800',
-          description: 'Fasilitas bersih dan terawat'
-        }
-      ];
+      {
+        id: 1,
+        name: 'Makanan & Minuman',
+        image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
+        description: 'Nikmati berbagai pilihan makanan dan minuman'
+      },
+      {
+        id: 2,
+        name: 'Penitipan Barang',
+        image: 'https://images.unsplash.com/photo-1586985289688-ca3cf47d3e6e?w=800',
+        description: 'Loker aman untuk barang berharga Anda'
+      },
+      {
+        id: 3,
+        name: 'Toilet dan Kamar Mandi',
+        image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=800',
+        description: 'Fasilitas bersih dan terawat'
+      }
+    ];
 
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
@@ -210,25 +210,42 @@ export default function HomePage() {
     {
       title: "BOOKING LAPANGAN SEKARANG!",
       subtitle: "The Arena Basketball",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+      description: (
+        <>
+          The Arena menghadirkan <strong>4 lapangan basket</strong> yang tersebar di Kota Bandung dengan pilihan <strong>indoor dan semi-indoor</strong>, menggunakan material <strong>berstandar FIBA</strong> (kayu & vinyl). Tidak hanya untuk bermain, The Arena juga menyediakan <strong>penyewaan perlengkapan basket</strong> serta jasa penyelenggaraan event untuk mendukung kebutuhan latihan, komunitas, hingga turnamen basket.
+        </>
+      ),
       image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200",
     },
     {
-      title: "FASILITAS TERBAIK UNTUK ANDA!",
+      title: "PENYEWAAN LAPANGAN BASKET",
       subtitle: "The Arena Basketball",
-      description:
-        "Nikmati pengalaman bermain basket dengan fasilitas lengkap dan modern. Lapangan standar internasional dengan pencahayaan optimal untuk permainan terbaik Anda.",
-      image:
-        "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200",
+      description: (
+        <>
+          Lapangan basket The Arena dapat digunakan untuk <strong>latihan mandiri, aktivitas komunitas, sekolah, hingga event basket.</strong> Seluruh lapangan dirawat dengan baik dan berada di lingkungan yang aman serta nyaman.
+        </>
+      ),
+      image: "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200",
     },
     {
-      title: "JADWALKAN PERTANDINGAN ANDA!",
+      title: "PENYEWAAN PERLENGKAPAN BASKET",
       subtitle: "The Arena Basketball",
-      description:
-        "Tersedia berbagai pilihan waktu untuk latihan tim, pertandingan persahabatan, atau turnamen. Booking mudah dan cepat melalui sistem online kami.",
-      image:
-        "https://images.unsplash.com/photo-1608245449230-4ac19066d2d0?w=1200",
+      description: (
+        <>
+          Selain lapangan, The Arena juga menyediakan berbagai <strong>peralatan dan perlengkapan basket</strong> yang dapat disewa secara <strong>praktis dan fleksibel,</strong> sehingga pengguna tidak perlu repot menyiapkan sendiri.
+        </>
+      ),
+      image: "https://images.unsplash.com/photo-1608245449230-4ac19066d2d0?w=1200",
+    },
+    {
+      title: "PENYELENGGARAAN ACARA BASKET",
+      subtitle: "The Arena Basketball",
+      description: (
+        <>
+          Sebagai bagian dari ekosistem basket di Bandung, The Arena tidak hanya menjadi tempat bermain, tetapi juga <strong>ruang berkumpul dan berkompetisi bagi komunitas basket.</strong> Kami menyediakan layanan <strong>penyelenggaraan acara basket,</strong> mulai dari friendly match hingga turnamen berskala besar.
+        </>
+      ),
+      image: "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200",
     },
   ];
 
@@ -455,10 +472,7 @@ export default function HomePage() {
                 Penyewaan Lapangan Basket
               </h2>
               <p className="text-gray-300 text-sm md:text-base mb-6 md:mb-8 leading-relaxed">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-                enim ad minim veniam, quis nostrud exercitation ullamco laboris
-                nisi ut aliquip ex ea commodo consequat.
+                Lapangan basket The Arena dapat digunakan untuk <strong className="text-white">latihan mandiri, aktivitas komunitas, sekolah, hingga event basket.</strong> Seluruh lapangan dirawat dengan baik dan berada di lingkungan yang aman serta nyaman.
               </p>
               <Link href="/booking">
                 <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
@@ -479,10 +493,7 @@ export default function HomePage() {
                 Penyewaan Perlengkapan Basket
               </h2>
               <p className="text-gray-300 text-sm md:text-base mb-6 md:mb-8 leading-relaxed">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-                enim ad minim veniam, quis nostrud exercitation ullamco laboris
-                nisi ut aliquip ex ea commodo consequat.
+                Selain lapangan, The Arena juga menyediakan berbagai <strong>peralatan dan perlengkapan basket</strong> yang dapat disewa secara <strong>praktis dan fleksibel,</strong> sehingga pengguna tidak perlu repot menyiapkan sendiri.
               </p>
               <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit"
                 onClick={() => router.visit('/booking-peralatan')}>
@@ -518,10 +529,7 @@ export default function HomePage() {
                 Penyewaan Acara Basket
               </h2>
               <p className="text-gray-300 text-sm md:text-base mb-6 md:mb-8 leading-relaxed">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-                enim ad minim veniam, quis nostrud exercitation ullamco laboris
-                nisi ut aliquip ex ea commodo consequat.
+                Sebagai bagian dari ekosistem basket di Bandung, The Arena tidak hanya menjadi tempat bermain, tetapi juga <strong>ruang berkumpul dan berkompetisi bagi komunitas basket.</strong> Kami menyediakan layanan <strong>penyelenggaraan acara basket,</strong> mulai dari friendly match hingga turnamen berskala besar.
               </p>
               <Link href="/kontak">
                 <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
@@ -678,8 +686,8 @@ export default function HomePage() {
                         key={idx}
                         onClick={() => setCurrentReviewPage(idx)}
                         className={`w-2 h-2 rounded-full transition-all ${idx === currentReviewPage
-                            ? 'bg-[#ffd22f] w-8'
-                            : 'bg-white/30 hover:bg-white/50'
+                          ? 'bg-[#ffd22f] w-8'
+                          : 'bg-white/30 hover:bg-white/50'
                           }`}
                       />
                     ))}
@@ -784,12 +792,12 @@ export default function HomePage() {
           </div>
         </div>
 
-     {/* Fasilitas Section - RESPONSIVE & DYNAMIC */}
+        {/* Fasilitas Section - RESPONSIVE & DYNAMIC */}
         <div className="bg-white">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {currentFacilities.length > 0 ? (
               currentFacilities.map((facility) => (
-                <div 
+                <div
                   key={facility.id}
                   className="group cursor-pointer overflow-hidden relative h-[280px] md:h-[320px] lg:h-[350px]"
                 >
@@ -833,167 +841,163 @@ export default function HomePage() {
             )}
           </div>
         </div>
-        
+
         <div className="bg-[#ffd22f] py-6">
           <div className="max-w-7xl mx-auto px-4 flex justify-end items-center gap-4"></div>
         </div>
-{/* Jadwal Pertandingan Section - UPDATED TO MATCH MatchPage */}
-<div className="bg-[#013064] py-12 md:py-16 px-4">
-  <div className="max-w-7xl mx-auto">
-    {/* Section Header with Filter Buttons */}
-    <div className="text-center mb-8 md:mb-12">
-      <p className="text-[#ffd22f] text-base md:text-xl lg:text-2xl font-semibold mb-2 md:mb-3">
-        Jadwal
-      </p>
-      <h2 className="text-white text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8">
-        Jadwal Pertandingan Basket
-      </h2>
+        {/* Jadwal Pertandingan Section - UPDATED TO MATCH MatchPage */}
+        <div className="bg-[#013064] py-12 md:py-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Section Header with Filter Buttons */}
+            <div className="text-center mb-8 md:mb-12">
+              <p className="text-[#ffd22f] text-base md:text-xl lg:text-2xl font-semibold mb-2 md:mb-3">
+                Jadwal
+              </p>
+              <h2 className="text-white text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8">
+                Jadwal Pertandingan Basket
+              </h2>
 
-      {/* Filter Buttons - Updated Design */}
-      <div className="flex flex-wrap justify-center gap-0 mb-8">
-        <button
-          onClick={() => handleFilterChange('all')}
-          className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all ${
-            filter === 'all'
-              ? 'bg-[#ffd22f] text-[#013064]'
-              : 'bg-[#013064] text-white border border-white hover:bg-white/10'
-          }`}
-        >
-          Semua
-        </button>
-        <button
-          onClick={() => handleFilterChange('live')}
-          className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all border-l-0 ${
-            filter === 'live'
-              ? 'bg-[#ffd22f] text-[#013064]'
-              : 'bg-[#013064] text-white border border-white hover:bg-white/10'
-          }`}
-        >
-          Pertandingan Berlangsung
-        </button>
-        <button
-          onClick={() => handleFilterChange('upcoming')}
-          className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all border-l-0 ${
-            filter === 'upcoming'
-              ? 'bg-[#ffd22f] text-[#013064]'
-              : 'bg-[#013064] text-white border border-white hover:bg-white/10'
-          }`}
-        >
-          Pertandingan Berikutnya
-        </button>
-      </div>
-    </div>
-
-    {/* Match Cards Grid - UPDATED TO MATCH MatchPage DESIGN */}
-    {homeMatches && homeMatches.length > 0 ? (
-      <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
-        {homeMatches.map((match) => (
-          <Link key={match.id} href={`/jadwal-hasil/${match.id}`}>
-            <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[250px] md:min-h-[300px] flex flex-col">
-              <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
-                {/* Team 1 */}
-                <div className="flex flex-col items-center justify-center flex-1">
-                  <img
-                    src={match.team1.logo}
-                    alt={match.team1.name}
-                    className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
-                    onError={(e) => {
-                      e.target.src = '/images/default-team-logo.png';
-                    }}
-                  />
-                  <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                    {match.team1.name}
-                  </p>
-                  {match.team1.category && (
-                    <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-                      {match.team1.category.name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Match Info */}
-                <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
-                  {/* League/Competition - Above Badge */}
-                  <p className="text-sm md:text-base font-bold text-gray-800 mb-2 text-center">
-                    {match.league}
-                  </p>
-
-                  {/* Status Badge */}
-                  <div className="mb-1.5">
-                    <span
-                      className={`px-2.5 py-1 text-xs font-bold uppercase ${
-                        match.type === 'live'
-                          ? 'bg-red-600 text-white'
-                          : match.type === 'upcoming'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-600 text-white'
-                      }`}
-                    >
-                      {match.type === 'live'
-                        ? 'Live'
-                        : match.type === 'upcoming'
-                        ? 'Upcoming Match'
-                        : 'Selesai'}
-                    </span>
-                  </div>
-
-                  <p className="text-sm md:text-base font-bold text-gray-900 text-center">
-                    {match.date}
-                  </p>
-                  <p className="text-[11px] md:text-xs text-gray-600 mb-2.5 tracking-wider">
-                    {match.time}
-                  </p>
-                  {match.score ? (
-                    <p className="text-2xl md:text-3xl font-bold text-[#013064]">
-                      {match.score}
-                    </p>
-                  ) : (
-                    <p className="text-base md:text-lg font-medium text-gray-400">
-                      - vs -
-                    </p>
-                  )}
-                </div>
-
-                {/* Team 2 */}
-                <div className="flex flex-col items-center justify-center flex-1">
-                  <img
-                    src={match.team2.logo}
-                    alt={match.team2.name}
-                    className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
-                    onError={(e) => {
-                      e.target.src = '/images/default-team-logo.png';
-                    }}
-                  />
-                  <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                    {match.team2.name}
-                  </p>
-                  {match.team2.category && (
-                    <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-                      {match.team2.category.name}
-                    </p>
-                  )}
-                </div>
+              {/* Filter Buttons - Updated Design */}
+              <div className="flex flex-wrap justify-center gap-0 mb-8">
+                <button
+                  onClick={() => handleFilterChange('all')}
+                  className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all ${filter === 'all'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    }`}
+                >
+                  Semua
+                </button>
+                <button
+                  onClick={() => handleFilterChange('live')}
+                  className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all border-l-0 ${filter === 'live'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    }`}
+                >
+                  Pertandingan Berlangsung
+                </button>
+                <button
+                  onClick={() => handleFilterChange('upcoming')}
+                  className={`px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all border-l-0 ${filter === 'upcoming'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    }`}
+                >
+                  Pertandingan Berikutnya
+                </button>
               </div>
             </div>
-          </Link>
-        ))}
-      </div>
-    ) : (
-      <div className="text-center py-12">
-        <p className="text-white text-xl">Tidak ada pertandingan tersedia</p>
-      </div>
-    )}
 
-    {/* Button Lihat Lebih Banyak */}
-    <div className="text-center mt-8">
-      <Link href="/jadwal-hasil">
-        <button className="bg-[#ffd22f] text-[#013064] px-10 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-bold hover:bg-[#ffe066] transition">
-          Lihat Lebih Banyak
-        </button>
-      </Link>
-    </div>
-  </div>
-</div>
+            {/* Match Cards Grid - UPDATED TO MATCH MatchPage DESIGN */}
+            {homeMatches && homeMatches.length > 0 ? (
+              <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
+                {homeMatches.map((match) => (
+                  <Link key={match.id} href={`/jadwal-hasil/${match.id}`}>
+                    <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[250px] md:min-h-[300px] flex flex-col">
+                      <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
+                        {/* Team 1 */}
+                        <div className="flex flex-col items-center justify-center flex-1">
+                          <img
+                            src={match.team1.logo}
+                            alt={match.team1.name}
+                            className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
+                            onError={(e) => {
+                              e.target.src = '/images/default-team-logo.png';
+                            }}
+                          />
+                          <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                            {match.team1.name}
+                          </p>
+                          {match.team1.category && (
+                            <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                              {match.team1.category.name}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Match Info */}
+                        <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
+                          {/* League/Competition - Above Badge */}
+                          <p className="text-sm md:text-base font-bold text-gray-800 mb-2 text-center">
+                            {match.league}
+                          </p>
+
+                          {/* Status Badge */}
+                          <div className="mb-1.5">
+                            <span
+                              className={`px-2.5 py-1 text-xs font-bold uppercase ${match.type === 'live'
+                                ? 'bg-red-600 text-white'
+                                : match.type === 'upcoming'
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-gray-600 text-white'
+                                }`}
+                            >
+                              {match.type === 'live'
+                                ? 'Live'
+                                : match.type === 'upcoming'
+                                  ? 'Upcoming Match'
+                                  : 'Selesai'}
+                            </span>
+                          </div>
+
+                          <p className="text-sm md:text-base font-bold text-gray-900 text-center">
+                            {match.date}
+                          </p>
+                          <p className="text-[11px] md:text-xs text-gray-600 mb-2.5 tracking-wider">
+                            {match.time}
+                          </p>
+                          {match.score ? (
+                            <p className="text-2xl md:text-3xl font-bold text-[#013064]">
+                              {match.score}
+                            </p>
+                          ) : (
+                            <p className="text-base md:text-lg font-medium text-gray-400">
+                              - vs -
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Team 2 */}
+                        <div className="flex flex-col items-center justify-center flex-1">
+                          <img
+                            src={match.team2.logo}
+                            alt={match.team2.name}
+                            className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
+                            onError={(e) => {
+                              e.target.src = '/images/default-team-logo.png';
+                            }}
+                          />
+                          <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                            {match.team2.name}
+                          </p>
+                          {match.team2.category && (
+                            <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                              {match.team2.category.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-white text-xl">Tidak ada pertandingan tersedia</p>
+              </div>
+            )}
+
+            {/* Button Lihat Lebih Banyak */}
+            <div className="text-center mt-8">
+              <Link href="/jadwal-hasil">
+                <button className="bg-[#ffd22f] text-[#013064] px-10 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-bold hover:bg-[#ffe066] transition">
+                  Lihat Lebih Banyak
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
         {/* Live Streaming Section - RESPONSIVE */}
         <div className="bg-[#002855] py-12 px-4">
           <div className="max-w-7xl mx-auto">
