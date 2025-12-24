@@ -24,13 +24,13 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
       week: filterName === 'week' ? value : weekOffset,
       month: filterName === 'month' ? value : selectedMonth,
     };
-    
+
     // Handle year filter
     const yearValue = filterName === 'year' ? value : selectedYear;
     if (yearValue && yearValue !== '') {
       params.year = yearValue;
     }
-    
+
     router.get('/jadwal-hasil', params, {
       preserveState: true,
       preserveScroll: true,
@@ -73,7 +73,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
   // Handle search
   const handleSearch = (e) => {
     e.preventDefault();
-    
+
     const params = {
       series: selectedSeries,
       region: selectedRegion,
@@ -82,11 +82,11 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
       week: weekOffset,
       month: selectedMonth,
     };
-    
+
     if (selectedYear && selectedYear !== '') {
       params.year = selectedYear;
     }
-    
+
     router.get('/jadwal-hasil', params, {
       preserveState: true,
       preserveScroll: true,
@@ -132,7 +132,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
               <div className="flex flex-wrap gap-2">
                 {/* Year Dropdown */}
                 <div className="relative">
-                  <select 
+                  <select
                     value={selectedYear}
                     onChange={(e) => {
                       setSelectedYear(e.target.value);
@@ -149,7 +149,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
 
                 {/* Series Dropdown */}
                 <div className="relative">
-                  <select 
+                  <select
                     value={selectedSeries}
                     onChange={(e) => {
                       setSelectedSeries(e.target.value);
@@ -167,7 +167,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
 
                 {/* Region Dropdown */}
                 <div className="relative">
-                  <select 
+                  <select
                     value={selectedRegion}
                     onChange={(e) => {
                       setSelectedRegion(e.target.value);
@@ -273,32 +273,29 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                       setSelectedDate(date.full_date);
                       handleFilterChange('date', date.full_date);
                     }}
-                    className={`cursor-pointer transition-all overflow-hidden ${
-                      selectedDate === date.full_date
+                    className={`cursor-pointer transition-all overflow-hidden ${selectedDate === date.full_date
                         ? 'ring-4 ring-[#ffd22f] shadow-lg'
                         : 'hover:ring-2 hover:ring-white/50'
-                    }`}
+                      }`}
                   >
                     <div className="py-3 px-4 bg-[#ffd22f]">
                       <p className="text-xs md:text-sm font-semibold text-[#013064] text-center">
                         {date.name}
                       </p>
                     </div>
-                    
-                    <div className={`py-4 px-4 ${
-                      selectedDate === date.full_date 
-                        ? 'bg-[#ffd22f]' 
+
+                    <div className={`py-4 px-4 ${selectedDate === date.full_date
+                        ? 'bg-[#ffd22f]'
                         : 'bg-white'
-                    }`}>
+                      }`}>
                       <p className="text-5xl font-bold text-[#013064] text-center mb-2">
                         {date.day}
                       </p>
                       <p className="text-xs text-[#013064] text-center mb-1">
                         {date.month}
                       </p>
-                      <p className={`text-[10px] md:text-xs font-semibold text-center ${
-                        date.matches > 0 ? 'text-green-600' : 'text-gray-500'
-                      }`}>
+                      <p className={`text-[10px] md:text-xs font-semibold text-center ${date.matches > 0 ? 'text-green-600' : 'text-gray-500'
+                        }`}>
                         {date.matches > 0 ? `${date.matches} Pertandingan` : 'Tidak ada'}
                       </p>
                     </div>
@@ -324,40 +321,39 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                       <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[250px] md:min-h-[300px] flex flex-col">
                         <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
                           {/* Team 1 - Logo + Category */}
-<div className="flex flex-col items-center justify-center flex-1">
-  <img
-    src={match.team1.logo}
-    alt={match.team1.name}
-    className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
-    onError={(e) => {
-      e.target.src = '/images/default-team-logo.png';
-    }}
-  />
-  <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-    {match.team1.name}
-  </p>
-  {match.team1.category && (
-    <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-      {match.team1.category.name}
-    </p>
-  )}
-</div>
+                          <div className="flex flex-col items-center justify-center flex-1">
+                            <img
+                              src={match.team1.logo}
+                              alt={match.team1.name}
+                              className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
+                              onError={(e) => {
+                                e.target.src = '/images/default-team-logo.png';
+                              }}
+                            />
+                            <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                              {match.team1.name}
+                            </p>
+                            {match.team1.category && (
+                              <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                                {match.team1.category.name}
+                              </p>
+                            )}
+                          </div>
 
                           {/* Match Info - Center */}
                           <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
                             {/* Status Badge */}
                             <div className="mb-1.5">
-                              <span className={`px-2.5 py-1 text-xs font-bold uppercase ${
-                                match.type === 'live' 
-                                  ? 'bg-red-600 text-white' 
+                              <span className={`px-2.5 py-1 text-xs font-bold uppercase ${match.type === 'live'
+                                  ? 'bg-red-600 text-white'
                                   : match.type === 'upcoming'
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-gray-600 text-white'
-                              }`}>
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-gray-600 text-white'
+                                }`}>
                                 {match.type === 'live' ? 'Live' : match.type === 'upcoming' ? 'Upcoming Match' : 'Selesai'}
                               </span>
                             </div>
-                            
+
                             <p className="text-[11px] text-gray-600 mb-1.5 text-center italic">
                               {match.league}
                             </p>
@@ -379,24 +375,24 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                           </div>
 
                           {/* Team 2 - Logo + Category */}
-<div className="flex flex-col items-center justify-center flex-1">
-  <img
-    src={match.team2.logo}
-    alt={match.team2.name}
-    className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
-    onError={(e) => {
-      e.target.src = '/images/default-team-logo.png';
-    }}
-  />
-  <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-    {match.team2.name}
-  </p>
-  {match.team2.category && (
-    <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-      {match.team2.category.name}
-    </p>
-  )}
-</div>
+                          <div className="flex flex-col items-center justify-center flex-1">
+                            <img
+                              src={match.team2.logo}
+                              alt={match.team2.name}
+                              className="w-24 h-24 md:w-32 md:h-32 lg:w-36 lg:h-36 object-contain mb-2"
+                              onError={(e) => {
+                                e.target.src = '/images/default-team-logo.png';
+                              }}
+                            />
+                            <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                              {match.team2.name}
+                            </p>
+                            {match.team2.category && (
+                              <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                                {match.team2.category.name}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Link>
@@ -410,7 +406,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                       let label = link.label;
                       if (label.includes('&laquo;')) label = '‹';
                       if (label.includes('&raquo;')) label = '›';
-                      
+
                       return (
                         <button
                           key={index}
@@ -423,13 +419,12 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                             }
                           }}
                           disabled={!link.url}
-                          className={`min-w-[40px] h-10 px-3 flex items-center justify-center rounded transition ${
-                            link.active
+                          className={`min-w-[40px] h-10 px-3 flex items-center justify-center rounded transition ${link.active
                               ? 'bg-[#ffd22f] text-[#013064] font-bold'
                               : link.url
-                              ? 'bg-white/20 hover:bg-white/30 text-white'
-                              : 'bg-white/10 text-white/50 cursor-not-allowed'
-                          }`}
+                                ? 'bg-white/20 hover:bg-white/30 text-white'
+                                : 'bg-white/10 text-white/50 cursor-not-allowed'
+                            }`}
                         >
                           {label}
                         </button>

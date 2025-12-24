@@ -882,83 +882,100 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Match Cards Grid - Updated Design */}
-            {homeMatches && homeMatches.length > 0 ? (
-              <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
-                {homeMatches.map((match) => (
-                  <Link key={match.id} href={`/jadwal-hasil/${match.id}`}>
-                    <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[240px] md:min-h-[280px] flex flex-col">
-                      <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
-                        {/* Team 1 - Logo Only, NO NAME */}
-                        <div className="flex flex-col items-center justify-center flex-1">
-                          <img
-                            src={match.team1.logo}
-                            alt={match.team1.name}
-                            className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain"
-                            onError={(e) => {
-                              e.target.src = '/images/default-team-logo.png';
-                            }}
-                          />
-                        </div>
+            {/* Match Cards Grid - Updated Design with Category */}
+{homeMatches && homeMatches.length > 0 ? (
+  <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
+    {homeMatches.map((match) => (
+      <Link key={match.id} href={`/jadwal-hasil/${match.id}`}>
+        <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[250px] md:min-h-[300px] flex flex-col">
+          <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
+            {/* Team 1 - Logo + Category */}
+            <div className="flex flex-col items-center justify-center flex-1">
+              <img
+                src={match.team1.logo}
+                alt={match.team1.name}
+                className="w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 object-contain mb-2"
+                onError={(e) => {
+                  e.target.src = '/images/default-team-logo.png';
+                }}
+              />
+              <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                {match.team1.name}
+              </p>
+              {match.team1.category && (
+                <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                  {match.team1.category.name}
+                </p>
+              )}
+            </div>
 
-                        {/* Match Info - Center */}
-                        <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
-                          {/* Status Badge - Above League Name */}
-                          <div className="mb-1.5">
-                            <span className={`px-2.5 py-1 text-xs font-bold uppercase ${match.type === 'live'
-                              ? 'bg-red-600 text-white'
-                              : match.type === 'upcoming'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-600 text-white'
-                              }`}>
-                              {match.type === 'live' ? 'Live' : match.type === 'upcoming' ? 'Upcoming Match' : 'Selesai'}
-                            </span>
-                          </div>
-
-                          <p className="text-[11px] text-gray-600 mb-1.5 text-center italic">
-                            {match.league}
-                          </p>
-                          <p className="text-sm md:text-base font-bold text-gray-900 text-center">
-                            {match.day}
-                          </p>
-                          <p className="text-sm md:text-base font-bold text-gray-900 text-center mb-1.5">
-                            {match.date}
-                          </p>
-                          <p className="text-[11px] md:text-xs text-gray-600 mb-2.5 tracking-wider">
-                            {match.time}
-                          </p>
-                          {match.score ? (
-                            <p className="text-2xl md:text-3xl font-bold text-[#013064]">
-                              {match.score}
-                            </p>
-                          ) : (
-                            <p className="text-base md:text-lg font-medium text-gray-400">
-                              - vs -
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Team 2 - Logo Only, NO NAME */}
-                        <div className="flex flex-col items-center justify-center flex-1">
-                          <img
-                            src={match.team2.logo}
-                            alt={match.team2.name}
-                            className="w-16 h-16 md:w-24 md:h-24 lg:w-28 lg:h-28 object-contain"
-                            onError={(e) => {
-                              e.target.src = '/images/default-team-logo.png';
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+            {/* Match Info - Center */}
+            <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
+              {/* Status Badge */}
+              <div className="mb-1.5">
+                <span className={`px-2.5 py-1 text-xs font-bold uppercase ${
+                  match.type === 'live'
+                    ? 'bg-red-600 text-white'
+                    : match.type === 'upcoming'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-600 text-white'
+                }`}>
+                  {match.type === 'live' ? 'Live' : match.type === 'upcoming' ? 'Upcoming Match' : 'Selesai'}
+                </span>
               </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-white text-xl">Belum ada jadwal pertandingan</p>
-              </div>
-            )}
+
+              <p className="text-[11px] text-gray-600 mb-1.5 text-center italic">
+                {match.league}
+              </p>
+              <p className="text-sm md:text-base font-bold text-gray-900 text-center">
+                {match.day}
+              </p>
+              <p className="text-sm md:text-base font-bold text-gray-900 text-center mb-1.5">
+                {match.date}
+              </p>
+              <p className="text-[11px] md:text-xs text-gray-600 mb-2.5 tracking-wider">
+                {match.time}
+              </p>
+              {match.score ? (
+                <p className="text-2xl md:text-3xl font-bold text-[#013064]">
+                  {match.score}
+                </p>
+              ) : (
+                <p className="text-base md:text-lg font-medium text-gray-400">
+                  - vs -
+                </p>
+              )}
+            </div>
+
+            {/* Team 2 - Logo + Category */}
+            <div className="flex flex-col items-center justify-center flex-1">
+              <img
+                src={match.team2.logo}
+                alt={match.team2.name}
+                className="w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 object-contain mb-2"
+                onError={(e) => {
+                  e.target.src = '/images/default-team-logo.png';
+                }}
+              />
+              <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+                {match.team2.name}
+              </p>
+              {match.team2.category && (
+                <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+                  {match.team2.category.name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </Link>
+    ))}
+  </div>
+) : (
+  <div className="text-center py-12">
+    <p className="text-white text-xl">Tidak ada pertandingan tersedia</p>
+  </div>
+)}
 
             {/* Button Lihat Lebih Banyak */}
             <div className="text-center mt-8">

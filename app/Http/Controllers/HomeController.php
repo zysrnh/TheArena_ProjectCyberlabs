@@ -60,7 +60,7 @@ class HomeController extends Controller
             $filter = $request->get('filter', 'all');
 
             // Build query based on filter
-            $query = Game::with(['team1', 'team2']);
+            $query = Game::with(['team1', 'team2', 'team1Category', 'team2Category']);
 
             if ($filter === 'live') {
                 $query->where('status', 'live');
@@ -85,19 +85,26 @@ class HomeController extends Controller
                         $type = 'finished';
                     }
 
+                    $team1Logo = $this->normalizeLogoPath($game->team1->logo ?? null, $game->team1->name ?? null);
+                    $team2Logo = $this->normalizeLogoPath($game->team2->logo ?? null, $game->team2->name ?? null);
+
                     return [
                         'id' => $game->id,
                         'team1' => [
                             'name' => $game->team1->name ?? 'Team 1',
-                            'logo' => $game->team1 && $game->team1->logo
-                                ? asset('storage/' . $game->team1->logo)
-                                : asset('images/default-team-logo.png'),
+                            'logo' => $team1Logo,
+                            'category' => $game->team1Category ? [
+                                'name' => $game->team1Category->category_name,
+                                'age_group' => $game->team1Category->age_group
+                            ] : null
                         ],
                         'team2' => [
                             'name' => $game->team2->name ?? 'Team 2',
-                            'logo' => $game->team2 && $game->team2->logo
-                                ? asset('storage/' . $game->team2->logo)
-                                : asset('images/default-team-logo.png'),
+                            'logo' => $team2Logo,
+                            'category' => $game->team2Category ? [
+                                'name' => $game->team2Category->category_name,
+                                'age_group' => $game->team2Category->age_group
+                            ] : null
                         ],
                         'type' => $type,
                         'league' => $game->league ?? 'League',
@@ -145,22 +152,18 @@ class HomeController extends Controller
                     ];
                 });
 
-            // ✅ PERBAIKAN: Handle gambar fasilitas - support URL & uploaded file
+            // Handle gambar fasilitas - support URL & uploaded file
             $facilities = Facility::active()
                 ->ordered()
                 ->get()
                 ->map(function ($facility) {
-                    // Cek apakah image_url adalah URL penuh (http/https) atau path file
-                    $imageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800'; // default
+                    $imageUrl = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800';
                     
                     if ($facility->image_url) {
-                        // Jika dimulai dengan http/https, langsung gunakan URL tersebut
                         if (str_starts_with($facility->image_url, 'http://') || 
                             str_starts_with($facility->image_url, 'https://')) {
                             $imageUrl = $facility->image_url;
-                        } 
-                        // Jika path file lokal, tambahkan asset storage
-                        else {
+                        } else {
                             $imageUrl = asset('storage/' . $facility->image_url);
                         }
                     }
@@ -204,5 +207,33 @@ class HomeController extends Controller
                 'facilities' => [],
             ]);
         }
+    }
+
+    /**
+     * Normalize logo path
+     */
+    private function normalizeLogoPath($logoPath, $teamName = null)
+    {
+        if (empty($logoPath)) {
+            return '/images/default-team-logo.png';
+        }
+
+        if (str_starts_with($logoPath, 'http://') || str_starts_with($logoPath, 'https://')) {
+            return $logoPath;
+        }
+
+        if (str_starts_with($logoPath, '/storage/')) {
+            return $logoPath;
+        }
+
+        if (str_starts_with($logoPath, 'storage/')) {
+            return '/' . $logoPath;
+        }
+
+        if (!str_contains($logoPath, '/')) {
+            return '/storage/teams/logos/' . $logoPath;
+        }
+
+        return '/storage/' . ltrim($logoPath, '/');
     }
 }
