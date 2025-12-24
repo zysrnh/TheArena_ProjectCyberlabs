@@ -21,12 +21,22 @@ class MatchController extends Controller
         $jakartaNow = Carbon::now('Asia/Jakarta');
 
         // Get filter parameters
-        $series = $request->input('series', 'Semua Series');
-        $region = $request->input('region', 'Semua Regional');
+        $league = $request->input('league', '');
+        $series = $request->input('series', '');
+        $region = $request->input('region', '');
         $search = $request->input('search', '');
         $selectedDate = $request->input('date');
         $weekOffset = (int) $request->input('week', 0);
-        $selectedMonth = $request->input('month'); // ✅ TAMBAH INI
+        $selectedMonth = $request->input('month');
+
+        // ✅ Get unique leagues dari database
+        $leagues = Game::select('league')
+            ->distinct()
+            ->whereNotNull('league')
+            ->where('league', '!=', '')
+            ->orderBy('league', 'asc')
+            ->pluck('league')
+            ->toArray();
 
         // ✅ Tentukan base date berdasarkan selectedMonth atau sekarang
         $baseDate = $selectedMonth
@@ -43,13 +53,18 @@ class MatchController extends Controller
             // Hitung jumlah pertandingan di tanggal ini
             $matchCountQuery = Game::whereDate('date', $currentDate->format('Y-m-d'));
 
+            // Apply league filter
+            if ($league !== '') {
+                $matchCountQuery->where('league', $league);
+            }
+
             // Apply series filter
-            if ($series !== 'Semua Series') {
+            if ($series !== '') {
                 $matchCountQuery->where('series', $series);
             }
 
             // Apply region filter
-            if ($region !== 'Semua Regional') {
+            if ($region !== '') {
                 $matchCountQuery->where('region', $region);
             }
 
@@ -97,13 +112,18 @@ class MatchController extends Controller
         // Query matches dengan filter
         $matchesQuery = Game::with(['team1', 'team2', 'team1Category', 'team2Category']);
 
+        // Filter by league
+        if ($league !== '') {
+            $matchesQuery->where('league', $league);
+        }
+
         // Filter by series
-        if ($series !== 'Semua Series') {
+        if ($series !== '') {
             $matchesQuery->where('series', $series);
         }
 
         // Filter by region
-        if ($region !== 'Semua Regional') {
+        if ($region !== '') {
             $matchesQuery->where('region', $region);
         }
 
@@ -165,17 +185,19 @@ class MatchController extends Controller
                 'client' => auth('client')->user()
             ],
             'filters' => [
+                'league' => $league,
                 'series' => $series,
                 'region' => $region,
                 'search' => $search,
                 'selectedDate' => $selectedDate,
                 'week' => $weekOffset,
-                'month' => $selectedMonth, // ✅ TAMBAH INI
+                'month' => $selectedMonth,
             ],
             'dates' => $dates,
             'matches' => $matches,
             'today' => $jakartaNow->format('Y-m-d'),
             'weekInfo' => $weekInfo,
+            'leagues' => $leagues, // ✅ Pass unique leagues ke frontend
         ]);
     }
 
@@ -363,6 +385,7 @@ class MatchController extends Controller
             'boxScoreTeam1' => $match->boxScoreTeam1(),
             'boxScoreTeam2' => $match->boxScoreTeam2(),
         ];
+        
         return Inertia::render('MatchPage/MatchDetail', [
             'auth' => [
                 'client' => auth('client')->user()

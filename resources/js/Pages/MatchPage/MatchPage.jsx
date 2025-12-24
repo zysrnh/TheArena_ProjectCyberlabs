@@ -5,8 +5,9 @@ import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
 import Contact from '../../Components/Contact';
 
-export default function MatchPage({ auth, filters, dates, matches, today, weekInfo }) {
+export default function MatchPage({ auth, filters, dates, matches, today, weekInfo, leagues }) {
   const [selectedYear, setSelectedYear] = useState(filters.year);
+  const [selectedLeague, setSelectedLeague] = useState(filters.league);
   const [selectedSeries, setSelectedSeries] = useState(filters.series);
   const [selectedRegion, setSelectedRegion] = useState(filters.region);
   const [selectedDate, setSelectedDate] = useState(filters.selectedDate);
@@ -17,6 +18,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
     const params = {
+      league: filterName === 'league' ? value : selectedLeague,
       series: filterName === 'series' ? value : selectedSeries,
       region: filterName === 'region' ? value : selectedRegion,
       date: filterName === 'date' ? value : selectedDate,
@@ -44,25 +46,25 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
     handleFilterChange('week', offset);
   };
 
-  // ✅ Handle month selection from date picker
+  // Handle month selection from date picker
   const handleMonthChange = (e) => {
     const month = e.target.value;
     setSelectedMonth(month);
-    setWeekOffset(0); // Reset week offset
-    setSelectedDate(null); // Reset selected date
+    setWeekOffset(0);
+    setSelectedDate(null);
     handleFilterChange('month', month);
   };
 
-  // ✅ Handle specific date selection from date picker
+  // Handle specific date selection from date picker
   const handleDatePickerChange = (e) => {
-    const date = e.target.value; // Format: YYYY-MM-DD
+    const date = e.target.value;
     setSelectedDate(date);
-    setSelectedMonth(''); // Clear month when specific date is selected
+    setSelectedMonth('');
     setWeekOffset(0);
     handleFilterChange('date', date);
   };
 
-  // ✅ Reset to current month
+  // Reset to current month
   const resetToCurrentMonth = () => {
     setSelectedMonth('');
     setWeekOffset(0);
@@ -75,6 +77,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
     e.preventDefault();
 
     const params = {
+      league: selectedLeague,
       series: selectedSeries,
       region: selectedRegion,
       date: selectedDate,
@@ -101,7 +104,6 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
         * {
           font-family: 'Montserrat', sans-serif;
         }
-        /* Custom date input styling */
         input[type="month"]::-webkit-calendar-picker-indicator,
         input[type="date"]::-webkit-calendar-picker-indicator {
           filter: invert(1);
@@ -147,6 +149,24 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#013064] pointer-events-none" />
                 </div>
 
+                {/* League/Competition Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedLeague}
+                    onChange={(e) => {
+                      setSelectedLeague(e.target.value);
+                      handleFilterChange('league', e.target.value);
+                    }}
+                    className="bg-[#ffd22f] text-[#013064] px-6 py-2.5 text-sm md:text-base font-semibold cursor-pointer appearance-none pr-10 rounded"
+                  >
+                    <option value="">Semua Liga</option>
+                    {leagues && leagues.map((league, index) => (
+                      <option key={index} value={league}>{league}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#013064] pointer-events-none" />
+                </div>
+
                 {/* Series Dropdown */}
                 <div className="relative">
                   <select
@@ -157,7 +177,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                     }}
                     className="bg-[#ffd22f] text-[#013064] px-6 py-2.5 text-sm md:text-base font-semibold cursor-pointer appearance-none pr-10 rounded"
                   >
-                    <option value="Semua Series">Semua Series</option>
+                    <option value="">Semua Series</option>
                     <option value="Regular Season">Regular Season</option>
                     <option value="Playoff">Playoff</option>
                     <option value="Finals">Finals</option>
@@ -175,7 +195,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                     }}
                     className="bg-[#ffd22f] text-[#013064] px-6 py-2.5 text-sm md:text-base font-semibold cursor-pointer appearance-none pr-10 rounded"
                   >
-                    <option value="Semua Regional">Semua Regional</option>
+                    <option value="">Semua Regional</option>
                     <option value="Jakarta">Jakarta</option>
                     <option value="Bandung">Bandung</option>
                     <option value="Surabaya">Surabaya</option>
@@ -205,7 +225,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
           </div>
         </div>
 
-        {/* ✅ Date Picker + Week Navigation */}
+        {/* Date Picker + Week Navigation */}
         <div className="bg-[#013064] pt-2 pb-6 px-2">
           <div className="max-w-7xl mx-auto">
             {/* Date Picker - Mobile Friendly */}
@@ -222,7 +242,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#013064] pointer-events-none" />
               </div>
 
-              {/* Reset Button - Show when specific date is selected */}
+              {/* Reset Button */}
               {selectedDate && (
                 <button
                   onClick={resetToCurrentMonth}
@@ -320,7 +340,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                     <Link key={match.id} href={`/jadwal-hasil/${match.id}`}>
                       <div className="bg-white py-5 px-5 md:py-6 md:px-6 relative hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer min-h-[250px] md:min-h-[300px] flex flex-col">
                         <div className="flex items-center justify-center gap-4 md:gap-6 lg:gap-8 flex-1">
-                          {/* Team 1 - Logo + Category */}
+                          {/* Team 1 */}
                           <div className="flex flex-col items-center justify-center flex-1">
                             <img
                               src={match.team1.logo}
@@ -340,8 +360,13 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                             )}
                           </div>
 
-                          {/* Match Info - Center */}
+                          {/* Match Info */}
                           <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
+                            {/* League/Competition - Above Badge */}
+                            <p className="text-sm md:text-base font-bold text-gray-800 mb-2 text-center">
+                              {match.league}
+                            </p>
+
                             {/* Status Badge */}
                             <div className="mb-1.5">
                               <span className={`px-2.5 py-1 text-xs font-bold uppercase ${match.type === 'live'
@@ -353,10 +378,6 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                                 {match.type === 'live' ? 'Live' : match.type === 'upcoming' ? 'Upcoming Match' : 'Selesai'}
                               </span>
                             </div>
-
-                            <p className="text-[11px] text-gray-600 mb-1.5 text-center italic">
-                              {match.league}
-                            </p>
                             <p className="text-sm md:text-base font-bold text-gray-900 text-center">
                               {match.date}
                             </p>
@@ -374,7 +395,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                             )}
                           </div>
 
-                          {/* Team 2 - Logo + Category */}
+                          {/* Team 2 */}
                           <div className="flex flex-col items-center justify-center flex-1">
                             <img
                               src={match.team2.logo}
