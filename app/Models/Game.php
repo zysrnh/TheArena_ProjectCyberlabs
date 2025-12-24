@@ -18,10 +18,12 @@ class Game extends Model
         'time',
         'venue',
         'team1_id',
+        'team1_category_id', // ✅ BARU
         'team2_id',
+        'team2_category_id', // ✅ BARU
         'score',
         'status',
-        'quarters', // ✅ PAKAI INI (kolom lama)
+        'quarters',
         'stats',
         'year',
         'series',
@@ -59,7 +61,7 @@ class Game extends Model
         'stats' => 'array',
         'box_score_team1' => 'array',
         'box_score_team2' => 'array',
-        'quarters' => 'array', // ✅ CAST ke array otomatis
+        'quarters' => 'array',
     ];
 
     protected $appends = [
@@ -77,9 +79,42 @@ class Game extends Model
         return $this->belongsTo(Team::class, 'team2_id');
     }
 
+    // ✅ RELASI BARU UNTUK TEAM CATEGORIES
+    public function team1Category(): BelongsTo
+    {
+        return $this->belongsTo(TeamCategory::class, 'team1_category_id');
+    }
+
+    public function team2Category(): BelongsTo
+    {
+        return $this->belongsTo(TeamCategory::class, 'team2_category_id');
+    }
+
     public function playerStats(): HasMany
     {
         return $this->hasMany(PlayerStat::class);
+    }
+
+    public function matchHighlights()
+    {
+        return $this->hasMany(MatchHighlight::class);
+    }
+
+    // ✅ HELPER METHOD BARU - Get match title with categories
+    public function getMatchTitleAttribute(): string
+    {
+        $team1Name = $this->team1->name;
+        $team2Name = $this->team2->name;
+        
+        if ($this->team1Category) {
+            $team1Name .= ' ' . $this->team1Category->category_name;
+        }
+        
+        if ($this->team2Category) {
+            $team2Name .= ' ' . $this->team2Category->category_name;
+        }
+        
+        return "{$team1Name} vs {$team2Name}";
     }
 
     /**
@@ -292,9 +327,4 @@ class Game extends Model
             });
         });
     }
-    public function matchHighlights()
-    {
-        return $this->hasMany(MatchHighlight::class);
-    }
-
 }

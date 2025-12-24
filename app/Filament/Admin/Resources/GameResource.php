@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use App\Models\PlayerStat;
+use App\Models\TeamCategory;
 
 class GameResource extends Resource
 {
@@ -112,35 +113,93 @@ class GameResource extends Resource
                     ->columns(2)
                     ->collapsible(),
 
-                // ============ SECTION 2: TEAMS ============
-                Forms\Components\Section::make('Teams')
-                    ->schema([
-                        Forms\Components\Select::make('team1_id')
-                            ->label('Home Team')
-                            ->relationship('team1', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->disabled(fn($operation) => $operation === 'edit')
-                            ->dehydrated()
-                            ->disableOptionWhen(function ($value, $get) {
-                                return $value === $get('team2_id');
-                            }),
+               // ============ SECTION 2: TEAMS & CATEGORIES ============
+Forms\Components\Section::make('Teams & Categories')
+    ->schema([
+        // Team 1 Selection
+        Forms\Components\Select::make('team1_id')
+            ->label('Home Team')
+            ->relationship('team1', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->disabled(fn($operation) => $operation === 'edit')
+            ->dehydrated()
+            ->live()
+            ->afterStateUpdated(function ($state, $set) {
+                // Reset category when team changes
+                $set('team1_category_id', null);
+            })
+            ->disableOptionWhen(function ($value, $get) {
+                return $value === $get('team2_id');
+            }),
 
-                        Forms\Components\Select::make('team2_id')
-                            ->label('Away Team')
-                            ->relationship('team2', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->disabled(fn($operation) => $operation === 'edit')
-                            ->dehydrated()
-                            ->disableOptionWhen(function ($value, $get) {
-                                return $value === $get('team1_id');
-                            }),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
+        // Team 1 Category Selection
+        Forms\Components\Select::make('team1_category_id')
+            ->label('Home Team Category')
+            ->options(function ($get) {
+                $teamId = $get('team1_id');
+                if (!$teamId) return [];
+                
+                return \App\Models\TeamCategory::where('team_id', $teamId)
+                    ->where('is_active', true)
+                    ->get()
+                    ->mapWithKeys(function ($category) {
+                        return [
+                            $category->id => "{$category->category_name} ({$category->age_group})"
+                        ];
+                    });
+            })
+            ->searchable()
+            ->nullable()
+            ->disabled(fn($operation) => $operation === 'edit')
+            ->dehydrated()
+            ->helperText('Optional - Select if match is for specific age category')
+            ->hidden(fn($get) => !$get('team1_id')),
+
+        // Team 2 Selection
+        Forms\Components\Select::make('team2_id')
+            ->label('Away Team')
+            ->relationship('team2', 'name')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->disabled(fn($operation) => $operation === 'edit')
+            ->dehydrated()
+            ->live()
+            ->afterStateUpdated(function ($state, $set) {
+                // Reset category when team changes
+                $set('team2_category_id', null);
+            })
+            ->disableOptionWhen(function ($value, $get) {
+                return $value === $get('team1_id');
+            }),
+
+        // Team 2 Category Selection
+        Forms\Components\Select::make('team2_category_id')
+            ->label('Away Team Category')
+            ->options(function ($get) {
+                $teamId = $get('team2_id');
+                if (!$teamId) return [];
+                
+                return \App\Models\TeamCategory::where('team_id', $teamId)
+                    ->where('is_active', true)
+                    ->get()
+                    ->mapWithKeys(function ($category) {
+                        return [
+                            $category->id => "{$category->category_name} ({$category->age_group})"
+                        ];
+                    });
+            })
+            ->searchable()
+            ->nullable()
+            ->disabled(fn($operation) => $operation === 'edit')
+            ->dehydrated()
+            ->helperText('Optional - Select if match is for specific age category')
+            ->hidden(fn($get) => !$get('team2_id')),
+    ])
+    ->columns(2)
+    ->collapsible(),
 
                 // ============ SECTION 3: STATUS ============
                 Forms\Components\Section::make('Match Status')
@@ -800,16 +859,26 @@ class GameResource extends Resource
                     ->description(fn(Game $record): string => $record->time ? $record->time->format('H:i') . ' WIB' : ''),
 
                 Tables\Columns\TextColumn::make('team1.name')
-                    ->label('Home Team')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('medium'),
+    ->label('Home Team')
+    ->searchable()
+    ->sortable()
+    ->weight('medium')
+    ->description(fn(Game $record): ?string => 
+        $record->team1Category 
+            ? $record->team1Category->category_name . ' (' . $record->team1Category->age_group . ')'
+            : null
+    ),
 
-                Tables\Columns\TextColumn::make('team2.name')
-                    ->label('Away Team')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('medium'),
+Tables\Columns\TextColumn::make('team2.name')
+    ->label('Away Team')
+    ->searchable()
+    ->sortable()
+    ->weight('medium')
+    ->description(fn(Game $record): ?string => 
+        $record->team2Category 
+            ? $record->team2Category->category_name . ' (' . $record->team2Category->age_group . ')'
+            : null
+    ),
 
                 Tables\Columns\TextColumn::make('score')
                     ->label('Score')
