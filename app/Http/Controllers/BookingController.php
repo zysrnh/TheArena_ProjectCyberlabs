@@ -27,8 +27,6 @@ class BookingController extends Controller
                 'description' => 'Basketball Courts & Healthy Lifestyle Space',
                 'full_description' => 'The Arena Cibadak berlokasi di GG Nyi Empok No. 8, Kota Bandung. The Arena Cibadak memiliki 2 lapangan basket indoor berstandar internasional dengan lantai kayu jati (Cibadak A) dan Vinyl (Cibadak B).',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan berstandar internasional dengan fasilitas lengkap dan lokasi strategis di Bandung.',
-                'price_per_session' => 350000,
-                'member_price' => 300000,
                 'images' => [
                     'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200',
                     'https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200',
@@ -61,8 +59,6 @@ class BookingController extends Controller
                 'description' => 'Basketball Courts & Healthy Lifestyle Space',
                 'full_description' => 'The Arena Cibadak berlokasi di GG Nyi Empok No. 8, Kota Bandung. The Arena Cibadak memiliki 2 lapangan basket indoor berstandar internasional dengan lantai kayu jati (Cibadak A) dan Vinyl (Cibadak B).',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan berstandar internasional dengan fasilitas lengkap dan lokasi strategis di Bandung.',
-                'price_per_session' => 300000,
-                'member_price' => 250000,
                 'images' => [
                     'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?w=1200',
                     'https://images.unsplash.com/photo-1515523110800-9415d13b84a8?w=1200',
@@ -95,8 +91,6 @@ class BookingController extends Controller
                 'description' => 'Basketball Courts & Healthy Lifestyle Space',
                 'full_description' => 'The Arena PVJ berlokasi di Paris Van Java Mall, Lantai P13, Bandung. Tersedia 1 lapangan basket indoor dengan material kayu jati berkualitas, memberikan pengalaman bermain yang optimal. Kami mengundang Anda untuk merasakan pengalaman berolahraga di fasilitas terbaik yang dapat disesuaikan dengan kebutuhan latihan maupun acara.',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan premium dengan material kayu jati berkualitas. Fasilitas lengkap dan lokasi strategis di pusat perbelanjaan membuat The Arena PVJ menjadi pilihan utama para pecinta basket di Bandung.',
-                'price_per_session' => 350000,
-                'member_price' => 300000, // Harga member lebih murah
                 'images' => [
                     'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200',
                     'https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200',
@@ -125,6 +119,7 @@ class BookingController extends Controller
                 ],
                 'note' => 'Segala risiko, cedera atau kecelakaan di luar tanggung jawab pengelola lapangan.',
             ],
+
             'urban' => [
                 'id' => 4,
                 'venue_type' => 'urban',
@@ -133,8 +128,6 @@ class BookingController extends Controller
                 'description' => 'Lapangan basket semi-outdoor dengan lantai vinyl',
                 'full_description' => 'The Arena Urban merupakan lapangan basket semi-outdoor dengan lantai vinyl, dilengkapi seating area luas dan suasana yang nyaman. Cocok untuk bermain menonton, maupun bersantai.',
                 'invitation' => 'Nikmati pengalaman bermain basket di arena semi-outdoor dengan suasana nyaman dan fasilitas lengkap untuk aktivitas olahraga dan rekreasi.',
-                'price_per_session' => 300000,
-                'member_price' => 250000,
                 'images' => [
                     'https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=1200',
                     'https://images.unsplash.com/photo-1515523110800-9415d13b84a8?w=1200',
@@ -224,23 +217,117 @@ class BookingController extends Controller
     }
 
     /**
-     * ✅ FIXED: Deteksi booking dari customer DAN recurring booking dari admin
+     * ✅ UPDATED: Calculate dynamic price based on venue, date, and time
+     */
+    private function calculatePrice($venueType, $date, $timeSlot)
+    {
+        // Parse date to get day of week (0 = Minggu, 1 = Senin, ..., 6 = Sabtu)
+        $dayOfWeek = Carbon::parse($date)->dayOfWeek;
+        $isWeekend = in_array($dayOfWeek, [0, 6]); // Sabtu & Minggu
+
+        // Extract start hour from time slot (e.g., "06.00 - 08.00" -> 6)
+        preg_match('/^(\d{2})\./', $timeSlot, $matches);
+        $startHour = isset($matches[1]) ? (int)$matches[1] : 0;
+
+        // Dynamic pricing for PVJ
+        if ($venueType === 'pvj') {
+            if ($isWeekend) {
+                // Sabtu - Minggu
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 700000; // 06:00 - 16:00
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000; // 16:00 - 20:00
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000; // 20:00 - 24:00
+                }
+            } else {
+                // Senin - Jumat
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000; // 06:00 - 16:00
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000; // 16:00 - 20:00
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000; // 20:00 - 24:00
+                }
+            }
+        }
+
+        // Dynamic pricing for Cibadak A
+        if ($venueType === 'cibadak_a') {
+            if ($isWeekend) {
+                // Sabtu - Minggu
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 700000; // 06:00 - 20:00
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000; // 20:00 - 24:00
+                }
+            } else {
+                // Senin - Jumat
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000; // 06:00 - 16:00
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 700000; // 16:00 - 24:00
+                }
+            }
+        }
+
+        // Dynamic pricing for Cibadak B
+        if ($venueType === 'cibadak_b') {
+            if ($isWeekend) {
+                // Sabtu - Minggu
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 550000; // 06:00 - 20:00
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000; // 20:00 - 24:00
+                }
+            } else {
+                // Senin - Jumat
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000; // 06:00 - 16:00
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 550000; // 16:00 - 20:00
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000; // 20:00 - 24:00
+                }
+            }
+        }
+
+        // Dynamic pricing for Urban
+        if ($venueType === 'urban') {
+            if ($isWeekend) {
+                // Sabtu - Minggu
+                return 550000; // 06:00 - 24:00
+            } else {
+                // Senin - Jumat
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000; // 06:00 - 16:00
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 550000; // 16:00 - 24:00
+                }
+            }
+        }
+
+        return 350000; // Fallback
+    }
+
+    /**
+     * ✅ UPDATED: Dynamic pricing in time slots
      */
     public function getTimeSlots(Request $request)
     {
         $date = $request->input('date');
-        $venueType = $request->input('venue_type', 'indoor');
+        $venueType = $request->input('venue_type', 'pvj');
 
         $allTimeSlots = [
-            ['time' => '06.00 - 08.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '08.00 - 10.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '10.00 - 12.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '12.00 - 14.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '14.00 - 16.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '16.00 - 18.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '18.00 - 20.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '20.00 - 22.00', 'duration' => 120, 'price' => 350000],
-            ['time' => '22.00 - 00.00', 'duration' => 120, 'price' => 350000],
+            ['time' => '06.00 - 08.00', 'duration' => 120],
+            ['time' => '08.00 - 10.00', 'duration' => 120],
+            ['time' => '10.00 - 12.00', 'duration' => 120],
+            ['time' => '12.00 - 14.00', 'duration' => 120],
+            ['time' => '14.00 - 16.00', 'duration' => 120],
+            ['time' => '16.00 - 18.00', 'duration' => 120],
+            ['time' => '18.00 - 20.00', 'duration' => 120],
+            ['time' => '20.00 - 22.00', 'duration' => 120],
+            ['time' => '22.00 - 00.00', 'duration' => 120],
         ];
 
         // ✅ Ambil slot yang sudah booked dari BookedTimeSlot
@@ -253,16 +340,11 @@ class BookingController extends Controller
             ->toArray();
 
         // ✅ PENTING: Ambil juga dari tabel Bookings langsung (untuk recurring booking)
-        // Karena CreateRecurringBooking membuat entry di BookedTimeSlot juga,
-        // kita hanya perlu pastikan query di atas sudah mencakup semua
-
-        // Tapi untuk extra safety, kita double-check dari Bookings table juga
         $bookedFromBookings = Booking::where('booking_date', $date)
             ->where('venue_type', $venueType)
             ->whereIn('status', ['pending', 'confirmed'])
             ->get()
             ->flatMap(function ($booking) {
-                // Extract time dari time_slots JSON
                 return collect($booking->time_slots)->pluck('time');
             })
             ->unique()
@@ -271,7 +353,9 @@ class BookingController extends Controller
         // ✅ Merge kedua hasil
         $bookedSlots = array_unique(array_merge($bookedFromTimeSlots, $bookedFromBookings));
 
-        $timeSlots = array_map(function ($slot) use ($bookedSlots) {
+        // ✅ Add dynamic pricing to each slot
+        $timeSlots = array_map(function ($slot) use ($bookedSlots, $venueType, $date) {
+            $slot['price'] = $this->calculatePrice($venueType, $date, $slot['time']);
             $slot['status'] = in_array($slot['time'], $bookedSlots) ? 'booked' : 'available';
             return $slot;
         }, $allTimeSlots);
@@ -282,6 +366,9 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * ✅ UPDATED: Validate price with dynamic calculation
+     */
     public function processBooking(Request $request)
     {
         $validated = $request->validate([
@@ -308,6 +395,23 @@ class BookingController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // ✅ Validate prices from client match server calculation
+            foreach ($validated['time_slots'] as $slot) {
+                $expectedPrice = $this->calculatePrice(
+                    $validated['venue_type'], 
+                    $validated['date'], 
+                    $slot['time']
+                );
+                
+                if ($slot['price'] != $expectedPrice) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Harga tidak sesuai. Silakan refresh halaman dan coba lagi.'
+                    ], 422);
+                }
+            }
 
             $requestedSlots = array_column($validated['time_slots'], 'time');
 

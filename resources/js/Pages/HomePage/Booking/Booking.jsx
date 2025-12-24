@@ -547,27 +547,27 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                   </div>
 
                   <div>
-  <h2 className="text-2xl font-bold text-white mb-4">Aturan Venue</h2>
-  <p className="text-white mb-4">Peraturan lapangan di {venue.name}:</p>
-  <ul className="space-y-2 mb-6">
-    {venue.rules?.map((rule, idx) => (
-      <li key={idx} className="flex gap-2 text-white">
-        <span className="text-[#ffd22f]">-</span>
-        <span>{rule}</span>
-      </li>
-    ))}
-  </ul>
-  
-  {/* Note Section */}
-  {venue.note && (
-    <div className="bg-[#ffd22f]/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
-      <p className="text-white text-sm leading-relaxed">
-        <span className="font-bold text-[#ffd22f]">Catatan Penting: </span>
-        <span className="italic">{venue.note}</span>
-      </p>
-    </div>
-  )}
-</div>
+                    <h2 className="text-2xl font-bold text-white mb-4">Aturan Venue</h2>
+                    <p className="text-white mb-4">Peraturan lapangan di {venue.name}:</p>
+                    <ul className="space-y-2 mb-6">
+                      {venue.rules?.map((rule, idx) => (
+                        <li key={idx} className="flex gap-2 text-white">
+                          <span className="text-[#ffd22f]">-</span>
+                          <span>{rule}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Note Section */}
+                    {venue.note && (
+                      <div className="bg-[#ffd22f]/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
+                        <p className="text-white text-sm leading-relaxed">
+                          <span className="font-bold text-[#ffd22f]">Catatan Penting: </span>
+                          <span className="italic">{venue.note}</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-4">Fasilitas</h2>
@@ -625,8 +625,8 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                                         key={week.weekNumber}
                                         onClick={() => handleJumpToWeek(week.weekNumber)}
                                         className={`w-full text-left px-4 py-3 rounded-lg transition hover:bg-[#ffd22f]/20 ${weekOffset === week.weekNumber
-                                            ? 'bg-[#ffd22f] text-[#013064] font-bold'
-                                            : 'text-[#013064]'
+                                          ? 'bg-[#ffd22f] text-[#013064] font-bold'
+                                          : 'text-[#013064]'
                                           }`}
                                       >
                                         <div className="flex justify-between items-center">
@@ -746,6 +746,13 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                       </div>
 
                       <div>
+                        {/* Note Harga Member */}
+                        <div className="mb-4 bg-[#ffd22f]/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
+                          <p className="text-white text-sm leading-relaxed">
+                            <span className="font-bold text-[#ffd22f]">Info: </span>
+                            <span>Harga yang ditampilkan adalah harga reguler. Member The Arena mendapatkan harga spesial lebih murah untuk setiap sesi booking.</span>
+                          </p>
+                        </div>
                         <h2 className="text-2xl font-bold text-white mb-4">Pilih Jadwal Lapangan</h2>
 
                         {loading ? (
