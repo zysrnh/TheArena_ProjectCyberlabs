@@ -122,11 +122,10 @@ export default function Contact() {
                 </div>
                 
               </div>
-
-           {/* Right: Google Map - The Arena Urban */}
+{/* Right: Google Map - The Arena Urban */}
 <div className="w-full h-[300px] md:h-[350px] rounded-lg overflow-hidden shadow-lg">
   <iframe
-    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d247.49429756953784!2d107.6079488!3d-6.9009028!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e7c4dda7f9bd%3A0x92c249d084db88fe!2sThe%20Arena%20Urban!5e0!3m2!1sid!2sid!4v1735135200000!5m2!1sid!2sid"
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.7769479528442!2d107.59060777499649!3d-6.917249193082343!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e745d6ede55f%3A0xc71097dde9e01f90!2sThe%20Arena%20Urban!5e0!3m2!1sid!2sid!4v1766674344955!5m2!1sid!2sid"
     width="100%"
     height="100%"
     style={{ border: 0 }}

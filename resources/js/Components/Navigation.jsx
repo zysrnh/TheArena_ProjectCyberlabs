@@ -109,15 +109,6 @@ export default function Navigation({ activePage = "" }) {
                 </Link>
               )}
 
-              {/* Language Selector */}
-              <select className="bg-transparent text-white border border-white/30 px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm cursor-pointer hover:border-[#ffd22f] transition">
-                <option value="id" className="bg-[#013064]">
-                  🇮🇩
-                </option>
-                <option value="en" className="bg-[#013064]">
-                  🇬🇧
-                </option>
-              </select>
 
               {/* Hamburger Menu Button - Mobile */}
               <button

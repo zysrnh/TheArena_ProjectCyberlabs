@@ -778,7 +778,7 @@ export default function HomePage() {
       </div>
 
       <Link 
-        href="/kontak"
+         href="https://wa.me/6281222977985" 
         className="bg-[#ffd22f] text-[#013064] px-5 md:px-7 py-2 md:py-3 text-xs md:text-sm lg:text-base font-bold hover:bg-[#ffe066] transition inline-flex items-center gap-2"
       >
         Hubungi Admin
