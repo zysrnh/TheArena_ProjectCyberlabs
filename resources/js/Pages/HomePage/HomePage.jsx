@@ -4,7 +4,6 @@ import { ChevronRight, Phone, Mail, LogOut, X } from "lucide-react";
 import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
 import Contact from '../../Components/Contact';
-
 export default function HomePage() {
   // Destructure props dengan default values
   const {
@@ -116,7 +115,7 @@ export default function HomePage() {
 
       setLastScrollY(currentScrollY);
     };
-    
+
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -763,34 +762,31 @@ export default function HomePage() {
             src="https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1600"
             alt="Basketball Promo"
             className="w-full h-full object-cover"
-          />
+          /><div className="absolute inset-0 flex items-center">
+  <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 w-full">
+    <div className="max-w-3xl text-white">
+      <span className="text-[#ffd22f] text-base md:text-xl lg:text-2xl font-semibold mb-2 md:mb-3 block">
+        Promo Member
+      </span>
 
-          <div className="absolute inset-0 bg-black/60" />
+      <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-5 leading-tight">
+        Harga Lebih Murah untuk Member!
+      </h2>
 
-          <div className="absolute inset-0 flex items-center">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 w-full">
-              <div className="max-w-3xl text-white">
-                <span className="text-[#ffd22f] text-base md:text-xl lg:text-2xl font-semibold mb-2 md:mb-3 block">
-                  Promo
-                </span>
+      <div className="mb-5 md:mb-6 text-sm md:text-base lg:text-lg">
+        <p>Dapatkan harga spesial dan berbagai keuntungan eksklusif. Hubungi admin untuk informasi lengkap tentang paket member kami.</p>
+      </div>
 
-                <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-5 leading-tight">
-                  Main Sekarang, Bayar Murah! Lapangan Basket Premium Mulai
-                  Rp100.000/Jam
-                </h2>
-
-                <div className="mb-5 md:mb-6 space-y-1 text-sm md:text-base lg:text-lg">
-                  <p>Mulai Rp100.000/jam (weekday)</p>
-                  <p>Weekend hanya Rp130.000/jam</p>
-                </div>
-
-                <button className="bg-[#ffd22f] text-[#013064] px-5 md:px-7 py-2 md:py-3 text-xs md:text-sm lg:text-base font-bold hover:bg-[#ffe066] transition inline-flex items-center gap-2">
-                  Booking Sekarang
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+      <Link 
+        href="/kontak"
+        className="bg-[#ffd22f] text-[#013064] px-5 md:px-7 py-2 md:py-3 text-xs md:text-sm lg:text-base font-bold hover:bg-[#ffe066] transition inline-flex items-center gap-2"
+      >
+        Hubungi Admin
+        <ChevronRight className="w-4 h-4" />
+      </Link>
+    </div>
+  </div>
+</div>
         </div>
 
         {/* Fasilitas Section - RESPONSIVE & DYNAMIC */}

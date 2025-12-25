@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage, router } from "@inertiajs/react";
-import { Phone, Mail, MapPin, CheckCircle, AlertCircle } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Instagram, Youtube, CheckCircle, AlertCircle } from "lucide-react";
 import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
 import { useEffect, useState } from "react";
@@ -109,21 +109,33 @@ export default function Contact() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-[#ffd22f] rounded-full p-3 flex-shrink-0">
+                    <Clock className="w-5 h-5 text-[#013064]" />
+                  </div>
+                  <div>
+                    <p className="text-white text-base">
+                      Setiap hari, 06.00 – 22.00 WIB
+                    </p>
+                  </div>
+                </div>
+                
               </div>
 
-              {/* Right: Google Map - The Arena Basketball PVJ */}
-              <div className="w-full h-[300px] md:h-[350px] rounded-lg overflow-hidden shadow-lg">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.028066370085!2d107.59319897499621!3d-6.887241593111763!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e76acad470ed%3A0x75f89b6afc2b40d1!2sThe%20Arena%20Basketball%20PVJ!5e0!3m2!1sid!2sid!4v1764826152923!5m2!1sid!2sid"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="The Arena Basketball PVJ"
-                ></iframe>
-              </div>
+           {/* Right: Google Map - The Arena Urban */}
+<div className="w-full h-[300px] md:h-[350px] rounded-lg overflow-hidden shadow-lg">
+  <iframe
+    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d247.49429756953784!2d107.6079488!3d-6.9009028!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68e7c4dda7f9bd%3A0x92c249d084db88fe!2sThe%20Arena%20Urban!5e0!3m2!1sid!2sid!4v1735135200000!5m2!1sid!2sid"
+    width="100%"
+    height="100%"
+    style={{ border: 0 }}
+    allowFullScreen=""
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+    title="The Arena Urban"
+  ></iframe>
+</div>
             </div>
           </div>
         </div>
