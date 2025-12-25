@@ -56,30 +56,50 @@ class ProfileController extends Controller
         ['path' => request()->url(), 'query' => request()->query()]
     );
 
-    // ✅ CEK APAKAH USER PERLU DIMINTA REVIEW (UPDATED)
-    // Cek booking yang sudah selesai (tanggal sudah lewat DAN status confirmed/completed DAN sudah dibayar)
+    // ✅ CEK APAKAH USER PERLU DIMINTA REVIEW
     $hasCompletedBooking = Booking::where('client_id', $client->id)
-        ->whereIn('status', ['confirmed', 'completed'])  // ← UBAH: terima confirmed ATAU completed
-        ->where('booking_date', '<', Carbon::today())    // ← Tanggal sudah lewat
-        ->where('payment_status', 'paid')                // ← TAMBAHAN: Harus sudah bayar
+        ->whereIn('status', ['confirmed', 'completed'])
+        ->where('booking_date', '<', Carbon::today())
+        ->where('payment_status', 'paid')
         ->exists();
 
     $hasGivenReview = Review::where('client_id', $client->id)->exists();
 
     $shouldShowReviewReminder = $hasCompletedBooking && !$hasGivenReview;
 
-    // Count completed bookings
     $completedBookingCount = Booking::where('client_id', $client->id)
-        ->whereIn('status', ['confirmed', 'completed'])  // ← UBAH
+        ->whereIn('status', ['confirmed', 'completed'])
         ->where('booking_date', '<', Carbon::today())
-        ->where('payment_status', 'paid')                // ← TAMBAHAN
+        ->where('payment_status', 'paid')
         ->count();
     
-    // ✅ ENHANCED LOGGING
+    // ✅ GET REVIEW HISTORY
+    $reviewHistory = Review::where('client_id', $client->id)
+        ->with(['booking'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($review) {
+            return [
+                'id' => $review->id,
+                'rating_facilities' => $review->rating_facilities,
+                'rating_hospitality' => $review->rating_hospitality,
+                'rating_cleanliness' => $review->rating_cleanliness,
+                'average_rating' => $review->average_rating,
+                'comment' => $review->comment,
+                'is_approved' => $review->is_approved,
+                'created_at' => $review->created_at->format('d F Y H:i'),
+                'booking_info' => $review->booking ? [
+                    'date' => $review->booking->booking_date->format('d F Y'),
+                    'venue' => $this->formatVenueType($review->booking->venue_type),
+                ] : null,
+            ];
+        });
+    
     Log::info('📊 Profile Page Loaded', [
         'client_id' => $client->id,
         'upcoming_count' => $upcomingBookings->count(),
         'history_count' => $historyBookingsFormatted->count(),
+        'review_count' => $reviewHistory->count(),
         'has_completed_booking' => $hasCompletedBooking,
         'has_given_review' => $hasGivenReview,
         'should_show_review_reminder' => $shouldShowReviewReminder,
@@ -92,11 +112,13 @@ class ProfileController extends Controller
         ],
         'upcomingBookings' => $upcomingBookings,
         'historyBookings' => $historyBookings,
+        'reviewHistory' => $reviewHistory,
         'flash' => session('flash'),
         'shouldShowReviewReminder' => $shouldShowReviewReminder,
         'completedBookingCount' => $completedBookingCount,
     ]);
 }
+
     /**
      * Format booking data untuk frontend
      */
@@ -169,7 +191,6 @@ class ProfileController extends Controller
             'created_at' => $booking->created_at->format('d F Y H:i'),
         ];
 
-        // Log untuk debugging
         if ($isUpcoming && $canPay) {
             Log::debug('🎫 Booking can be paid', [
                 'booking_id' => $booking->id,
@@ -179,7 +200,6 @@ class ProfileController extends Controller
             ]);
         }
 
-        // Hanya untuk upcoming, tambahkan booking_ids untuk grouping (jika perlu)
         if ($isUpcoming) {
             $formatted['booking_ids'] = [$booking->id];
         }
@@ -188,7 +208,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * ✅ Get payment status label
+     * Get payment status label
      */
     private function getPaymentStatusLabel($status)
     {
@@ -329,43 +349,42 @@ class ProfileController extends Controller
     /**
      * Update profile client
      */
-    // ✅ UPDATE validation di ProfileController->update()
-public function update(Request $request)
-{
-    $client = Auth::guard('client')->user();
-    
-    if (!$client) {
-        return redirect()->route('login')->withErrors(['error' => 'Silakan login terlebih dahulu']);
-    }
-
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',  // ← WAJIB
-        'email' => 'required|email|max:255|unique:clients,email,' . $client->id,  // ← WAJIB & UNIQUE
-        'phone' => 'required|string|max:20',  // ← WAJIB (POINT 8)
-        'province' => 'nullable|string|max:255',
-        'city' => 'nullable|string|max:255',
-        'address' => 'nullable|string',
-        'gender' => 'nullable|string|in:Laki-laki,Perempuan',
-        'birth_date' => 'nullable|date',
-        'profile_image' => 'nullable|image|max:2048',
-    ]);
-
-    if ($request->hasFile('profile_image')) {
-        if ($client->profile_image) {
-            Storage::disk('public')->delete($client->profile_image);
+    public function update(Request $request)
+    {
+        $client = Auth::guard('client')->user();
+        
+        if (!$client) {
+            return redirect()->route('login')->withErrors(['error' => 'Silakan login terlebih dahulu']);
         }
 
-        $path = $request->file('profile_image')->store('profile-images', 'public');
-        $validated['profile_image'] = $path;
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:clients,email,' . $client->id,
+            'phone' => 'required|string|max:20',
+            'province' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+            'gender' => 'nullable|string|in:Laki-laki,Perempuan',
+            'birth_date' => 'nullable|date',
+            'profile_image' => 'nullable|image|max:2048',
+        ]);
+
+        if ($request->hasFile('profile_image')) {
+            if ($client->profile_image) {
+                Storage::disk('public')->delete($client->profile_image);
+            }
+
+            $path = $request->file('profile_image')->store('profile-images', 'public');
+            $validated['profile_image'] = $path;
+        }
+
+        $client->update($validated);
+
+        return back()->with('success', 'Profil berhasil diperbarui!');
     }
 
-    $client->update($validated);
-
-    return back()->with('success', 'Profil berhasil diperbarui!');
-}
-
     /**
-     * ✅ Cancel booking - UPDATED UNTUK PAYMENT
+     * Cancel booking
      */
     public function cancelBooking(Request $request, $id)
     {
@@ -380,7 +399,6 @@ public function update(Request $request)
             'client_id' => $client->id,
         ]);
         
-        // Support untuk cancel multiple bookings (jika digroup)
         $bookingIds = $request->input('booking_ids', [$id]);
         
         $bookings = Booking::whereIn('id', $bookingIds)
@@ -395,7 +413,6 @@ public function update(Request $request)
             return back()->with('error', 'Booking tidak ditemukan atau tidak dapat dibatalkan');
         }
 
-        // ✅ Cek apakah ada yang sudah bayar
         $hasPaid = $bookings->filter(function($booking) {
             return $booking->isPaid();
         })->isNotEmpty();
@@ -407,14 +424,12 @@ public function update(Request $request)
             return back()->with('error', 'Booking yang sudah dibayar tidak dapat dibatalkan');
         }
 
-        // Cancel semua bookings
         foreach ($bookings as $booking) {
             $booking->update([
                 'status' => 'cancelled',
                 'payment_status' => 'cancelled',
             ]);
             
-            // Hapus booked time slots agar slot bisa dibooking lagi
             $booking->bookedTimeSlots()->delete();
             
             Log::info('✅ Booking cancelled', [

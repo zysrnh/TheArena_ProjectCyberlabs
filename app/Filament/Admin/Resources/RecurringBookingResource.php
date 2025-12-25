@@ -78,7 +78,6 @@ class RecurringBookingResource extends Resource
                                 $months = [];
                                 $currentYear = Carbon::now()->year;
                                 
-                                // Generate 12 bulan dari bulan sekarang
                                 for ($i = 0; $i < 12; $i++) {
                                     $date = Carbon::now()->addMonths($i);
                                     $months[$date->format('Y-m')] = $date->format('F Y');
@@ -130,10 +129,10 @@ class RecurringBookingResource extends Resource
                         Forms\Components\Select::make('venue_type')
                             ->label('Pilih Venue')
                             ->options([
-                                'cibadak_a' => 'Cibadak A (Indoor Premium) - Rp 350.000',
-                                'cibadak_b' => 'Cibadak B (Outdoor) - Rp 300.000',
-                                'pvj' => 'PVJ Mall (Indoor) - Rp 350.000',
-                                'urban' => 'Urban (Ultra Modern) - Rp 400.000',
+                                'cibadak_a' => 'Cibadak A (Indoor Premium)',
+                                'cibadak_b' => 'Cibadak B (Outdoor)',
+                                'pvj' => 'PVJ Mall (Indoor)',
+                                'urban' => 'Urban (Ultra Modern)',
                             ])
                             ->required()
                             ->live(),
@@ -141,19 +140,20 @@ class RecurringBookingResource extends Resource
                         Forms\Components\CheckboxList::make('time_slots_selection')
                             ->label('Pilih Time Slot')
                             ->options([
-                                '06.00 - 08.00' => '06.00 - 08.00 (Rp 350.000)',
-                                '08.00 - 10.00' => '08.00 - 10.00 (Rp 350.000)',
-                                '10.00 - 12.00' => '10.00 - 12.00 (Rp 350.000)',
-                                '12.00 - 14.00' => '12.00 - 14.00 (Rp 350.000)',
-                                '14.00 - 16.00' => '14.00 - 16.00 (Rp 350.000)',
-                                '16.00 - 18.00' => '16.00 - 18.00 (Rp 350.000)',
-                                '18.00 - 20.00' => '18.00 - 20.00 (Rp 350.000)',
-                                '20.00 - 22.00' => '20.00 - 22.00 (Rp 350.000)',
-                                '22.00 - 00.00' => '22.00 - 00.00 (Rp 350.000)',
+                                '06.00 - 08.00' => '06.00 - 08.00',
+                                '08.00 - 10.00' => '08.00 - 10.00',
+                                '10.00 - 12.00' => '10.00 - 12.00',
+                                '12.00 - 14.00' => '12.00 - 14.00',
+                                '14.00 - 16.00' => '14.00 - 16.00',
+                                '16.00 - 18.00' => '16.00 - 18.00',
+                                '18.00 - 20.00' => '18.00 - 20.00',
+                                '20.00 - 22.00' => '20.00 - 22.00',
+                                '22.00 - 00.00' => '22.00 - 00.00',
                             ])
                             ->required()
                             ->columns(3)
-                            ->gridDirection('row'),
+                            ->gridDirection('row')
+                            ->helperText('⚠️ Harga akan disesuaikan otomatis berdasarkan venue, hari (weekday/weekend), dan waktu booking'),
                         
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan Tambahan')
@@ -195,7 +195,6 @@ class RecurringBookingResource extends Resource
     {
         return $table
             ->modifyQueryUsing(function (Builder $query) {
-                // Filter hanya booking yang punya notes recurring atau created by admin
                 $query->where(function ($q) {
                     $q->whereNotNull('notes')
                       ->where('notes', 'like', '%rutin%')
@@ -326,7 +325,6 @@ class RecurringBookingResource extends Resource
                     }),
             ])
             ->actions([
-                // Modal View Action - FIXED!
                 Tables\Actions\Action::make('view_details')
                     ->label('Lihat Detail')
                     ->icon('heroicon-o-eye')
@@ -386,9 +384,6 @@ class RecurringBookingResource extends Resource
         ];
     }
 
-    /**
-     * Helper: Hitung tanggal recurring berdasarkan bulan dan hari
-     */
     protected static function calculateRecurringDates(string $month, array $days): array
     {
         $dates = [];

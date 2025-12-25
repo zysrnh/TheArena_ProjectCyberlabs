@@ -29,7 +29,6 @@ class BookingResource extends Resource
 
     public static function form(Form $form): Form
     {
-        // ✅ Auto-complete expired bookings saat form dibuka
         static::autoCompleteExpiredBookings();
         
         return $form
@@ -46,8 +45,8 @@ class BookingResource extends Resource
                         Forms\Components\DatePicker::make('booking_date')
                             ->label('Tanggal Booking')
                             ->required()
-                            ->native(false),
-                            // ->minDate(now()), // ✅ DIHAPUS biar admin bisa input tanggal kemarin untuk testing
+                            ->native(false)
+                            ->live(), // ✅ TAMBAH: buat trigger price calculation
                         
                         Forms\Components\Select::make('venue_type')
                             ->label('Pilih Venue')
@@ -57,39 +56,78 @@ class BookingResource extends Resource
                                 'pvj' => 'PVJ Mall (Indoor)',
                                 'urban' => 'Urban (Ultra Modern)',
                             ])
-                            ->required(),
+                            ->required()
+                            ->live(), // ✅ TAMBAH: buat trigger price calculation
                     ])->columns(3),
                 
                 Forms\Components\Section::make('Detail Booking')
+                    ->description('⚠️ Harga akan otomatis disesuaikan berdasarkan venue, hari (weekday/weekend), dan waktu')
                     ->schema([
                         Forms\Components\Repeater::make('time_slots')
                             ->label('Slot Waktu')
                             ->schema([
-                                Forms\Components\TextInput::make('time')
+                                Forms\Components\Select::make('time')
                                     ->label('Waktu')
-                                    ->placeholder('06.00 - 08.00')
-                                    ->required(),
+                                    ->options([
+                                        '06.00 - 08.00' => '06.00 - 08.00',
+                                        '08.00 - 10.00' => '08.00 - 10.00',
+                                        '10.00 - 12.00' => '10.00 - 12.00',
+                                        '12.00 - 14.00' => '12.00 - 14.00',
+                                        '14.00 - 16.00' => '14.00 - 16.00',
+                                        '16.00 - 18.00' => '16.00 - 18.00',
+                                        '18.00 - 20.00' => '18.00 - 20.00',
+                                        '20.00 - 22.00' => '20.00 - 22.00',
+                                        '22.00 - 00.00' => '22.00 - 00.00',
+                                    ])
+                                    ->required()
+                                    ->live() // ✅ TAMBAH: trigger price update
+                                    ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                        // ✅ Auto-calculate price
+                                        $venueType = $get('../../venue_type');
+                                        $bookingDate = $get('../../booking_date');
+                                        
+                                        if ($state && $venueType && $bookingDate) {
+                                            $price = static::calculatePrice($venueType, $bookingDate, $state);
+                                            $set('price', $price);
+                                        }
+                                    }),
+                                
                                 Forms\Components\TextInput::make('duration')
                                     ->label('Durasi (Menit)')
                                     ->numeric()
                                     ->default(120)
-                                    ->required(),
+                                    ->required()
+                                    ->disabled(), // ✅ Disabled karena fixed 120 menit
+                                
                                 Forms\Components\TextInput::make('price')
-                                    ->label('Harga')
+                                    ->label('Harga (Auto)')
                                     ->numeric()
                                     ->prefix('Rp')
-                                    ->default(350000)
-                                    ->required(),
+                                    ->required()
+                                    ->disabled() // ✅ DISABLED: otomatis dari calculation
+                                    ->dehydrated() // ✅ PENTING: biar tetap ke-save meski disabled
+                                    ->helperText('Harga otomatis berdasarkan venue, hari, dan waktu'),
                             ])
                             ->columns(3)
                             ->defaultItems(1)
-                            ->collapsible(),
+                            ->collapsible()
+                            ->live() // ✅ TAMBAH: buat update total_price
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                // ✅ Auto-calculate total price
+                                if (is_array($state)) {
+                                    $total = array_sum(array_column($state, 'price'));
+                                    $set('total_price', $total);
+                                }
+                            }),
                         
                         Forms\Components\TextInput::make('total_price')
-                            ->label('Total Harga')
+                            ->label('Total Harga (Auto)')
                             ->numeric()
                             ->prefix('Rp')
-                            ->required(),
+                            ->required()
+                            ->disabled() // ✅ DISABLED: otomatis dari sum time_slots
+                            ->dehydrated() // ✅ PENTING: biar tetap ke-save
+                            ->helperText('Total otomatis dari semua time slots'),
                         
                         Forms\Components\Select::make('status')
                             ->label('Status')
@@ -117,7 +155,6 @@ class BookingResource extends Resource
 
     public static function table(Table $table): Table
     {
-        // ✅ Auto-complete expired bookings saat table dimuat
         static::autoCompleteExpiredBookings();
         
         return $table
@@ -280,7 +317,6 @@ class BookingResource extends Resource
                     }),
             ])
             ->actions([
-                // Modal View Action
                 Tables\Actions\Action::make('view_details')
                     ->label('Lihat Detail')
                     ->icon('heroicon-o-eye')
@@ -295,7 +331,6 @@ class BookingResource extends Resource
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
                 
-                // Konfirmasi Pembayaran
                 Tables\Actions\Action::make('confirm_payment')
                     ->label('Konfirmasi Bayar')
                     ->icon('heroicon-o-banknotes')
@@ -318,7 +353,6 @@ class BookingResource extends Resource
                     })
                     ->visible(fn (Booking $record): bool => !$record->is_paid),
                 
-                // Toggle Pembayaran
                 Tables\Actions\Action::make('toggle_payment')
                     ->label(fn (Booking $record): string => $record->is_paid ? 'Batalkan Bayar' : 'Tandai Bayar')
                     ->icon(fn (Booking $record): string => $record->is_paid ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
@@ -340,7 +374,6 @@ class BookingResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // Bulk Konfirmasi Pembayaran
                     Tables\Actions\BulkAction::make('bulk_confirm_payment')
                         ->label('Konfirmasi Pembayaran')
                         ->icon('heroicon-o-banknotes')
@@ -361,7 +394,6 @@ class BookingResource extends Resource
                                 ->send();
                         }),
                     
-                    // Bulk Update Status
                     Tables\Actions\BulkAction::make('bulk_update_status')
                         ->label('Update Status')
                         ->icon('heroicon-o-arrow-path')
@@ -391,12 +423,89 @@ class BookingResource extends Resource
                 ]),
             ])
             ->defaultSort('booking_date', 'desc')
-            ->poll('30s'); // Auto refresh setiap 30 detik
+            ->poll('30s');
     }
 
     /**
-     * ✅ Method untuk auto-complete booking yang sudah lewat waktu
+     * ✅ DYNAMIC PRICING: Calculate price based on venue, date, and time
      */
+    protected static function calculatePrice($venueType, $date, $timeSlot): int
+    {
+        $dayOfWeek = Carbon::parse($date)->dayOfWeek;
+        $isWeekend = in_array($dayOfWeek, [0, 6]);
+
+        preg_match('/^(\d{2})\./', $timeSlot, $matches);
+        $startHour = isset($matches[1]) ? (int)$matches[1] : 0;
+
+        if ($venueType === 'pvj') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 700000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            }
+        }
+
+        if ($venueType === 'cibadak_a') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000;
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 700000;
+                }
+            }
+        }
+
+        if ($venueType === 'cibadak_b') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 550000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 550000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000;
+                }
+            }
+        }
+
+        if ($venueType === 'urban') {
+            if ($isWeekend) {
+                return 550000;
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000;
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 550000;
+                }
+            }
+        }
+
+        return 350000;
+    }
+
     protected static function autoCompleteExpiredBookings(): void
     {
         try {
@@ -411,7 +520,6 @@ class BookingResource extends Resource
                     $booking->update(['status' => 'completed']);
                     $completedCount++;
                     
-                    // Optional: Log untuk tracking
                     \Log::info("Booking #{$booking->id} auto-completed", [
                         'client' => $booking->client->name,
                         'date' => $booking->booking_date,
@@ -420,7 +528,6 @@ class BookingResource extends Resource
                 }
             }
 
-            // Optional: Notifikasi jika ada booking yang di-complete
             if ($completedCount > 0) {
                 Notification::make()
                     ->title('Auto-Complete Booking')
@@ -433,35 +540,25 @@ class BookingResource extends Resource
         }
     }
 
-    /**
-     * ✅ Cek apakah booking sudah expired (tanggal dan waktu sudah lewat)
-     */
     protected static function isBookingExpired(Booking $booking): bool
     {
         $bookingDate = Carbon::parse($booking->booking_date);
         
-        // Jika tanggal booking sudah lewat dari hari ini
         if ($bookingDate->lt(Carbon::today())) {
             return true;
         }
 
-        // Jika tanggal booking adalah hari ini, cek jam terakhir slot
         if ($bookingDate->isToday() && !empty($booking->time_slots)) {
             $lastSlot = end($booking->time_slots);
             
             if (isset($lastSlot['time'])) {
-                // Extract end time dari slot (contoh: "20.00 - 22.00" -> "22.00")
                 $timeRange = explode(' - ', $lastSlot['time']);
                 $endTime = trim(end($timeRange));
                 
                 try {
-                    // Parse waktu akhir
                     $endDateTime = Carbon::parse($booking->booking_date . ' ' . $endTime);
-                    
-                    // Cek apakah waktu sudah lewat
                     return Carbon::now()->gt($endDateTime);
                 } catch (\Exception $e) {
-                    // Jika error parsing time, anggap sudah expired jika tanggalnya lewat
                     return $bookingDate->lt(Carbon::today());
                 }
             }
@@ -472,9 +569,7 @@ class BookingResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

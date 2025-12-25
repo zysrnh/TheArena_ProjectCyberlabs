@@ -22,7 +22,6 @@ class CreateRecurringBooking extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Jangan create di sini, kita override handleRecordCreation
         return $data;
     }
 
@@ -31,13 +30,11 @@ class CreateRecurringBooking extends CreateRecord
         DB::beginTransaction();
         
         try {
-            // 1. Hitung semua tanggal recurring
             $recurringDates = $this->calculateRecurringDates(
                 $data['recurring_month'],
                 $data['recurring_days']
             );
 
-            // 2. Validasi konflik slot
             $conflicts = $this->checkConflicts(
                 $recurringDates,
                 $data['venue_type'],
@@ -57,19 +54,11 @@ class CreateRecurringBooking extends CreateRecord
                     ->send();
                 
                 $this->halt();
-                
-                // This line will never be reached due to halt(), but satisfies IDE
                 throw new \RuntimeException('Booking conflict detected');
             }
 
-            // 3. Format time slots
-            $timeSlots = $this->formatTimeSlots($data['time_slots_selection'], $data['venue_type']);
-            $totalPrice = array_sum(array_column($timeSlots, 'price'));
-
-            // 4. Tentukan client_id
             $clientId = $data['customer_type'] === 'existing' ? $data['client_id'] : null;
 
-            // 5. Buat notes dengan info customer manual
             $notes = $data['notes'] ?? '';
             if ($data['customer_type'] === 'manual') {
                 $customerInfo = "Customer: {$data['customer_name_manual']}";
@@ -80,11 +69,18 @@ class CreateRecurringBooking extends CreateRecord
             }
             $notes .= " | Booking Rutin Bulanan | Generated: " . Carbon::now()->format('d M Y H:i');
 
-            // 6. Create bookings untuk setiap tanggal
             $createdCount = 0;
             $firstBooking = null;
 
             foreach ($recurringDates as $date) {
+                // ✅ DYNAMIC PRICING: Calculate price per date
+                $timeSlots = $this->formatTimeSlots(
+                    $data['time_slots_selection'], 
+                    $data['venue_type'],
+                    $date
+                );
+                $totalPrice = array_sum(array_column($timeSlots, 'price'));
+
                 $booking = Booking::create([
                     'client_id' => $clientId,
                     'venue_id' => $this->getVenueId($data['venue_type']),
@@ -98,7 +94,6 @@ class CreateRecurringBooking extends CreateRecord
                     'notes' => $notes,
                 ]);
 
-                // Create booked time slots
                 foreach ($timeSlots as $slot) {
                     BookedTimeSlot::create([
                         'booking_id' => $booking->id,
@@ -142,15 +137,90 @@ class CreateRecurringBooking extends CreateRecord
                 ->send();
             
             $this->halt();
-            
-            // This line will never be reached due to halt(), but satisfies IDE
             throw $e;
         }
     }
 
     /**
-     * Hitung tanggal recurring berdasarkan bulan dan hari
+     * ✅ DYNAMIC PRICING: Calculate price based on venue, date, and time
      */
+    protected function calculatePrice($venueType, $date, $timeSlot): int
+    {
+        $dayOfWeek = Carbon::parse($date)->dayOfWeek;
+        $isWeekend = in_array($dayOfWeek, [0, 6]);
+
+        preg_match('/^(\d{2})\./', $timeSlot, $matches);
+        $startHour = isset($matches[1]) ? (int)$matches[1] : 0;
+
+        if ($venueType === 'pvj') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 700000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            }
+        }
+
+        if ($venueType === 'cibadak_a') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 700000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 500000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 350000;
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 700000;
+                }
+            }
+        }
+
+        if ($venueType === 'cibadak_b') {
+            if ($isWeekend) {
+                if ($startHour >= 6 && $startHour < 20) {
+                    return 550000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000;
+                }
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000;
+                } elseif ($startHour >= 16 && $startHour < 20) {
+                    return 550000;
+                } elseif ($startHour >= 20 && $startHour < 24) {
+                    return 450000;
+                }
+            }
+        }
+
+        if ($venueType === 'urban') {
+            if ($isWeekend) {
+                return 550000;
+            } else {
+                if ($startHour >= 6 && $startHour < 16) {
+                    return 300000;
+                } elseif ($startHour >= 16 && $startHour < 24) {
+                    return 550000;
+                }
+            }
+        }
+
+        return 350000;
+    }
+
     protected function calculateRecurringDates(string $month, array $days): array
     {
         $dates = [];
@@ -160,7 +230,6 @@ class CreateRecurringBooking extends CreateRecord
         $current = $startDate->copy();
         while ($current <= $endDate) {
             if (in_array((string)$current->dayOfWeek, $days, true)) {
-                // Skip tanggal yang sudah lewat
                 if ($current->gte(Carbon::today())) {
                     $dates[] = $current->format('Y-m-d');
                 }
@@ -171,9 +240,6 @@ class CreateRecurringBooking extends CreateRecord
         return $dates;
     }
 
-    /**
-     * Cek konflik dengan booking existing
-     */
     protected function checkConflicts(array $dates, string $venueType, array $timeSlots): array
     {
         $conflicts = [];
@@ -197,31 +263,19 @@ class CreateRecurringBooking extends CreateRecord
     }
 
     /**
-     * Format time slots dengan harga
+     * ✅ Format time slots with DYNAMIC pricing per date
      */
-    protected function formatTimeSlots(array $selectedSlots, string $venueType): array
+    protected function formatTimeSlots(array $selectedSlots, string $venueType, string $date): array
     {
-        $priceMap = [
-            'cibadak_a' => 350000,
-            'cibadak_b' => 300000,
-            'pvj' => 350000,
-            'urban' => 400000,
-        ];
-
-        $price = $priceMap[$venueType] ?? 350000;
-
-        return array_map(function ($time) use ($price) {
+        return array_map(function ($time) use ($venueType, $date) {
             return [
                 'time' => $time,
                 'duration' => 120,
-                'price' => $price,
+                'price' => $this->calculatePrice($venueType, $date, $time),
             ];
         }, $selectedSlots);
     }
 
-    /**
-     * Get venue ID (sesuaikan dengan data venue Anda)
-     */
     protected function getVenueId(string $venueType): int
     {
         $venueMap = [
