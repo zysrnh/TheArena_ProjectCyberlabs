@@ -46,9 +46,6 @@ export default function Footer() {
                 alt="The Arena Basketball" 
                 className="h-20 md:h-24 w-auto mb-4 md:mb-6 mx-auto md:mx-0" 
               />
-              <p className="text-[#013064] text-sm leading-relaxed px-4 md:px-0">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-              </p>
             </div>
 
             {/* Menu */}
@@ -88,11 +85,11 @@ export default function Footer() {
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center gap-3 justify-center md:justify-start">
                   <img src="/images/Phone_fill-1.svg" alt="Phone" className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-[#013064] text-sm md:text-base">+62 812-2297-7985</span>
+                  <span className="text-[#013064] text-sm md:text-base">+6812-2297-7985</span>
                 </div>
                 <div className="flex items-center gap-3 justify-center md:justify-start">
                   <img src="/images/Message_alt_fill-2.svg" alt="Email" className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-[#013064] text-sm md:text-base break-all">thearena@gmail.com</span>
+                  <span className="text-[#013064] text-sm md:text-base break-all">arena.basketball.id@gmail.com</span>
                 </div>
                 <div className="flex items-start gap-3 justify-center md:justify-start px-4 md:px-0">
                   <img src="/images/Pin_fill.svg" alt="Location" className="w-5 h-5 mt-1 flex-shrink-0" />

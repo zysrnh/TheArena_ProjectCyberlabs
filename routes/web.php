@@ -137,3 +137,7 @@ Route::middleware('auth:client')->group(function () {
 // ✅ Callback from Faspay (server-to-server, NO AUTH)
 Route::post('/api/payment/faspay/callback', [PaymentController::class, 'callback'])
     ->name('payment.faspay.callback');
+
+    // ✅ Check payment status (NO AUTH required - for UAT testing)
+Route::post('/api/payment/check-status', [PaymentController::class, 'checkStatus'])
+    ->name('payment.check-status');

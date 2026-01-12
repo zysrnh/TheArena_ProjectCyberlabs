@@ -13,8 +13,6 @@ export default function About() {
   // Debug facilities data
   useEffect(() => {
     console.log('Facilities data:', facilities);
-    console.log('Facilities length:', facilities?.length);
-    console.log('Is Array?', Array.isArray(facilities));
   }, [facilities]);
 
   useEffect(() => {
@@ -55,7 +53,6 @@ export default function About() {
       return 'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?w=800';
     }
     if (url.startsWith('http')) return url;
-    // Cek apakah file exists di storage
     return `/storage/${url}`;
   };
 
@@ -188,7 +185,7 @@ export default function About() {
           {/* Left Section - Content */}
           <div className="bg-[#003f84] text-white p-6 md:p-10 lg:p-14 flex flex-col justify-center order-2 md:order-1">
             <h2 className="text-white text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 leading-tight">
-              {aboutData?.komunitas?.title || 'Komunitas'}
+              Komunitas & Klub Basket
             </h2>
             
             <div className="space-y-3 md:space-y-4 text-gray-200 text-xs md:text-sm lg:text-base leading-relaxed">
@@ -262,9 +259,7 @@ export default function About() {
         {/* Tribun Penonton Section - 3 Columns Grid (DYNAMIC) */}
         <div className="grid grid-cols-1 md:grid-cols-3">
           {(() => {
-            // Cari data Tribun Penonton dari facilities atau aboutData
             const tribunData = facilities?.find(f => f.name.toLowerCase().includes('tribun')) || aboutData?.tribun;
-            const hasData = tribunData !== undefined;
 
             return (
               <>
@@ -300,7 +295,6 @@ export default function About() {
                 {/* Right - Text Content (2 columns) */}
                 <div className="md:col-span-2 bg-[#003f84] text-white p-4 md:p-6 lg:p-8 flex flex-col justify-center h-[280px] md:h-[320px] lg:h-[350px]">
                   <div className="space-y-3 md:space-y-4 text-gray-200 text-xs md:text-sm leading-relaxed">
-                    {/* Hanya tampilkan jika ada data dari aboutData (AboutContent) */}
                     {aboutData?.tribun?.description_1 && renderHTML(aboutData.tribun.description_1)}
                     {aboutData?.tribun?.description_2 && renderHTML(aboutData.tribun.description_2)}
                     {aboutData?.tribun?.description_3 && renderHTML(aboutData.tribun.description_3)}

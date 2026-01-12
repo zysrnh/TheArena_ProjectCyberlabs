@@ -585,6 +585,46 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
 
                   {validSchedules.length > 0 && (
                     <>
+                      
+
+                      <div>
+                        <h2 className="text-2xl font-bold text-white mb-4">Pilihan Lapangan The Arena</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {Object.values(venues).map((v) => {
+                            const isSelected = venue.venue_type === v.venue_type;
+                            return (
+                              <button
+                                key={v.venue_type}
+                                onClick={() => {
+                                  setSelectedTimeSlots([]);
+                                  router.visit(`/booking?venue=${v.venue_type}&week=${weekOffset}`, {
+                                    preserveScroll: true,
+                                  });
+                                }}
+                                className={`p-6 rounded-none relative transition ${isSelected
+                                  ? 'bg-[#ffd22f] border-2 border-[#ffd22f]'
+                                  : 'bg-white border-2 border-white hover:border-[#ffd22f]'
+                                  }`}
+                              >
+                                {isSelected && (
+                                  <div className="absolute top-3 right-3 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center">
+                                    <Check className="w-5 h-5 text-white" />
+                                  </div>
+                                )}
+                                <div className="text-center">
+                                  <p className={`text-xs mb-2 ${isSelected ? 'text-[#013064]/70' : 'text-gray-600'}`}>
+                                    Lapangan
+                                  </p>
+                                  <p className={`text-xl font-bold mb-2 ${isSelected ? 'text-[#013064]' : 'text-gray-800'}`}>
+                                    {v.name.replace('The Arena Basketball ', '')}
+                                  </p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       {/* ✅ SECTION PILIH TANGGAL - DIUBAH */}
                       <div>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
@@ -708,51 +748,6 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                       </div>
 
                       <div>
-                        <h2 className="text-2xl font-bold text-white mb-4">Pilihan Lapangan The Arena</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Object.values(venues).map((v) => {
-                            const isSelected = venue.venue_type === v.venue_type;
-                            return (
-                              <button
-                                key={v.venue_type}
-                                onClick={() => {
-                                  setSelectedTimeSlots([]);
-                                  router.visit(`/booking?venue=${v.venue_type}&week=${weekOffset}`, {
-                                    preserveScroll: true,
-                                  });
-                                }}
-                                className={`p-6 rounded-none relative transition ${isSelected
-                                  ? 'bg-[#ffd22f] border-2 border-[#ffd22f]'
-                                  : 'bg-white border-2 border-white hover:border-[#ffd22f]'
-                                  }`}
-                              >
-                                {isSelected && (
-                                  <div className="absolute top-3 right-3 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center">
-                                    <Check className="w-5 h-5 text-white" />
-                                  </div>
-                                )}
-                                <div className="text-center">
-                                  <p className={`text-xs mb-2 ${isSelected ? 'text-[#013064]/70' : 'text-gray-600'}`}>
-                                    Lapangan
-                                  </p>
-                                  <p className={`text-xl font-bold mb-2 ${isSelected ? 'text-[#013064]' : 'text-gray-800'}`}>
-                                    {v.name.replace('The Arena Basketball ', '')}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div>
-                        {/* Note Harga Member */}
-                        <div className="mb-4 bg-[#ffd22f]/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
-                          <p className="text-white text-sm leading-relaxed">
-                            <span className="font-bold text-[#ffd22f]">Info: </span>
-                            <span>Harga yang ditampilkan adalah harga reguler. Member The Arena mendapatkan harga spesial lebih murah untuk setiap sesi booking.</span>
-                          </p>
-                        </div>
                         <h2 className="text-2xl font-bold text-white mb-4">Pilih Jadwal Lapangan</h2>
 
                         {loading ? (
@@ -804,6 +799,13 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                           </div>
                         )}
                       </div>
+                                              {/* Note Harga Member */}
+                        <div className="mb-4 bg-[#ffd22f]/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
+                          <p className="text-white text-sm leading-relaxed">
+                            <span className="font-bold text-[#ffd22f]">Info: </span>
+                            <span>Harga yang ditampilkan adalah harga reguler. Member The Arena mendapatkan harga spesial lebih murah untuk setiap sesi booking.</span>
+                          </p>
+                        </div>
                     </>
                   )}
                 </div>

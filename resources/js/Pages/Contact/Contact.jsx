@@ -86,7 +86,7 @@ export default function Contact() {
                     <Phone className="w-5 h-5 text-[#013064]" />
                   </div>
                   <div>
-                    <p className="text-white text-base">+62 812-2297-7985</p>
+                    <p className="text-white text-base">+6812-2297-7985</p>
                   </div>
                 </div>
 
@@ -95,7 +95,7 @@ export default function Contact() {
                     <Mail className="w-5 h-5 text-[#013064]" />
                   </div>
                   <div>
-                    <p className="text-white text-base">thearena@gmail.com</p>
+                    <p className="text-white text-base">arena.basketball.id@gmail.com</p>
                   </div>
                 </div>
 

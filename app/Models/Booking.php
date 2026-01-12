@@ -18,13 +18,13 @@ class Booking extends Model
         'time_slot',
         'total_price',
         'status',
-        'is_paid',
+        'is_paid',           // ✅ Tetap ada
         'notes',
-        'bill_no',           // Faspay bill number
-        'trx_id',            // ✅ TAMBAHAN: Faspay transaction ID
-        'payment_method',    // Metode pembayaran (VA BRI, QRIS, etc)
-        'payment_status',    // Status pembayaran (pending, paid, failed, etc)
-        'paid_at',           // Waktu pembayaran berhasil
+        'bill_no',
+        'trx_id',
+        'payment_method',
+        'payment_status',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -32,7 +32,7 @@ class Booking extends Model
         'time_slots' => 'array',
         'time_slot' => 'array',
         'total_price' => 'decimal:2',
-        'is_paid' => 'boolean',
+        'is_paid' => 'boolean',  // ✅ Tetap ada, Laravel akan handle 0/1 conversion
         'paid_at' => 'datetime',
     ];
 
@@ -41,7 +41,8 @@ class Booking extends Model
      */
     public function isPaid()
     {
-        return $this->payment_status === 'paid';
+        // ✅ Cek keduanya untuk backward compatibility
+        return $this->payment_status === 'paid' || $this->is_paid === true;
     }
 
     /**
@@ -110,25 +111,29 @@ class Booking extends Model
 
     /**
      * Cek apakah booking bisa direview
-     * Syarat: status confirmed dan tanggal booking sudah lewat
      */
     public function canBeReviewed()
     {
-        return $this->status === 'completed'  // ✅ UBAH: dari 'confirmed' ke 'completed'
-            && $this->is_paid === true         // ✅ TAMBAH: harus sudah dibayar
+        return $this->status === 'completed'
+            && $this->isPaid()  // ✅ Gunakan method isPaid()
             && $this->booking_date < now()->toDateString()
             && !$this->hasReview();
     }
+
     /**
      * ✅ Scope untuk query booking yang bisa direview
      */
     public function scopeCompletedWithoutReview($query)
     {
         return $query->where('status', 'completed')
-            ->where('is_paid', true)
+            ->where(function($q) {
+                $q->where('payment_status', 'paid')
+                  ->orWhere('is_paid', true);
+            })
             ->where('booking_date', '<', now()->toDateString())
             ->whereDoesntHave('review');
     }
+
     /**
      * Get formatted time slots string
      */

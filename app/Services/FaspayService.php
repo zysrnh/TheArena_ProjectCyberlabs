@@ -45,8 +45,9 @@ class FaspayService
 
             'bill_reff'  => $orderId,
             
-            // ✅ Return URL
-            'return_url' => $this->config['return_url'] ?? route('payment.faspay.return'),
+            // ✅ PENTING: Callback & Return URL
+            'callback_url' => $this->config['callback_url'],
+            'return_url'   => $this->config['return_url'] ?? route('payment.faspay.return'),
 
             // ✅ Item detail
             'item' => array_map(function ($it, $i) {
@@ -203,21 +204,28 @@ class FaspayService
         }
 
         // ✅ Formula callback: sha1(md5(user_id + password + bill_no + payment_status_code))
-        $calculated = sha1(md5(
-            $this->config['user_id'] .
-            $this->config['password'] .
-            $billNo .
-            $status
-        ));
+        $rawString = $this->config['user_id'] . 
+                     $this->config['password'] . 
+                     $billNo . 
+                     $status;
+        
+        $md5Hash = md5($rawString);
+        $calculated = sha1($md5Hash);
 
         $valid = hash_equals($calculated, $requestSignature);
 
         if (!$valid) {
-            Log::warning('⚠️ Signature mismatch', [
-                'expected' => $calculated,
-                'received' => $requestSignature,
-                'bill_no'  => $billNo,
-                'status'   => $status,
+            // ✅ LOG DETAIL DEBUG
+            Log::warning('⚠️ Signature mismatch - DETAIL DEBUG', [
+                'user_id'           => $this->config['user_id'],
+                'password_length'   => strlen($this->config['password']),
+                'bill_no'           => $billNo,
+                'status'            => $status,
+                'raw_string'        => $rawString,
+                'md5_hash'          => $md5Hash,
+                'calculated_sha1'   => $calculated,
+                'received_signature' => $requestSignature,
+                'all_callback_data' => $data,
             ]);
         } else {
             Log::info('✅ Signature verified', ['bill_no' => $billNo, 'status' => $status]);

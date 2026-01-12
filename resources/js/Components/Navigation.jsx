@@ -60,12 +60,17 @@ export default function Navigation({ activePage = "" }) {
       key: "home" 
     },
     { 
+      name: currentLanguage === "id" ? "Booking Lapangan" : "About", 
+      href: "/booking", 
+      key: "booking" 
+    },
+    { 
       name: currentLanguage === "id" ? "Tentang" : "About", 
       href: "/tentang", 
       key: "tentang" 
     },
     { 
-      name: currentLanguage === "id" ? "Jadwal & Hasil" : "Schedule & Results", 
+      name: currentLanguage === "id" ? "Pertandingan" : "Schedule & Results", 
       href: "/jadwal-hasil", 
       key: "jadwal-hasil" 
     },

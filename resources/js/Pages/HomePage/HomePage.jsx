@@ -777,13 +777,15 @@ export default function HomePage() {
                   <p>Dapatkan harga spesial dan berbagai keuntungan eksklusif. Hubungi admin untuk informasi lengkap tentang paket member kami.</p>
                 </div>
 
-                <Link
+                <a
                   href="https://wa.me/6281222977985"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-[#ffd22f] text-[#013064] px-5 md:px-7 py-2 md:py-3 text-xs md:text-sm lg:text-base font-bold hover:bg-[#ffe066] transition inline-flex items-center gap-2"
                 >
                   Hubungi Admin
                   <ChevronRight className="w-4 h-4" />
-                </Link>
+                </a>
               </div>
             </div>
           </div>
@@ -859,8 +861,8 @@ export default function HomePage() {
                 <button
                   onClick={() => handleFilterChange('all')}
                   className={`px-6 sm:px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all whitespace-nowrap ${filter === 'all'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
                     }`}
                 >
                   Semua
@@ -868,8 +870,8 @@ export default function HomePage() {
                 <button
                   onClick={() => handleFilterChange('live')}
                   className={`px-6 sm:px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all sm:border-l-0 whitespace-nowrap ${filter === 'live'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
                     }`}
                 >
                   Pertandingan Berlangsung
@@ -877,8 +879,8 @@ export default function HomePage() {
                 <button
                   onClick={() => handleFilterChange('upcoming')}
                   className={`px-6 sm:px-8 md:px-12 py-3 md:py-3.5 text-sm md:text-base font-semibold transition-all sm:border-l-0 whitespace-nowrap ${filter === 'upcoming'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'bg-[#013064] text-white border border-white hover:bg-white/10'
+                    ? 'bg-[#ffd22f] text-[#013064]'
+                    : 'bg-[#013064] text-white border border-white hover:bg-white/10'
                     }`}
                 >
                   Pertandingan Berikutnya
