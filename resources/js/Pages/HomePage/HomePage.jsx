@@ -1,5 +1,5 @@
 import { Head, Link, usePage, router } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronRight, Phone, Mail, LogOut, X } from "lucide-react";
 import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
@@ -35,6 +35,8 @@ export default function HomePage() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [notification, setNotification] = useState(null);
   const [currentReviewPage, setCurrentReviewPage] = useState(0);
+  const topRowRef = useRef(null);
+const bottomRowRef = useRef(null);
 
   // ✅ USEEFFECT AUTO-SLIDE REVIEW CAROUSEL
   useEffect(() => {
@@ -64,6 +66,39 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [facilities.length]);
 
+  // ✅ USEEFFECT AUTO-SCROLL PARTNER CAROUSEL
+useEffect(() => {
+  if (partners.length <= 12) return;
+
+  let topScrollPosition = 0;
+  let bottomScrollPosition = 0;
+  const scrollSpeed = 0.5;
+
+  const animate = () => {
+    if (topRowRef.current) {
+      topScrollPosition -= scrollSpeed;
+      const maxScroll = topRowRef.current.scrollWidth / 2;
+      if (Math.abs(topScrollPosition) >= maxScroll) {
+        topScrollPosition = 0;
+      }
+      topRowRef.current.style.transform = `translateX(${topScrollPosition}px)`;
+    }
+
+    if (bottomRowRef.current) {
+      bottomScrollPosition += scrollSpeed;
+      const maxScroll = bottomRowRef.current.scrollWidth / 2;
+      if (bottomScrollPosition >= maxScroll) {
+        bottomScrollPosition = 0;
+      }
+      bottomRowRef.current.style.transform = `translateX(${bottomScrollPosition}px)`;
+    }
+
+    requestAnimationFrame(animate);
+  };
+
+  const animationId = requestAnimationFrame(animate);
+  return () => cancelAnimationFrame(animationId);
+}, [partners.length]);
   // Get reviews untuk halaman saat ini
   const reviewsPerPage = 3;
   const startIndex = currentReviewPage * reviewsPerPage;
@@ -1121,9 +1156,6 @@ export default function HomePage() {
             {/* Presented By Section (Sponsors) */}
             {sponsors && sponsors.length > 0 && (
               <div className="mb-16 md:mb-20">
-                <p className="text-[#ffd22f] text-center text-lg md:text-xl lg:text-2xl font-semibold mb-6 md:mb-8">
-                  Presented By
-                </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-6 md:gap-8 flex-wrap">
                   {sponsors.map((sponsor) => (
                     <div
@@ -1140,29 +1172,79 @@ export default function HomePage() {
                 </div>
               </div>
             )}
-
-            {/* Official Partner Section */}
-            {partners && partners.length > 0 && (
-              <div className="mb-16 md:mb-20">
-                <p className="text-[#ffd22f] text-center text-lg md:text-xl lg:text-2xl font-semibold mb-6 md:mb-8">
-                  Official Partner
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-6">
-                  {partners.map((partner) => (
-                    <div
-                      key={partner.id}
-                      className="bg-white p-3 md:p-4 lg:p-6 flex items-center justify-center w-full h-32 md:h-40 lg:h-48 hover:scale-105 transition-transform rounded-lg shadow-md"
-                    >
-                      <img
-                        src={partner.image}
-                        alt={partner.name}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    </div>
-                  ))}
-                </div>
+{/* Official Partner Section - CAROUSEL AUTO-SCROLL */}
+{partners && partners.length > 0 && (
+  <div className="mb-16 md:mb-20">
+   
+    
+    {partners.length <= 12 ? (
+      // GRID BIASA kalau 12 atau kurang
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 lg:gap-6">
+        {partners.map((partner) => (
+          <div
+            key={partner.id}
+            className="bg-white p-3 md:p-4 lg:p-6 flex items-center justify-center w-full h-32 md:h-40 lg:h-48 hover:scale-105 transition-transform rounded-lg shadow-md"
+          >
+            <img
+              src={partner.image}
+              alt={partner.name}
+              className="max-w-full max-h-full object-contain"
+            />
+          </div>
+        ))}
+      </div>
+    ) : (
+      // CAROUSEL kalau lebih dari 12 - DUPLIKASI 3X BIAR SEAMLESS!
+      <div className="space-y-4 overflow-hidden">
+        {/* Baris Atas - Scroll ke KIRI */}
+        <div className="overflow-hidden">
+          <div
+            ref={topRowRef}
+            className="flex gap-4 will-change-transform"
+            style={{ width: 'fit-content' }}
+          >
+            {[...partners, ...partners, ...partners].map((partner, index) => (
+              <div
+                key={`top-${index}`}
+                className="bg-white p-4 md:p-6 flex items-center justify-center rounded-lg shadow-md flex-shrink-0"
+                style={{ width: '200px', height: '180px' }}
+              >
+                <img
+                  src={partner.image}
+                  alt={partner.name}
+                  className="max-w-full max-h-full object-contain"
+                />
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+
+        {/* Baris Bawah - Scroll ke KANAN */}
+        <div className="overflow-hidden">
+          <div
+            ref={bottomRowRef}
+            className="flex gap-4 will-change-transform"
+            style={{ width: 'fit-content' }}
+          >
+            {[...partners, ...partners, ...partners].map((partner, index) => (
+              <div
+                key={`bottom-${index}`}
+                className="bg-white p-4 md:p-6 flex items-center justify-center rounded-lg shadow-md flex-shrink-0"
+                style={{ width: '200px', height: '180px' }}
+              >
+                <img
+                  src={partner.image}
+                  alt={partner.name}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
 
           </div>

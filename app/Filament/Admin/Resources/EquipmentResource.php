@@ -146,7 +146,7 @@ class EquipmentResource extends Resource
                             ->minValue(0)
                             ->step(1000)
                             ->placeholder('50000')
-                            ->helperText('Harga sewa per item per jam'),
+                            ->helperText('Harga Tidak Akan Ditampilkan Dihalaman'),
                     ]),
 
                 Section::make('Status')

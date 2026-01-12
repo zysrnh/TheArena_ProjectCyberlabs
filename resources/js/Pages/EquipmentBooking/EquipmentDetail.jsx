@@ -25,9 +25,9 @@ export default function EquipmentDetail() {
 
   // Admin contacts
   const adminContacts = [
-    { name: "Admin 1", phone: "6283861669565" },
-    { name: "Admin 2", phone: "6281234567890" },
-    { name: "Admin 3", phone: "6289876543210" }
+    { name: "Admin 1", phone: "681222977985" },
+    { name: "Admin 2", phone: "681222977985" },
+    { name: "Admin 3", phone: "681222977985" }
   ];
 
   // Show notification from flash messages or errors
@@ -255,10 +255,10 @@ export default function EquipmentDetail() {
 
             {/* Image Gallery - 1 Besar + 4 Kecil */}
             <div className="mb-12">
-              {/* Desktop Layout - Simetris */}
+            {/* Desktop Layout - Simetris */}
               <div className="hidden lg:flex gap-4 justify-center">
                 {/* Main Image (Gambar 1) - 550px */}
-                <div className="w-[550px] h-[550px]">
+                <div className="w-[550px] h-[550px] flex-shrink-0">
                   <img
                     src={displayImages[0]}
                     alt={`${equipment.name} - Main`}
@@ -270,9 +270,9 @@ export default function EquipmentDetail() {
                 </div>
                 
                 {/* Grid 4 Images (Gambar 2-5) - 550px total */}
-                <div className="grid grid-cols-2 gap-4 w-[550px] h-[550px]">
+                <div className="grid grid-cols-2 gap-4 w-[550px] h-[550px] flex-shrink-0">
                   {displayImages.slice(1, 5).map((img, idx) => (
-                    <div key={idx} className="w-full h-full">
+                    <div key={idx} className="w-full h-full overflow-hidden">
                       <img
                         src={img}
                         alt={`${equipment.name} - ${idx + 2}`}
@@ -285,7 +285,6 @@ export default function EquipmentDetail() {
                   ))}
                 </div>
               </div>
-
               {/* Mobile Layout - Slider/Carousel */}
               <div className="lg:hidden relative">
                 <div className="relative w-full aspect-square overflow-hidden">
