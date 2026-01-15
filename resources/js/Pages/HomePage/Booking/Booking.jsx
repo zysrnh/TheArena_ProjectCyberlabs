@@ -378,6 +378,87 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
   .animate-progress {
     animation: progress 5s linear;
   }
+    @keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.8s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out;
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
 `}</style>
       <div className="min-h-screen flex flex-col bg-[#013064]">
         <Navigation activePage="home" />
@@ -442,35 +523,94 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                   {venue.name}
                 </h1>
               </div>
+                                    
+<div className="mb-8 animate-fade-in">
+  <h2 className="text-2xl font-bold text-white mb-6">Pilihan Lapangan The Arena</h2>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {Object.values(venues).map((v, index) => {
+      const isSelected = venue.venue_type === v.venue_type;
+      
+      return (
+        <button
+          key={v.venue_type}
+          onClick={() => {
+            setSelectedTimeSlots([]);
+            router.visit(`/booking?venue=${v.venue_type}&week=${weekOffset}`, {
+              preserveScroll: true,
+            });
+          }}
+          style={{ animationDelay: `${index * 100}ms` }}
+          className={`p-6 rounded-lg relative transition-all duration-300 animate-slide-up min-h-[140px] ${
+            isSelected
+              ? 'bg-[#ffd22f] border-2 border-[#ffd22f] shadow-lg'
+              : 'bg-white border-2 border-white hover:border-[#ffd22f] hover:shadow-md hover:-translate-y-1'
+          }`}
+        >
+          {isSelected && (
+            <div className="absolute top-4 right-4 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center shadow-md animate-bounce-in">
+              <Check className="w-5 h-5 text-white" />
+            </div>
+          )}
+          
+          <div className="text-left pr-10">
+            <p className={`text-xs uppercase tracking-wide mb-3 font-medium ${
+              isSelected ? 'text-[#013064]/70' : 'text-gray-500'
+            }`}>
+              Lapangan
+            </p>
+            
+            <h3 className={`text-xl font-bold mb-4 ${
+              isSelected ? 'text-[#013064]' : 'text-gray-900'
+            }`}>
+              {v.name.replace('The Arena Basketball ', '')}
+            </h3>
+            
+            <div className="flex items-center gap-2">
+              <MapPin className={`w-4 h-4 flex-shrink-0 ${
+                isSelected ? 'text-[#013064]/60' : 'text-gray-500'
+              }`} />
+              <p className={`text-sm ${
+                isSelected ? 'text-[#013064]/80' : 'text-gray-600'
+              }`}>
+                {v.location}
+              </p>
             </div>
           </div>
+        </button>
+      );
+    })}
+  </div>
+</div>
 
-          <div className="bg-[#013064] px-4 pb-8">
-            <div className="max-w-7xl mx-auto">
-              {/* Desktop Layout */}
-              <div className="hidden md:flex flex-row gap-4 justify-center items-start animate-fade-in-up">
-                <div className="md:flex-shrink-0 md:w-[550px]">
-                  <div className="aspect-square">
-                    <img
-                      src={venue.images?.[0] || '/placeholder.jpg'}
-                      alt={`${venue.name} - Main`}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                </div>
+{/* Gambar Gallery - Desktop */}
+<div className="hidden md:flex flex-row gap-4 justify-center items-start mt-8">
+  <div className="flex-shrink-0 w-[550px] animate-slide-in-left">
+    <div className="aspect-square rounded-lg overflow-hidden group">
+      <img
+        src={venue.images?.[0] || '/placeholder.jpg'}
+        alt={`${venue.name} - Main`}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+      />
+    </div>
+  </div>
 
-                <div className="grid grid-cols-2 gap-4 md:max-w-[550px]">
-                  {venue.images?.slice(1, 5).map((img, idx) => (
-                    <div key={idx} className="aspect-square">
-                      <img
-                        src={img}
-                        alt={`${venue.name} - ${idx + 2}`}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+  <div className="grid grid-cols-2 gap-4 w-[550px] h-[550px]">
+    {venue.images?.slice(1, 5).map((img, idx) => (
+      <div 
+        key={idx} 
+        className="w-full h-full rounded-lg overflow-hidden group animate-slide-in-right"
+        style={{ animationDelay: `${idx * 100}ms` }}
+      >
+        <img
+          src={img}
+          alt={`${venue.name} - ${idx + 2}`}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      </div>
+    ))}
+  </div>
+</div>
+
 
               {/* Mobile Slider */}
               <div className="md:hidden animate-fade-in-up">
@@ -585,45 +725,7 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
 
                   {validSchedules.length > 0 && (
                     <>
-                      
 
-                      <div>
-                        <h2 className="text-2xl font-bold text-white mb-4">Pilihan Lapangan The Arena</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {Object.values(venues).map((v) => {
-                            const isSelected = venue.venue_type === v.venue_type;
-                            return (
-                              <button
-                                key={v.venue_type}
-                                onClick={() => {
-                                  setSelectedTimeSlots([]);
-                                  router.visit(`/booking?venue=${v.venue_type}&week=${weekOffset}`, {
-                                    preserveScroll: true,
-                                  });
-                                }}
-                                className={`p-6 rounded-none relative transition ${isSelected
-                                  ? 'bg-[#ffd22f] border-2 border-[#ffd22f]'
-                                  : 'bg-white border-2 border-white hover:border-[#ffd22f]'
-                                  }`}
-                              >
-                                {isSelected && (
-                                  <div className="absolute top-3 right-3 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center">
-                                    <Check className="w-5 h-5 text-white" />
-                                  </div>
-                                )}
-                                <div className="text-center">
-                                  <p className={`text-xs mb-2 ${isSelected ? 'text-[#013064]/70' : 'text-gray-600'}`}>
-                                    Lapangan
-                                  </p>
-                                  <p className={`text-xl font-bold mb-2 ${isSelected ? 'text-[#013064]' : 'text-gray-800'}`}>
-                                    {v.name.replace('The Arena Basketball ', '')}
-                                  </p>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
 
                       {/* ✅ SECTION PILIH TANGGAL - DIUBAH */}
                       <div>

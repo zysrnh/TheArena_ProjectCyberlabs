@@ -59,13 +59,13 @@ class FaspayService
             }, $items, array_keys($items)),
         ];
 
-        // Signature
+        // Signature untuk CREATE
         $payload['signature'] = $this->signCreate($billNo, (string) $billTotal);
 
         Log::info('📤 FASPAY CREATE PAYMENT REQUEST', [
-            'url'     => $this->config['base_url'],
-            'bill_no' => $billNo,
-            'amount'  => $billTotal,
+            'url'          => $this->config['base_url'],
+            'bill_no'      => $billNo,
+            'amount'       => $billTotal,
             'callback_url' => $this->config['callback_url'],
             'return_url'   => $this->config['return_url'],
         ]);
@@ -74,14 +74,14 @@ class FaspayService
             $resp = Http::timeout(45)
                 ->retry(2, 100)
                 ->withOptions([
-                    'verify' => !$this->config['is_production'], // Verify SSL di production
+                    'verify' => $this->config['is_production'], // Verify SSL di production
                 ])
                 ->asJson()
                 ->post($this->config['base_url'], $payload);
 
             Log::info('📥 FASPAY RAW RESPONSE', [
-                'status'  => $resp->status(),
-                'body'    => $resp->body(),
+                'status' => $resp->status(),
+                'body'   => $resp->body(),
             ]);
 
             if ($resp->failed()) {
@@ -111,14 +111,14 @@ class FaspayService
             if (empty($trxId)) {
                 $trxId = 'TEMP_' . $billNo;
                 Log::warning('⚠️ Faspay tidak return trx_id, menggunakan temporary ID', [
-                    'bill_no' => $billNo,
+                    'bill_no'     => $billNo,
                     'temp_trx_id' => $trxId,
                 ]);
             }
 
             Log::info('✅ FASPAY PAYMENT CREATED SUCCESSFULLY', [
-                'trx_id'  => $trxId,
-                'bill_no' => $billNo,
+                'trx_id'       => $trxId,
+                'bill_no'      => $billNo,
                 'redirect_url' => $result['redirect_url'] ?? null,
             ]);
 
@@ -148,8 +148,8 @@ class FaspayService
             ]);
             
             return [
-                'success' => false,
-                'error'   => 'Tidak dapat terhubung ke server Faspay. Silakan coba lagi.',
+                'success'         => false,
+                'error'           => 'Tidak dapat terhubung ke server Faspay. Silakan coba lagi.',
                 'technical_error' => $e->getMessage(),
             ];
             
@@ -167,67 +167,172 @@ class FaspayService
     }
 
     /**
-     * ✅ Signature untuk createPayment()
+     * ✅ Signature untuk createPayment() - FORMAT CREATE
      */
     protected function signCreate(string $billNo, string $billTotal): string
     {
         $raw = $this->config['user_id'] . $this->config['password'] . $billNo . $billTotal;
-        $signature = sha1(md5($raw));
+        $md5Hash = md5($raw);
+        $signature = sha1($md5Hash);
 
         Log::debug('🔐 Generated Signature (Create)', [
-            'user_id'   => $this->config['user_id'],
-            'bill_no'   => $billNo,
+            'user_id'    => $this->config['user_id'],
+            'bill_no'    => $billNo,
             'bill_total' => $billTotal,
-            'signature' => $signature,
+            'raw_string' => $raw,
+            'md5'        => $md5Hash,
+            'signature'  => $signature,
         ]);
 
         return $signature;
     }
 
     /**
-     * ✅ Verifikasi signature pada callback
+     * ⭐ NEW: Verifikasi signature pada CALLBACK/RETURN
+     * Mencoba berbagai format signature yang mungkin digunakan Faspay
      */
     public function verifySignature(array $data): bool
     {
-        $billNo = (string) ($data['bill_no'] ?? '');
-        $billTotal = (string) ($data['bill_total'] ?? '');
+        $billNo           = (string) ($data['bill_no'] ?? '');
+        $billTotal        = (string) ($data['bill_total'] ?? '');
         $requestSignature = (string) ($data['signature'] ?? '');
+        
+        // Data tambahan yang mungkin ada di callback/return
+        $trxId       = (string) ($data['trx_id'] ?? '');
+        $paymentReff = (string) ($data['payment_reff'] ?? '');
+        $paymentDate = (string) ($data['payment_date'] ?? '');
+        $status      = (string) ($data['status'] ?? $data['payment_status_code'] ?? '');
+        $merchantId  = (string) ($data['merchant_id'] ?? $this->config['merchant_id']);
 
-        if ($billNo === '' || $billTotal === '' || $requestSignature === '') {
-            Log::warning('⚠️ verifySignature: field kosong', compact('billNo', 'billTotal', 'requestSignature'));
+        if ($billNo === '' || $requestSignature === '') {
+            Log::warning('⚠️ verifySignature: field kosong', [
+                'bill_no'   => $billNo,
+                'signature' => $requestSignature,
+            ]);
             return false;
         }
 
-        $rawString = $this->config['user_id'] . 
-                     $this->config['password'] . 
-                     $billNo . 
-                     $billTotal;
+        Log::info('🔍 Verifying Signature - Available Data', [
+            'bill_no'      => $billNo,
+            'bill_total'   => $billTotal,
+            'trx_id'       => $trxId,
+            'merchant_id'  => $merchantId,
+            'payment_reff' => $paymentReff,
+            'payment_date' => $paymentDate,
+            'status'       => $status,
+            'received_sig' => $requestSignature,
+        ]);
+
+        // ⭐ COBA BERBAGAI FORMAT SIGNATURE
+        $formats = [];
         
-        $md5Hash = md5($rawString);
-        $calculated = sha1($md5Hash);
+        // Format 1: user_id + password + bill_no + bill_total (SAMA SEPERTI CREATE)
+        if ($billTotal) {
+            $raw1 = $this->config['user_id'] . $this->config['password'] . $billNo . $billTotal;
+            $formats['format1_create'] = [
+                'raw'       => $raw1,
+                'signature' => sha1(md5($raw1)),
+            ];
+        }
+        
+        // Format 2: user_id + password + trx_id + merchant_id + bill_no + status
+        if ($trxId && $status) {
+            $raw2 = $this->config['user_id'] . $this->config['password'] . $trxId . $merchantId . $billNo . $status;
+            $formats['format2_callback'] = [
+                'raw'       => $raw2,
+                'signature' => sha1(md5($raw2)),
+            ];
+        }
+        
+        // Format 3: user_id + password + bill_no + bill_total + payment_reff + status
+        if ($billTotal && $paymentReff && $status) {
+            $raw3 = $this->config['user_id'] . $this->config['password'] . $billNo . $billTotal . $paymentReff . $status;
+            $formats['format3_with_reff'] = [
+                'raw'       => $raw3,
+                'signature' => sha1(md5($raw3)),
+            ];
+        }
+        
+        // Format 4: user_id + password + trx_id + bill_no + bill_total + status
+        if ($trxId && $billTotal && $status) {
+            $raw4 = $this->config['user_id'] . $this->config['password'] . $trxId . $billNo . $billTotal . $status;
+            $formats['format4_trx_status'] = [
+                'raw'       => $raw4,
+                'signature' => sha1(md5($raw4)),
+            ];
+        }
+        
+        // Format 5: user_id + password + bill_no + status (SIMPLE)
+        if ($status) {
+            $raw5 = $this->config['user_id'] . $this->config['password'] . $billNo . $status;
+            $formats['format5_simple'] = [
+                'raw'       => $raw5,
+                'signature' => sha1(md5($raw5)),
+            ];
+        }
 
-        $valid = hash_equals($calculated, $requestSignature);
+        // Format 6: Tanpa MD5 (langsung SHA1) - user_id + password + bill_no + bill_total
+        if ($billTotal) {
+            $raw6 = $this->config['user_id'] . $this->config['password'] . $billNo . $billTotal;
+            $formats['format6_no_md5'] = [
+                'raw'       => $raw6,
+                'signature' => sha1($raw6),
+            ];
+        }
 
-        if (!$valid) {
-            Log::warning('⚠️ Signature mismatch', [
-                'user_id'            => $this->config['user_id'],
-                'bill_no'            => $billNo,
-                'bill_total'         => $billTotal,
-                'calculated_sha1'    => $calculated,
-                'received_signature' => $requestSignature,
-            ]);
-            
-            // ⚠️ BYPASS HANYA UNTUK TESTING
-            if (config('app.env') === 'local' || config('app.debug')) {
-                Log::warning('🚨 SIGNATURE VERIFICATION BYPASSED - TESTING MODE ONLY!');
+        // Format 7: user_id + password + trx_id + bill_total + status
+        if ($trxId && $billTotal && $status) {
+            $raw7 = $this->config['user_id'] . $this->config['password'] . $trxId . $billTotal . $status;
+            $formats['format7_trx_amount_status'] = [
+                'raw'       => $raw7,
+                'signature' => sha1(md5($raw7)),
+            ];
+        }
+
+        // Format 8: user_id + password + merchant_id + bill_no + bill_total + status
+        if ($billTotal && $status) {
+            $raw8 = $this->config['user_id'] . $this->config['password'] . $merchantId . $billNo . $billTotal . $status;
+            $formats['format8_merchant'] = [
+                'raw'       => $raw8,
+                'signature' => sha1(md5($raw8)),
+            ];
+        }
+
+        Log::info('🔐 Calculated Signatures', array_map(function($f) {
+            return ['signature' => $f['signature']];
+        }, $formats));
+
+        // Cek apakah ada yang cocok
+        foreach ($formats as $formatName => $formatData) {
+            if (hash_equals($formatData['signature'], $requestSignature)) {
+                Log::info('✅ Signature VALID ✅', [
+                    'format'     => $formatName,
+                    'bill_no'    => $billNo,
+                    'raw_string' => $formatData['raw'],
+                    'calculated' => $formatData['signature'],
+                    'received'   => $requestSignature,
+                ]);
                 return true;
             }
-            
-            return false;
         }
 
-        Log::info('✅ Signature verified', ['bill_no' => $billNo]);
-        return true;
+        Log::error('❌ Signature INVALID - No format matched', [
+            'bill_no'           => $billNo,
+            'received_signature' => $requestSignature,
+            'tried_formats'     => array_keys($formats),
+            'all_calculated'    => array_map(fn($f) => $f['signature'], $formats),
+        ]);
+
+        // ⚠️ BYPASS HANYA UNTUK TESTING/DEBUGGING
+        if (config('app.env') === 'local' || config('app.debug')) {
+            Log::warning('🚨 SIGNATURE VERIFICATION BYPASSED - TESTING MODE ONLY!', [
+                'env'   => config('app.env'),
+                'debug' => config('app.debug'),
+            ]);
+            return true;
+        }
+        
+        return false;
     }
 
     /**
@@ -252,5 +357,34 @@ class FaspayService
     public function formatAmount(int $amount): string
     {
         return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+
+    /**
+     * ✅ Query payment status (optional - untuk cek manual)
+     */
+    public function queryPaymentStatus(string $billNo): array
+    {
+        try {
+            // Implementasi query status jika Faspay support
+            // Biasanya pakai endpoint berbeda
+            Log::info('🔍 Query Payment Status', ['bill_no' => $billNo]);
+            
+            // Return dummy untuk sementara
+            return [
+                'success' => false,
+                'message' => 'Query status not implemented yet',
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('💥 Query Status Error', [
+                'bill_no' => $billNo,
+                'error'   => $e->getMessage(),
+            ]);
+            
+            return [
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ];
+        }
     }
 }

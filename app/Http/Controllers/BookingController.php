@@ -61,11 +61,12 @@ class BookingController extends Controller
 
         $venues = [
             'cibadak_a' => [
-                'id' => 1,
-                'venue_type' => 'cibadak_a',
-                'name' => 'The Arena Cibadak A',
-                'location' => 'GG Nyi Empok No. 8, Kota Bandung',
-                'description' => 'Basketball Courts & Healthy Lifestyle Space',
+    'id' => 1,
+    'venue_type' => 'cibadak_a',
+    'name' => 'The Arena Cibadak A',
+    'location' => 'GG Nyi Empok No. 8, Kota Bandung',
+    'full_address' => 'Gg. Nyi Empok No.8, Cibadak, Kec. Astanaanyar, Kota Bandung, Jawa Barat 40241', // ✅ TAMBAHKAN
+    'description' => 'Basketball Courts & Healthy Lifestyle Space',
                 'full_description' => 'The Arena Cibadak berlokasi di GG Nyi Empok No. 8, Kota Bandung. The Arena Cibadak memiliki 2 lapangan basket indoor berstandar internasional dengan lantai kayu jati (Cibadak A) dan Vinyl (Cibadak B).',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan berstandar internasional dengan fasilitas lengkap dan lokasi strategis di Bandung.',
                 'images' => [
@@ -97,6 +98,8 @@ class BookingController extends Controller
                 'venue_type' => 'cibadak_b',
                 'name' => 'The Arena Cibadak B',
                 'location' => 'GG Nyi Empok No. 8, Kota Bandung',
+                    'full_address' => 'Gg. Nyi Empok No.8, Cibadak, Kec. Astanaanyar, Kota Bandung, Jawa Barat 40241', // ✅ TAMBAHKAN
+
                 'description' => 'Basketball Courts & Healthy Lifestyle Space',
                 'full_description' => 'The Arena Cibadak berlokasi di GG Nyi Empok No. 8, Kota Bandung. The Arena Cibadak memiliki 2 lapangan basket indoor berstandar internasional dengan lantai kayu jati (Cibadak A) dan Vinyl (Cibadak B).',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan berstandar internasional dengan fasilitas lengkap dan lokasi strategis di Bandung.',
@@ -129,7 +132,10 @@ class BookingController extends Controller
                 'venue_type' => 'pvj',
                 'name' => 'The Arena PVJ',
                 'location' => 'Paris Van Java Mall, Lantai P13, Bandung',
+                    'full_address' => 'Jl. Sukajadi No.131, Cipedes, Kec. Sukajadi, Kota Bandung, Jawa Barat 40162', // ✅ TAMBAHKAN
+
                 'description' => 'Basketball Courts & Healthy Lifestyle Space',
+
                 'full_description' => 'The Arena PVJ berlokasi di Paris Van Java Mall, Lantai P13, Bandung. Tersedia 1 lapangan basket indoor dengan material kayu jati berkualitas, memberikan pengalaman bermain yang optimal. Kami mengundang Anda untuk merasakan pengalaman berolahraga di fasilitas terbaik yang dapat disesuaikan dengan kebutuhan latihan maupun acara.',
                 'invitation' => 'Rasakan pengalaman bermain basket di lapangan premium dengan material kayu jati berkualitas. Fasilitas lengkap dan lokasi strategis di pusat perbelanjaan membuat The Arena PVJ menjadi pilihan utama para pecinta basket di Bandung.',
                 'images' => [
@@ -166,6 +172,8 @@ class BookingController extends Controller
                 'venue_type' => 'urban',
                 'name' => 'The Arena Urban',
                 'location' => 'Jl. Urban Complex No. 88, Bandung',
+                    'full_address' => 'Jl. Kelenteng No.41, Ciroyom, Kec. Andir, Kota Bandung, Jawa Barat 40181', // ✅ TAMBAHKAN
+
                 'description' => 'Lapangan basket semi-outdoor dengan lantai vinyl',
                 'full_description' => 'The Arena Urban merupakan lapangan basket semi-outdoor dengan lantai vinyl, dilengkapi seating area luas dan suasana yang nyaman. Cocok untuk bermain menonton, maupun bersantai.',
                 'invitation' => 'Nikmati pengalaman bermain basket di arena semi-outdoor dengan suasana nyaman dan fasilitas lengkap untuk aktivitas olahraga dan rekreasi.',

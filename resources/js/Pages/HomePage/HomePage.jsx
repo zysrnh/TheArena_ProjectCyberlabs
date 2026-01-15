@@ -389,7 +389,7 @@ export default function HomePage() {
                 </p>
                 <Link href="/booking">
                   <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
-                    Booking Lapangan
+                    Booking Sekarang
                   </button>
                 </Link>
               </div>
@@ -476,7 +476,7 @@ export default function HomePage() {
               </p>
               <Link href="/booking">
                 <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
-                  Booking Lapangan
+                  Booking Sekarang
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </Link>
@@ -526,7 +526,7 @@ export default function HomePage() {
                 Event Organizer
               </h3>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
-                Penyewaan Acara Basket
+                Penyelenggara Event Basket
               </h2>
               <p className="text-gray-300 text-sm md:text-base mb-6 md:mb-8 leading-relaxed">
                 Sebagai bagian dari ekosistem basket di Bandung, The Arena tidak hanya menjadi tempat bermain, tetapi juga <strong>ruang berkumpul dan berkompetisi bagi komunitas basket.</strong> Kami menyediakan layanan <strong>penyelenggaraan acara basket,</strong> mulai dari friendly match hingga turnamen berskala besar.

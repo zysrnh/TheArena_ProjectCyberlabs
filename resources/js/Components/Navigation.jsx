@@ -75,11 +75,6 @@ export default function Navigation({ activePage = "" }) {
       key: "jadwal-hasil" 
     },
     { 
-      name: currentLanguage === "id" ? "Siaran Langsung" : "Live Stream", 
-      href: "/siaran-langsung", 
-      key: "siaran-langsung" 
-    },
-    { 
       name: currentLanguage === "id" ? "Kontak" : "Contact", 
       href: "/kontak", 
       key: "kontak" 
