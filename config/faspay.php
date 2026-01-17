@@ -15,7 +15,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'merchant_id'   => env('FASPAY_MERCHANT_ID', ''),
-    'merchant_name' => env('FASPAY_MERCHANT_NAME', 'PT AHD Membangun Bersama'),
+    'merchant_name' => env('FASPAY_MERCHANT_NAME', 'The Arena'),
     'user_id'       => env('FASPAY_USER_ID', ''),
     'password'      => env('FASPAY_PASSWORD', ''),
 

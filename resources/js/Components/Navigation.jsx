@@ -59,11 +59,12 @@ export default function Navigation({ activePage = "" }) {
       href: "/", 
       key: "home" 
     },
+    
     { 
-      name: currentLanguage === "id" ? "Booking Lapangan" : "About", 
-      href: "/booking", 
-      key: "booking" 
-    },
+  name: currentLanguage === "id" ? "Booking Lapangan" : "Court Booking", 
+  href: "/booking", 
+  key: "booking" 
+},
     { 
       name: currentLanguage === "id" ? "Tentang" : "About", 
       href: "/tentang", 

@@ -737,20 +737,59 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                     )}
                   </div>
 
-                  <div>
-                    <h2 className="text-2xl font-bold text-white mb-4">Fasilitas</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {venue.facilities?.map((facility, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 px-4 py-3 border-2 border-white text-white rounded-lg"
-                        >
-                          <span className="text-sm font-medium">{facility}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+   {/* Fasilitas Termasuk */}
+<div>
+  <h2 className="text-2xl font-bold text-white mb-4">Fasilitas</h2>
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+    {venue.facilities
+      ?.filter(facility => 
+        !['Scoreboard', 'Shotclock', 'Sound System', 'Score Board', 'Shot Clock'].includes(facility)
+      )
+      .map((facility, idx) => (
+        <div
+          key={idx}
+          className="flex items-center gap-3 px-4 py-3 border-2 border-white text-white rounded-lg hover:bg-white/10 transition"
+        >
+          <span className="text-sm font-medium">{facility}</span>
+        </div>
+      ))}
+  </div>
+</div>
 
+{/* Add-ons Section */}
+<div>
+  <h2 className="text-2xl font-bold text-white mb-2">Add-ons</h2>
+  <p className="text-white/70 text-sm mb-4">Peralatan tambahan yang tidak termasuk dalam paket standar</p>
+  
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+    {[
+      { name: "Score Board", status: "not_included" },
+      { name: "Shot Clock", status: "not_included" },
+      { name: "Sound System", status: "not_included" }
+    ].map((addon, idx) => (
+      <div
+        key={idx}
+        className="flex items-center gap-3 px-4 py-3 border-2 border-white/30 bg-white/5 text-white rounded-lg"
+      >
+    
+        <div className="flex-1">
+          <span className="text-sm font-medium block">{addon.name}</span>
+          <span className="text-xs text-white/50">Not Included</span>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Info Note */}
+  <div className="mt-4 bg-white/10 border-l-4 border-[#ffd22f] p-4 rounded-lg">
+    <p className="text-white text-sm leading-relaxed">
+      <span className="font-bold text-[#ffd22f]">Catatan: </span>
+      <span className="italic">
+        Untuk menggunakan Score Board, Shot Clock, atau Sound System, silakan hubungi admin untuk informasi ketersediaan dan biaya tambahan.
+      </span>
+    </p>
+  </div>
+</div>
                   {validSchedules.length > 0 && (
                     <>
 

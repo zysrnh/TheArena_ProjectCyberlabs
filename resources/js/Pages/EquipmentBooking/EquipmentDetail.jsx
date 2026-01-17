@@ -25,9 +25,7 @@ export default function EquipmentDetail() {
 
   // Admin contacts
   const adminContacts = [
-    { name: "Admin 1", phone: "681222977985" },
-    { name: "Admin 2", phone: "681222977985" },
-    { name: "Admin 3", phone: "681222977985" }
+    { name: "Admin 1", phone: "6281222977985" },
   ];
 
   // Show notification from flash messages or errors
