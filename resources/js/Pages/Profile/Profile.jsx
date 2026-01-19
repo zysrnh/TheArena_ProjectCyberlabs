@@ -677,35 +677,37 @@ export default function Profile() {
                                 </div>
 
                                 {/* Action Buttons */}
-                                {!isExpired && (
-                                  <div className="flex gap-2">
-                                    {booking.can_pay && (
-                                      <form
-                                        action={`/payment/process/${booking.id}`}
-                                        method="POST"
-                                        className="flex-1 md:flex-none"
-                                      >
-                                        <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')} />
-                                        <button
-                                          type="submit"
-                                          className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-[#ffd22f] text-[#013064] rounded hover:bg-[#ffe066] transition font-semibold text-sm"
-                                        >
-                                          <CreditCard className="w-4 h-4" />
-                                          <span>Bayar</span>
-                                        </button>
-                                      </form>
-                                    )}
-                                    {booking.can_cancel && (
-                                      <button
-                                        onClick={() => handleCancelBooking(booking)}
-                                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                                      >
-                                        <X className="w-4 h-4" />
-                                        <span className="text-sm font-semibold">Batalkan</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
+{!isExpired && (
+  <div className="flex gap-2">
+    {booking.can_pay && (
+      <button
+        onClick={() => {
+          router.post(`/payment/process/${booking.id}`, {}, {
+            onError: (errors) => {
+              console.error('Payment error:', errors);
+              setNotificationMessage('Gagal memproses pembayaran: ' + (errors.message || 'Unknown error'));
+              setNotificationType('error');
+              setShowNotification(true);
+            }
+          });
+        }}
+        className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-[#ffd22f] text-[#013064] rounded hover:bg-[#ffe066] transition font-semibold text-sm"
+      >
+        <CreditCard className="w-4 h-4" />
+        <span>Bayar</span>
+      </button>
+    )}
+    {booking.can_cancel && (
+      <button
+        onClick={() => handleCancelBooking(booking)}
+        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+      >
+        <X className="w-4 h-4" />
+        <span className="text-sm font-semibold">Batalkan</span>
+      </button>
+    )}
+  </div>
+)}
                               </div>
 
                               <div className="space-y-3 mb-4">

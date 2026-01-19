@@ -101,10 +101,21 @@ class PaymentController extends Controller
                 'message'    => $e->getMessage(),
                 'file'       => $e->getFile(),
                 'line'       => $e->getLine(),
+                'trace'      => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('profile')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
+            // ✅ Pesan error lebih user-friendly
+    $errorMessage = 'Terjadi kesalahan saat memproses pembayaran.';
+    
+    if (str_contains($e->getMessage(), 'timeout') || str_contains($e->getMessage(), 'timed out')) {
+        $errorMessage = 'Koneksi ke server pembayaran terputus. Silakan coba lagi dalam beberapa saat.';
+    } elseif (str_contains($e->getMessage(), 'Connection')) {
+        $errorMessage = 'Tidak dapat terhubung ke server pembayaran. Periksa koneksi internet Anda.';
+    }
+
+    return redirect()->route('profile', ['tab' => 'jadwal-booking'])
+        ->with('error', $errorMessage);
+}
     }
 
     /**
