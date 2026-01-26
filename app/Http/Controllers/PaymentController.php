@@ -18,21 +18,76 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅ Process payment untuk booking
+     * ✅ Process payment untuk booking - WITH ENHANCED LOGGING
      */
     public function process(Request $request, $bookingId)
     {
-        try {
-            $booking = Booking::with('client')->findOrFail($bookingId);
+        // ✅ LOG 1: START
+        Log::info('🎯 ===== PAYMENT PROCESS START =====');
+        Log::info('📊 Initial Data', [
+            'booking_id' => $bookingId,
+            'user_id' => auth('client')->id(),
+            'user_name' => auth('client')->user()?->name,
+            'timestamp' => now(),
+            'request_method' => $request->method(),
+            'request_url' => $request->fullUrl(),
+        ]);
 
-            if ($booking->client_id !== auth('client')->id()) {
+        try {
+            // ✅ LOG 2: TEST DATABASE CONNECTION
+            Log::info('🔌 Testing database connection...');
+            try {
+                DB::connection()->getPdo();
+                $dbName = DB::connection()->getDatabaseName();
+                Log::info('✅ Database connected successfully', [
+                    'database' => $dbName,
+                    'driver' => config('database.default'),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('❌ DATABASE CONNECTION FAILED', [
+                    'error' => $e->getMessage(),
+                    'driver' => config('database.default'),
+                    'host' => config('database.connections.mysql.host'),
+                    'database' => config('database.connections.mysql.database'),
+                ]);
+                
+                return redirect()->route('profile')->with('error', 'Koneksi database gagal. Silakan hubungi admin.');
+            }
+
+            // ✅ LOG 3: FETCH BOOKING
+            Log::info('📦 Fetching booking data...');
+            $booking = Booking::with('client')->findOrFail($bookingId);
+            
+            Log::info('✅ Booking found', [
+                'booking_id' => $booking->id,
+                'client_id' => $booking->client_id,
+                'total_price' => $booking->total_price,
+                'payment_status' => $booking->payment_status,
+                'is_paid' => $booking->is_paid,
+            ]);
+
+            // ✅ LOG 4: AUTH CHECK
+           if ((int)$booking->client_id !== auth('client')->id()) {
+                Log::warning('⚠️ UNAUTHORIZED ACCESS ATTEMPT', [
+                    'booking_id' => $bookingId,
+                    'booking_client_id' => $booking->client_id,
+                    'current_user_id' => auth('client')->id(),
+                ]);
                 return redirect()->route('profile')->with('error', 'Unauthorized');
             }
+            Log::info('✅ Authorization passed');
 
+            // ✅ LOG 5: PAYMENT STATUS CHECK
             if ($booking->isPaid()) {
+                Log::info('ℹ️ Booking already paid', [
+                    'booking_id' => $bookingId,
+                    'paid_at' => $booking->paid_at,
+                ]);
                 return redirect()->route('profile')->with('info', 'Booking ini sudah dibayar');
             }
+            Log::info('✅ Payment status check passed');
 
+            // ✅ LOG 6: PREPARE PAYMENT DATA
             $orderId = (string) $booking->id;
             $amount = (int) $booking->total_price;
 
@@ -64,39 +119,75 @@ class PaymentController extends Controller
                 'order_id'     => $orderId,
                 'amount'       => $amount,
                 'customer'     => $customerData['name'],
+                'customer_email' => $customerData['email'],
                 'venue_type'   => $booking->venue_type,
                 'booking_date' => $booking->booking_date,
+                'items_count'  => count($items),
             ]);
 
+            // ✅ LOG 7: CALL FASPAY SERVICE
+            Log::info('📞 Calling Faspay service...');
             $result = $this->faspay->createPayment($orderId, $amount, $customerData, $items);
+            
+            Log::info('📬 Faspay service response', [
+                'success' => $result['success'] ?? false,
+                'has_redirect_url' => isset($result['redirect_url']),
+                'has_bill_no' => isset($result['bill_no']),
+                'has_trx_id' => isset($result['trx_id']),
+                'result_keys' => array_keys($result),
+            ]);
 
             if ($result['success'] && isset($result['redirect_url'])) {
+                // ✅ LOG 8: UPDATE BOOKING
+                Log::info('💾 Updating booking with payment info...');
+                
                 $booking->update([
                     'bill_no'        => $result['bill_no'],
                     'trx_id'         => $result['trx_id'] ?? null,
                     'payment_status' => 'pending',
                 ]);
 
-                Log::info('✅ Booking updated, redirecting to Faspay', [
+                $booking->refresh();
+                
+                Log::info('✅✅✅ BOOKING UPDATED SUCCESSFULLY', [
                     'booking_id' => $bookingId,
-                    'bill_no'    => $result['bill_no'],
+                    'bill_no'    => $booking->bill_no,
+                    'trx_id'     => $booking->trx_id,
+                    'payment_status' => $booking->payment_status,
                     'redirect'   => $result['redirect_url'],
                 ]);
+                
+                Log::info('🚀 Redirecting to Faspay...');
+                Log::info('🎯 ===== PAYMENT PROCESS END (SUCCESS) =====');
 
                 return redirect()->away($result['redirect_url']);
             }
 
+            // ✅ LOG 9: FASPAY ERROR
             $errorMessage = $result['error'] ?? $result['technical_error'] ?? 'Unknown error';
 
-            Log::error('❌ Faspay Payment Creation Failed', [
+            Log::error('❌ FASPAY PAYMENT CREATION FAILED', [
                 'booking_id' => $bookingId,
                 'error'      => $errorMessage,
                 'result'     => $result,
             ]);
 
+            Log::info('🎯 ===== PAYMENT PROCESS END (FASPAY ERROR) =====');
+
             return redirect()->route('profile')->with('error', 'Gagal membuat pembayaran: ' . $errorMessage);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('❌ BOOKING NOT FOUND', [
+                'booking_id' => $bookingId,
+                'message' => $e->getMessage(),
+            ]);
+            
+            Log::info('🎯 ===== PAYMENT PROCESS END (NOT FOUND) =====');
+            
+            return redirect()->route('profile')->with('error', 'Booking tidak ditemukan');
+            
         } catch (\Exception $e) {
-            Log::error('💥 Payment Process Exception', [
+            Log::error('💥💥💥 PAYMENT PROCESS EXCEPTION', [
                 'booking_id' => $bookingId,
                 'message'    => $e->getMessage(),
                 'file'       => $e->getFile(),
@@ -104,18 +195,10 @@ class PaymentController extends Controller
                 'trace'      => $e->getTraceAsString(),
             ]);
 
-            // ✅ Pesan error lebih user-friendly
-    $errorMessage = 'Terjadi kesalahan saat memproses pembayaran.';
-    
-    if (str_contains($e->getMessage(), 'timeout') || str_contains($e->getMessage(), 'timed out')) {
-        $errorMessage = 'Koneksi ke server pembayaran terputus. Silakan coba lagi dalam beberapa saat.';
-    } elseif (str_contains($e->getMessage(), 'Connection')) {
-        $errorMessage = 'Tidak dapat terhubung ke server pembayaran. Periksa koneksi internet Anda.';
-    }
+            Log::info('🎯 ===== PAYMENT PROCESS END (EXCEPTION) =====');
 
-    return redirect()->route('profile', ['tab' => 'jadwal-booking'])
-        ->with('error', $errorMessage);
-}
+            return redirect()->route('profile')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     /**

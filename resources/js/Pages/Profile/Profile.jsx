@@ -96,6 +96,20 @@ export default function Profile() {
   const [notificationType, setNotificationType] = useState('success');
   const [expiredBookings, setExpiredBookings] = useState(new Set()); // ✅ TAMBAH INI
 
+  useEffect(() => {
+    const refreshCSRF = async () => {
+      try {
+        await fetch('/sanctum/csrf-cookie', {
+          credentials: 'same-origin'
+        });
+        console.log('✅ CSRF token refreshed');
+      } catch (error) {
+        console.error('❌ Failed to refresh CSRF token:', error);
+      }
+    };
+
+    refreshCSRF();
+  }, []);
 
   useEffect(() => {
     console.log('📊 Profile Page Props:', {
@@ -677,37 +691,131 @@ export default function Profile() {
                                 </div>
 
                                 {/* Action Buttons */}
-{!isExpired && (
-  <div className="flex gap-2">
-    {booking.can_pay && (
-      <button
-        onClick={() => {
-          router.post(`/payment/process/${booking.id}`, {}, {
-            onError: (errors) => {
-              console.error('Payment error:', errors);
-              setNotificationMessage('Gagal memproses pembayaran: ' + (errors.message || 'Unknown error'));
-              setNotificationType('error');
-              setShowNotification(true);
-            }
-          });
-        }}
-        className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-[#ffd22f] text-[#013064] rounded hover:bg-[#ffe066] transition font-semibold text-sm"
-      >
-        <CreditCard className="w-4 h-4" />
-        <span>Bayar</span>
-      </button>
-    )}
-    {booking.can_cancel && (
-      <button
-        onClick={() => handleCancelBooking(booking)}
-        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-      >
-        <X className="w-4 h-4" />
-        <span className="text-sm font-semibold">Batalkan</span>
-      </button>
-    )}
-  </div>
-)}
+                                {!isExpired && (
+                                  <div className="flex gap-2">
+                                    {booking.can_pay && (
+                                      <button
+                                        onClick={async (e) => {
+                                          e.preventDefault();
+
+                                          console.log('💳 Payment Button Clicked:', {
+                                            booking_id: booking.id,
+                                            timestamp: new Date().toISOString()
+                                          });
+
+                                          try {
+                                            // ✅ STEP 1: Refresh CSRF Cookie DULU sebelum submit
+                                            console.log('🔄 Refreshing CSRF token...');
+                                            await fetch('/sanctum/csrf-cookie', {
+                                              method: 'GET',
+                                              credentials: 'same-origin'
+                                            });
+
+                                            // ✅ STEP 2: Ambil CSRF token yang baru
+                                            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                                            if (!csrfToken) {
+                                              throw new Error('CSRF token not found. Please refresh the page.');
+                                            }
+
+                                            console.log('✅ CSRF token obtained');
+
+                                            // ✅ STEP 3: Submit payment dengan token baru
+                                            console.log('🚀 Submitting payment...');
+                                            const response = await fetch(`/payment/process/${booking.id}`, {
+                                              method: 'POST',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': csrfToken,
+                                                'X-Requested-With': 'XMLHttpRequest',
+                                                'Accept': 'text/html,application/json'
+                                              },
+                                              credentials: 'same-origin',
+                                              redirect: 'manual' // ✅ Handle redirect manually
+                                            });
+
+                                            console.log('📡 Response status:', response.status, response.statusText);
+
+                                            // ✅ STEP 4: Handle response
+                                            if (response.type === 'opaqueredirect' || response.status === 0) {
+                                              // Redirect happened (to Faspay)
+                                              console.log('✅ Redirect detected, reloading page to follow redirect...');
+                                              window.location.href = `/payment/process/${booking.id}`;
+                                              return;
+                                            }
+
+                                            if (response.redirected) {
+                                              console.log('🚀 Redirecting to:', response.url);
+                                              window.location.href = response.url;
+                                              return;
+                                            }
+
+                                            if (response.status === 302 || response.status === 303) {
+                                              // Manual redirect
+                                              const redirectUrl = response.headers.get('Location');
+                                              if (redirectUrl) {
+                                                console.log('🚀 Manual redirect to:', redirectUrl);
+                                                window.location.href = redirectUrl;
+                                                return;
+                                              }
+                                            }
+
+                                            if (response.ok) {
+                                              // Success but no redirect - check response
+                                              const contentType = response.headers.get('content-type');
+                                              if (contentType?.includes('application/json')) {
+                                                const data = await response.json();
+                                                console.log('✅ JSON Response:', data);
+
+                                                if (data.redirect_url) {
+                                                  window.location.href = data.redirect_url;
+                                                }
+                                              } else {
+                                                // HTML response - probably redirected already
+                                                console.log('✅ HTML Response received');
+                                                window.location.reload();
+                                              }
+                                            } else if (response.status === 419) {
+                                              throw new Error('Session expired. Refreshing page...');
+                                            } else {
+                                              throw new Error(`Payment failed with status: ${response.status}`);
+                                            }
+
+                                          } catch (error) {
+                                            console.error('❌ Payment error:', error);
+
+                                            if (error.message.includes('Session expired') || error.message.includes('419')) {
+                                              setNotificationMessage('⏰ Session expired. Halaman akan di-refresh...');
+                                              setNotificationType('error');
+                                              setShowNotification(true);
+
+                                              setTimeout(() => {
+                                                window.location.reload();
+                                              }, 1500);
+                                            } else {
+                                              setNotificationMessage('❌ ' + error.message);
+                                              setNotificationType('error');
+                                              setShowNotification(true);
+                                            }
+                                          }
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-[#ffd22f] text-[#013064] rounded hover:bg-[#ffe066] transition font-semibold text-sm"
+                                      >
+                                        <CreditCard className="w-4 h-4" />
+                                        <span>Bayar</span>
+                                      </button>
+                                    )}
+                                    {booking.can_cancel && (
+                                      <button
+                                        onClick={() => handleCancelBooking(booking)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                                      >
+                                        <X className="w-4 h-4" />
+                                        <span className="text-sm font-semibold">Batalkan</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="space-y-3 mb-4">
@@ -981,34 +1089,34 @@ export default function Profile() {
 
         <Footer />
         <a
-  href="https://wa.me/6281222977985"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-50 group"
-  aria-label="Chat WhatsApp"
->
-  {/* Pulse Ring Effect */}
-  <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
-  
-  {/* Main Button */}
-  <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
-    <img
-      src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
-      alt="WhatsApp"
-      className="w-8 h-8 md:w-9 md:h-9"
-    />
-  </div>
-  
-  {/* Tooltip */}
-  <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-    <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-      Chat dengan Kami
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
-        <div className="border-8 border-transparent border-l-gray-900"></div>
-      </div>
-    </div>
-  </div>
-</a>
+          href="https://wa.me/6281222977985"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 group"
+          aria-label="Chat WhatsApp"
+        >
+          {/* Pulse Ring Effect */}
+          <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
+
+          {/* Main Button */}
+          <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
+            <img
+              src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
+              alt="WhatsApp"
+              className="w-8 h-8 md:w-9 md:h-9"
+            />
+          </div>
+
+          {/* Tooltip */}
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
+              Chat dengan Kami
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
+                <div className="border-8 border-transparent border-l-gray-900"></div>
+              </div>
+            </div>
+          </div>
+        </a>
       </div>
 
       {/* Logout Confirmation Modal */}

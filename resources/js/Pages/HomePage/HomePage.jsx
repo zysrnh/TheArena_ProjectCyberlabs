@@ -1,9 +1,11 @@
+
 import { Head, Link, usePage, router } from "@inertiajs/react";
 import { useState, useEffect } from "react";
 import { ChevronRight, Phone, Mail, LogOut, X } from "lucide-react";
 import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
 import Contact from '../../Components/Contact';
+
 export default function HomePage() {
   // Destructure props dengan default values
   const {
@@ -52,22 +54,18 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [reviewsList.length]);
 
- 
-
- useEffect(() => {
-  if (activeEventNotif) {
-    // Langsung muncul tanpa delay
-    setShowEventNotifPopup(true);
-  }
-}, [activeEventNotif]);
+  useEffect(() => {
+    if (activeEventNotif) {
+      // Langsung muncul tanpa delay
+      setShowEventNotifPopup(true);
+    }
+  }, [activeEventNotif]);
 
   // Get reviews untuk halaman saat ini
   const reviewsPerPage = 3;
   const startIndex = currentReviewPage * reviewsPerPage;
   const currentReviews = reviewsList.slice(startIndex, startIndex + reviewsPerPage);
   const totalReviewPages = Math.ceil(reviewsList.length / reviewsPerPage);
-
-  
 
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
@@ -90,7 +88,6 @@ export default function HomePage() {
 
       setLastScrollY(currentScrollY);
     };
-
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -181,44 +178,46 @@ export default function HomePage() {
     setShowReviewModal(true);
   };
 
-const handleCloseEventNotifPopup = () => {
-  setShowEventNotifPopup(false);
-};
-const handleRegisterEvent = () => {
-  if (activeEventNotif?.whatsapp_url) {
-    window.open(activeEventNotif.whatsapp_url, '_blank', 'noopener,noreferrer');
-    handleCloseEventNotifPopup();
-  }
-};
-const getFacilityImageUrl = (url) => {
-  if (!url) {
+  const handleCloseEventNotifPopup = () => {
+    setShowEventNotifPopup(false);
+  };
+
+  const handleRegisterEvent = () => {
+    if (activeEventNotif?.whatsapp_url) {
+      window.open(activeEventNotif.whatsapp_url, '_blank', 'noopener,noreferrer');
+      handleCloseEventNotifPopup();
+    }
+  };
+
+  const getFacilityImageUrl = (url) => {
+    if (!url) {
+      return 'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?w=800';
+    }
+    if (url.startsWith('http')) return url;
+    return `/storage/${url}`;
+  };
+
+  const getDefaultFacilityImage = (facilityName) => {
+    const name = facilityName?.toLowerCase() || '';
+    if (name.includes('cafe') || name.includes('resto')) {
+      return 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800';
+    } else if (name.includes('makanan')) {
+      return 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=800';
+    } else if (name.includes('minuman')) {
+      return 'https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=800';
+    } else if (name.includes('ganti')) {
+      return 'https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?w=800';
+    } else if (name.includes('parkir')) {
+      return 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=800';
+    } else if (name.includes('wifi')) {
+      return 'https://images.unsplash.com/photo-1551808525-51a94da548ce?w=800';
+    } else if (name.includes('tribun')) {
+      return 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800';
+    }
     return 'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?w=800';
-  }
-  if (url.startsWith('http')) return url;
-  return `/storage/${url}`;
-};
+  };
 
-const getDefaultFacilityImage = (facilityName) => {
-  const name = facilityName?.toLowerCase() || '';
-  if (name.includes('cafe') || name.includes('resto')) {
-    return 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800';
-  } else if (name.includes('makanan')) {
-    return 'https://images.unsplash.com/photo-1566478989037-eec170784d0b?w=800';
-  } else if (name.includes('minuman')) {
-    return 'https://images.unsplash.com/photo-1534353436294-0dbd4bdac845?w=800';
-  } else if (name.includes('ganti')) {
-    return 'https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?w=800';
-  } else if (name.includes('parkir')) {
-    return 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=800';
-  } else if (name.includes('wifi')) {
-    return 'https://images.unsplash.com/photo-1551808525-51a94da548ce?w=800';
-  } else if (name.includes('tribun')) {
-    return 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800';
-  }
-  return 'https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae?w=800';
-};
-
- const slides = [
+  const slides = [
     {
       title: "BOOKING LAPANGAN SEKARANG!",
       subtitle: "The Arena Basketball",
@@ -229,19 +228,6 @@ const getDefaultFacilityImage = (facilityName) => {
       ),
       image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200",
       buttonText: "Booking Sekarang",
-      buttonAction: "internal",
-      buttonLink: "/booking"
-    },
-    {
-      title: "PENYEWAAN LAPANGAN BASKET",
-      subtitle: "The Arena Basketball",
-      description: (
-        <>
-          Lapangan basket The Arena dapat digunakan untuk <strong>latihan mandiri, aktivitas komunitas, sekolah, hingga event basket.</strong> Seluruh lapangan dirawat dengan baik dan berada di lingkungan yang aman serta nyaman.
-        </>
-      ),
-      image: "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=1200",
-      buttonText: "Booking Lapangan",
       buttonAction: "internal",
       buttonLink: "/booking"
     },
@@ -272,6 +258,7 @@ const getDefaultFacilityImage = (facilityName) => {
       buttonLink: "https://wa.me/6281222977985"
     },
   ];
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
@@ -322,85 +309,83 @@ const getDefaultFacilityImage = (facilityName) => {
         .animate-progress {
           animation: progress 5s linear;
         }
-          /* ✅ TAMBAHKAN INI DI DALAM <style> TAG DI HomePage.jsx */
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-.animate-fadeInUp {
-  animation: fadeInUp 0.6s ease-out;
-}
+        .animate-fadeInUp {
+          animation: fadeInUp 0.6s ease-out;
+        }
 
-/* Smooth transition untuk carousel dots */
-.carousel-dot {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+        .carousel-dot {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-.carousel-dot:hover {
-  transform: scale(1.2);
-}
+        .carousel-dot:hover {
+          transform: scale(1.2);
+        }
 
-@keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes modal-appear {
-    from {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-  
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-  }
-  
-  .animate-modal-appear {
-    animation: modal-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes modal-appear {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+        
+        .animate-modal-appear {
+          animation: modal-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-  @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
 
-@keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-}
+        @keyframes pulse-ring {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1.5);
+            opacity: 0;
+          }
+        }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
 
-.animate-pulse-ring {
-  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
+        .animate-pulse-ring {
+          animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
       `}</style>
+
       <div className="min-h-screen flex flex-col bg-[#013064]">
         {/* Navigation - RESPONSIVE & STICKY */}
         <Navigation activePage="home" />
@@ -442,76 +427,116 @@ const getDefaultFacilityImage = (facilityName) => {
         )}
 
         {/* Hero Section with Carousel - RESPONSIVE */}
-<main className="flex-1 relative">
-  <div className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-    {/* Background Image */}
-    <div
-      className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-      style={{
-        backgroundImage: `url('${slides[currentSlide].image}')`,
-        filter: "brightness(0.4)",
-      }}
-    />
+        <main className="flex-1 relative">
+          <div className="relative h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+            {/* Background Image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+              style={{
+                backgroundImage: `url('${slides[currentSlide].image}')`,
+                filter: "brightness(0.4)",
+              }}
+            />
 
-    {/* Content */}
-    <div className="relative z-10 h-full flex items-center justify-center">
-      <div className="text-center text-white px-4 max-w-4xl">
-        <h2 className="text-[#FDB913] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
-          {slides[currentSlide].subtitle}
-        </h2>
+            {/* Content */}
+            <div className="relative z-10 h-full flex items-center justify-center">
+              <div className="text-center text-white px-4 max-w-4xl">
+                <h2 className="text-[#FDB913] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
+                  {slides[currentSlide].subtitle}
+                </h2>
 
-        <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
-          {slides[currentSlide].title}
-        </h1>
+                <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold mb-4 md:mb-6 leading-tight">
+                  {slides[currentSlide].title}
+                </h1>
 
-        <p className="text-sm md:text-base lg:text-lg mb-6 md:mb-8 text-gray-200 max-w-2xl mx-auto leading-relaxed">
-          {slides[currentSlide].description}
-        </p>
+                <p className="text-sm md:text-base lg:text-lg mb-6 md:mb-8 text-gray-200 max-w-2xl mx-auto leading-relaxed">
+                  {slides[currentSlide].description}
+                </p>
 
-        {/* Button */}
-        {slides[currentSlide].buttonAction === "whatsapp" ? (
-          <a
-            href={slides[currentSlide].buttonLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit mx-auto"
-          >
-            {slides[currentSlide].buttonText}
-          </a>
-        ) : (
-          <Link href={slides[currentSlide].buttonLink}>
-            <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit mx-auto">
-              {slides[currentSlide].buttonText}
-            </button>
-          </Link>
-        )}
-      </div>
+                {/* Button */}
+                {slides[currentSlide].buttonAction === "whatsapp" ? (
+                  <a
+                    href={slides[currentSlide].buttonLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit mx-auto"
+                  >
+                    {slides[currentSlide].buttonText}
+                  </a>
+                ) : (
+                  <Link href={slides[currentSlide].buttonLink}>
+                    <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit mx-auto">
+                      {slides[currentSlide].buttonText}
+                    </button>
+                  </Link>
+                )}
+              </div>
 
-      {/* Navigation Buttons - Hidden on Mobile */}
-      <button
-        onClick={prevSlide}
-        className="hidden md:flex absolute left-4 md:left-24 lg:left-32 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center hover:scale-110 transition-transform"
-      >
-        <img
-          src="/images/Kiri.svg"
-          alt="Previous"
-          className="w-full h-full"
-        />
-      </button>
+              {/* Navigation Buttons - Desktop: SVG Icons, Mobile: Compact Arrows */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-2 md:left-24 lg:left-32 top-1/2 -translate-y-1/2 
+                           w-9 h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 
+                           flex items-center justify-center 
+                           bg-white/20 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none
+                           rounded-full md:rounded-none
+                           hover:bg-white/30 md:hover:bg-transparent
+                           hover:scale-110 transition-all
+                           border border-white/40 md:border-0"
+              >
+                {/* Mobile: Simple Arrow */}
+                <svg className="w-5 h-5 md:hidden text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                </svg>
+                {/* Desktop: SVG Image */}
+                <img
+                  src="/images/Kiri.svg"
+                  alt="Previous"
+                  className="hidden md:block w-full h-full"
+                />
+              </button>
 
-      <button
-        onClick={nextSlide}
-        className="hidden md:flex absolute right-4 md:right-24 lg:right-32 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-14 lg:h-14 items-center justify-center hover:scale-110 transition-transform"
-      >
-        <img
-          src="/images/Kanan.svg"
-          alt="Next"
-          className="w-full h-full"
-        />
-      </button>
-    </div>
-  </div>
-</main>
+              <button
+                onClick={nextSlide}
+                className="absolute right-2 md:right-24 lg:right-32 top-1/2 -translate-y-1/2 
+                           w-9 h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 
+                           flex items-center justify-center 
+                           bg-white/20 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none
+                           rounded-full md:rounded-none
+                           hover:bg-white/30 md:hover:bg-transparent
+                           hover:scale-110 transition-all
+                           border border-white/40 md:border-0"
+              >
+                {/* Mobile: Simple Arrow */}
+                <svg className="w-5 h-5 md:hidden text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+                {/* Desktop: SVG Image */}
+                <img
+                  src="/images/Kanan.svg"
+                  alt="Next"
+                  className="hidden md:block w-full h-full"
+                />
+              </button>
+
+              {/* Carousel Indicators - Visible on All Devices */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                {slides.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`transition-all duration-300 carousel-dot ${
+                      index === currentSlide
+                        ? 'w-8 h-2 bg-[#ffd22f]'
+                        : 'w-2 h-2 bg-white/50 hover:bg-white/80'
+                    } rounded-full`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
 
         {/* Social Media Section - RESPONSIVE */}
         <div className="bg-[#ffd22f] py-4 md:py-6">
