@@ -1053,9 +1053,9 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                                     {isBooked ? (
                                       <p className="text-sm font-semibold text-white/90">Booked</p>
                                     ) : (
-                                      <p className="text-sm font-semibold text-[#013064]">
-                                        Rp. {slot.price.toLocaleString("id-ID")}
-                                      </p>
+                                     <p className="text-sm font-semibold text-[#013064] notranslate">
+  Rp. {slot.price.toLocaleString("id-ID")}
+</p>
                                     )}
                                   </div>
                                 </button>
@@ -1126,9 +1126,9 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                     <div className="border-t border-white/20 pt-4 mb-4 sm:mb-6">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-[#ffd22f] text-sm sm:text-base">Total Pembayaran</span>
-                        <span className="text-xl sm:text-2xl font-bold">
-                          Rp. {calculateTotal().toLocaleString("id-ID")}
-                        </span>
+                        <span className="text-xl sm:text-2xl font-bold notranslate">
+  Rp. {calculateTotal().toLocaleString("id-ID")}
+</span>
                       </div>
                     </div>
 
@@ -1320,9 +1320,9 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                       <Clock className="w-4 h-4 text-[#ffd22f]" />
                       <span className="font-medium text-[#013064]">{slot.time}</span>
                     </div>
-                    <span className="text-sm font-semibold text-[#013064]">
-                      Rp. {slot.price.toLocaleString("id-ID")}
-                    </span>
+                   <span className="text-sm font-semibold text-[#013064] notranslate">
+  Rp. {slot.price.toLocaleString("id-ID")}
+</span>
                   </div>
                 ))}
               </div>
@@ -1330,9 +1330,9 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-[#013064]">Total Pembayaran</span>
-                  <span className="text-2xl font-bold text-[#ffd22f]">
-                    Rp. {calculateTotal().toLocaleString("id-ID")}
-                  </span>
+                  <span className="text-2xl font-bold text-[#ffd22f] notranslate">
+  Rp. {calculateTotal().toLocaleString("id-ID")}
+</span>
                 </div>
               </div>
             </div>
