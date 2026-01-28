@@ -1608,4 +1608,4 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
       )}
     </>
   );
-}
+} 
