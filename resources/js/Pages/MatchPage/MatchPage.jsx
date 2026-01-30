@@ -584,6 +584,7 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
               </div>
             )}
           </div>
+      
         </div>
 
         <Footer />
