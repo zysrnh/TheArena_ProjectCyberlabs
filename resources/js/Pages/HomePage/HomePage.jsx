@@ -1449,7 +1449,7 @@ export default function HomePage() {
           </div>
         </div>
       )}
-  {/* ✅ EVENT NOTIF POPUP MODAL - ELEGANT RESPONSIVE */}
+ {/* ✅ EVENT NOTIF POPUP MODAL - SIMPLIFIED */}
 {showEventNotifPopup && activeEventNotif && (
   <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in">
     {/* Backdrop */}
@@ -1458,47 +1458,46 @@ export default function HomePage() {
       onClick={handleCloseEventNotifPopup}
     />
 
-   {/* Modal Content - RESPONSIVE LAYOUT */}
-<div className="relative bg-white w-full max-h-[90vh] overflow-hidden shadow-2xl animate-modal-appear 
-                max-w-sm sm:max-w-md md:max-w-3xl lg:max-w-4xl
-                flex flex-col md:grid md:grid-cols-7">
-  
-  {/* Close Button - RESPONSIVE */}
-  <button
-    onClick={handleCloseEventNotifPopup}
-    className="absolute top-3 right-3 md:top-4 md:right-4 z-50 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors bg-white/80 md:bg-transparent rounded-full md:rounded-none"
-    aria-label="Close"
-  >
-    <X className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
-  </button>
+    {/* Modal Content - RESPONSIVE LAYOUT */}
+    <div className="relative bg-white w-full max-h-[90vh] overflow-hidden shadow-2xl animate-modal-appear 
+                    max-w-sm sm:max-w-md md:max-w-3xl lg:max-w-4xl
+                    flex flex-col md:grid md:grid-cols-7">
+      
+      {/* Close Button */}
+      <button
+        onClick={handleCloseEventNotifPopup}
+        className="absolute top-3 right-3 md:top-4 md:right-4 z-50 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors bg-white/80 md:bg-transparent rounded-full md:rounded-none"
+        aria-label="Close"
+      >
+        <X className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
+      </button>
 
-  {/* IMAGE SECTION - RESPONSIVE WITH 4:5 RATIO */}
-  <div className="relative bg-[#013064] overflow-hidden md:col-span-3
-                  h-64 sm:h-80 md:h-auto">
-    <div className="w-full h-full md:aspect-[4/5]">
-      {activeEventNotif.image_url ? (
-        <img
-          src={activeEventNotif.image_url}
-          alt={activeEventNotif.title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <svg className="w-16 h-16 md:w-20 md:h-20 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      {/* IMAGE SECTION */}
+      <div className="relative bg-[#013064] overflow-hidden md:col-span-3 h-64 sm:h-80 md:h-auto">
+        <div className="w-full h-full md:aspect-[4/5]">
+          {activeEventNotif.image_url ? (
+            <img
+              src={activeEventNotif.image_url}
+              alt={activeEventNotif.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <svg className="w-16 h-16 md:w-20 md:h-20 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#013064]/50 md:from-transparent to-transparent md:to-[#013064]/30" />
         </div>
-      )}
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#013064]/50 md:from-transparent to-transparent md:to-[#013064]/30" />
-    </div>
-  </div>
+      </div>
 
-  {/* CONTENT SECTION - RESPONSIVE */}
-  <div className="flex-1 p-5 sm:p-6 md:p-8 md:col-span-4 flex flex-col overflow-y-auto max-h-[calc(90vh-16rem)] md:max-h-[85vh]">     
+      {/* CONTENT SECTION */}
+      <div className="flex-1 p-5 sm:p-6 md:p-8 md:col-span-4 flex flex-col overflow-y-auto max-h-[calc(90vh-16rem)] md:max-h-[85vh]">
+        
         {/* Header */}
         <div className="mb-3 md:mb-4">
           <h2 className="text-xl sm:text-2xl md:text-2xl font-light text-[#013064] mb-1 md:mb-2 leading-tight">
@@ -1511,12 +1510,21 @@ export default function HomePage() {
         </div>
 
         {/* Tagline */}
-        <p className="text-xs sm:text-sm text-gray-600 mb-4 md:mb-6 leading-relaxed">
-          Secure your slot before <span className="font-semibold text-[#013064]">the quota runs out</span>. Register now and get the best experience.
-        </p>
+        {activeEventNotif.tagline && (
+          <p className="text-xs sm:text-sm text-gray-600 mb-4 md:mb-6 leading-relaxed">
+            {activeEventNotif.tagline}
+          </p>
+        )}
 
-        {/* Pricing Section - RESPONSIVE GRID */}
-        {(activeEventNotif.monthly_price || activeEventNotif.weekly_price) && (
+        {/* Description */}
+        {activeEventNotif.description && (
+          <p className="text-xs sm:text-sm text-gray-600 mb-4 md:mb-6 leading-relaxed">
+            {activeEventNotif.description}
+          </p>
+        )}
+
+        {/* Pricing Section - SIMPLIFIED */}
+        {activeEventNotif.show_pricing && (activeEventNotif.monthly_price || activeEventNotif.weekly_price) && (
           <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
             
             {/* Monthly Package */}
@@ -1532,11 +1540,8 @@ export default function HomePage() {
                     </span>
                   )}
                 </div>
-                <p className="text-2xl sm:text-3xl font-light text-[#013064] mb-1">
+                <p className="text-2xl sm:text-3xl font-light text-[#013064]">
                   Rp. {activeEventNotif.formatted_monthly_price}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500">
-                  {activeEventNotif.monthly_frequency} • + {activeEventNotif.monthly_loyalty_points}
                 </p>
               </div>
             )}
@@ -1547,18 +1552,15 @@ export default function HomePage() {
                 <span className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider font-medium">
                   Weekly
                 </span>
-                <p className="text-2xl sm:text-3xl font-light text-gray-700 mb-1">
+                <p className="text-2xl sm:text-3xl font-light text-gray-700">
                   Rp. {activeEventNotif.formatted_weekly_price}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-500">
-                  1x meeting • + {activeEventNotif.weekly_loyalty_points}
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Benefits Section - RESPONSIVE */}
+        {/* Benefits Section */}
         {activeEventNotif.benefits_list && activeEventNotif.benefits_list.length > 0 && (
           <div className="mb-4 md:mb-6">
             <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider mb-2 md:mb-3 font-medium">
@@ -1579,7 +1581,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Location - RESPONSIVE */}
+        {/* Location */}
         {activeEventNotif.location && (
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-4 md:mb-6">
             <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1590,7 +1592,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* CTA Button - RESPONSIVE */}
+        {/* CTA Button */}
         <button
           onClick={handleRegisterEvent}
           className="w-full bg-[#013064] text-white py-2.5 sm:py-3 px-4 sm:px-6 
