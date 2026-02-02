@@ -1458,46 +1458,47 @@ export default function HomePage() {
       onClick={handleCloseEventNotifPopup}
     />
 
-    {/* Modal Content - RESPONSIVE LAYOUT */}
-    <div className="relative bg-white w-full max-h-[90vh] overflow-hidden shadow-2xl animate-modal-appear 
-                    max-w-sm sm:max-w-md md:max-w-2xl
-                    flex flex-col md:grid md:grid-cols-5">
-      
-      {/* Close Button - RESPONSIVE */}
-      <button
-        onClick={handleCloseEventNotifPopup}
-        className="absolute top-3 right-3 md:top-4 md:right-4 z-50 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors bg-white/80 md:bg-transparent rounded-full md:rounded-none"
-        aria-label="Close"
-      >
-        <X className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
-      </button>
+   {/* Modal Content - RESPONSIVE LAYOUT */}
+<div className="relative bg-white w-full max-h-[90vh] overflow-hidden shadow-2xl animate-modal-appear 
+                max-w-sm sm:max-w-md md:max-w-3xl lg:max-w-4xl
+                flex flex-col md:grid md:grid-cols-7">
+  
+  {/* Close Button - RESPONSIVE */}
+  <button
+    onClick={handleCloseEventNotifPopup}
+    className="absolute top-3 right-3 md:top-4 md:right-4 z-50 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors bg-white/80 md:bg-transparent rounded-full md:rounded-none"
+    aria-label="Close"
+  >
+    <X className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2} />
+  </button>
 
-      {/* IMAGE SECTION - RESPONSIVE */}
-      <div className="relative bg-[#013064] overflow-hidden
-                      h-48 sm:h-56 md:h-auto md:col-span-2">
-        {activeEventNotif.image_url ? (
-          <img
-            src={activeEventNotif.image_url}
-            alt={activeEventNotif.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-16 h-16 md:w-20 md:h-20 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#013064]/50 md:from-transparent to-transparent md:to-[#013064]/30" />
-      </div>
+  {/* IMAGE SECTION - RESPONSIVE WITH 4:5 RATIO */}
+  <div className="relative bg-[#013064] overflow-hidden md:col-span-3
+                  h-64 sm:h-80 md:h-auto">
+    <div className="w-full h-full md:aspect-[4/5]">
+      {activeEventNotif.image_url ? (
+        <img
+          src={activeEventNotif.image_url}
+          alt={activeEventNotif.title}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <svg className="w-16 h-16 md:w-20 md:h-20 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      )}
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#013064]/50 md:from-transparent to-transparent md:to-[#013064]/30" />
+    </div>
+  </div>
 
-      {/* CONTENT SECTION - RESPONSIVE */}
-      <div className="flex-1 p-5 sm:p-6 md:p-8 md:col-span-3 flex flex-col overflow-y-auto max-h-[calc(90vh-12rem)] md:max-h-[85vh]">
-        
+  {/* CONTENT SECTION - RESPONSIVE */}
+  <div className="flex-1 p-5 sm:p-6 md:p-8 md:col-span-4 flex flex-col overflow-y-auto max-h-[calc(90vh-16rem)] md:max-h-[85vh]">     
         {/* Header */}
         <div className="mb-3 md:mb-4">
           <h2 className="text-xl sm:text-2xl md:text-2xl font-light text-[#013064] mb-1 md:mb-2 leading-tight">
