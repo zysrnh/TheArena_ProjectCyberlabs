@@ -660,12 +660,12 @@ export default function HomePage() {
               <p className="text-gray-300 text-sm md:text-base mb-6 md:mb-8 leading-relaxed">
                 Sebagai bagian dari ekosistem basket di Bandung, The Arena tidak hanya menjadi tempat bermain, tetapi juga <strong>ruang berkumpul dan berkompetisi bagi komunitas basket.</strong> Kami menyediakan layanan <strong>penyelenggaraan acara basket,</strong> mulai dari friendly match hingga turnamen berskala besar.
               </p>
-              <Link href="/kontak">
-                <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
-                  Hubungi Kami
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </Link>
+              <a href="https://wa.me/6281222977985" target="_blank" rel="noopener noreferrer">
+  <button className="bg-[#ffd22f] text-[#013064] px-6 md:px-8 py-2 md:py-3 text-sm md:text-base font-semibold hover:bg-[#ffe066] transition inline-flex items-center gap-2 w-fit">
+    Hubungi Kami
+    <ChevronRight className="w-4 h-4" />
+  </button>
+</a>
             </div>
           </div>
         </div>

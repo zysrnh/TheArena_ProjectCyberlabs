@@ -198,10 +198,9 @@ public static function form(Form $form): Form
                         ->label('Nomor WhatsApp')
                         ->required()
                         ->tel()
-                        ->prefix('+62')
-                        ->placeholder('81222977985')
-                        ->helperText('Format: 81222977985 (tanpa +62 atau 0)')
-                        ->maxLength(15),
+                        ->placeholder('6281222977985')
+                        ->helperText('Format: 6281222977985 (mulai dari 62, tanpa + atau 0)')
+                        ->maxLength(17),
                     
                     Textarea::make('whatsapp_message')
                         ->label('Template Pesan WhatsApp')
