@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\ProfileController;
@@ -65,21 +66,36 @@ Route::prefix('api/match')->group(function () {
 });
 
 // ============================================
-// AUTH ROUTES
+// AUTH ROUTES (LOGIN, REGISTER, FORGOT PASSWORD)
 // ============================================
 Route::middleware('guest:client')->group(function () {
+    // Login Routes
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
+    
+    // Register Routes
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+    
+    // ✅ Forgot Password & Reset Password Routes (NEW)
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'showForgotForm'])
+        ->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'verify'])
+        ->name('password.verify');
+    Route::get('/reset-password/{token}', [ForgotPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+    Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])
+        ->name('password.update');
 });
 
+// Logout Route (requires authentication)
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:client')->name('logout');
 
 // ============================================
 // PROTECTED ROUTES (memerlukan login)
 // ============================================
 Route::middleware('auth:client')->group(function () {
+    // Profile Routes
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 

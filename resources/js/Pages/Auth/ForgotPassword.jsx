@@ -1,47 +1,40 @@
-import { Head, Link, useForm, router } from "@inertiajs/react";
+import { Head, Link, useForm } from "@inertiajs/react";
 import { useState } from "react";
-import { Phone, Mail, Eye, EyeOff, Lock, User, X, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, Phone, ArrowLeft, AlertCircle, CheckCircle, X } from "lucide-react";
 import Navigation from "../../Components/Navigation";
 
-export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
+export default function ForgotPassword() {
   const [notification, setNotification] = useState(null);
 
   const { data, setData, post, processing, errors } = useForm({
     email: "",
-    password: "",
-    remember: false,
+    phone: "",
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    post('/login', {
+
+    post('/forgot-password', {
       onSuccess: () => {
         setNotification({
           type: 'success',
-          message: 'Login berhasil! Mengalihkan ke halaman profil...'
+          message: 'Verifikasi berhasil! Silakan reset password Anda.'
         });
-        
-        setTimeout(() => {
-          router.visit('/profile');
-        }, 1500);
       },
       onError: (errors) => {
-        if (errors.email || errors.password) {
-          setNotification({
-            type: 'error',
-            message: errors.email || errors.password || 'Email atau password salah'
-          });
-          setTimeout(() => setNotification(null), 5000);
-        }
+        const errorMessage = errors.email || errors.phone || errors.verification || 'Data tidak cocok dengan yang terdaftar';
+        setNotification({
+          type: 'error',
+          message: errorMessage
+        });
+        setTimeout(() => setNotification(null), 5000);
       }
     });
   };
 
   return (
     <>
-      <Head title="Login" />
+      <Head title="Lupa Password" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
         * {
@@ -79,23 +72,23 @@ export default function Login() {
           }
         }
         
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        
         @keyframes float {
           0%, 100% {
             transform: translateY(0px);
           }
           50% {
             transform: translateY(-10px);
+          }
+        }
+        
+        @keyframes pulse-ring {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1.5);
+            opacity: 0;
           }
         }
         
@@ -111,12 +104,12 @@ export default function Login() {
           animation: fadeInUp 0.6s ease-out;
         }
         
-        .animate-scale-in {
-          animation: scaleIn 0.5s ease-out;
-        }
-        
         .animate-float {
           animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-pulse-ring {
+          animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         
         .stagger-1 {
@@ -142,36 +135,8 @@ export default function Login() {
           opacity: 0;
           animation-fill-mode: forwards;
         }
-          @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-ring {
-  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
       `}</style>
-      
+
       <div className="min-h-screen flex flex-col bg-[#013064] relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -181,7 +146,7 @@ export default function Login() {
         </div>
 
         {/* Navigation */}
-        <Navigation activePage="login" />
+        <Navigation activePage="" />
 
         {/* Notification Popup */}
         {notification && (
@@ -226,27 +191,40 @@ export default function Login() {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Forgot Password Form */}
         <main className="flex-1 flex items-center justify-center py-12 px-4 relative z-10">
           <div className="w-full max-w-md">
+            {/* Back to Login Link */}
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-[#ffd22f] hover:text-[#ffe066] transition mb-6 animate-fade-in-up"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm font-medium">Kembali ke Login</span>
+            </Link>
 
-            <h1 className="text-[#ffd22f] text-4xl font-bold text-center mb-8 animate-fade-in-up stagger-1">
-              Login
+            <h1 className="text-[#ffd22f] text-4xl font-bold text-center mb-3 animate-fade-in-up stagger-1">
+              Lupa Password?
             </h1>
+            
+            <p className="text-white text-center mb-8 text-sm animate-fade-in-up stagger-1">
+              Masukkan email dan nomor telepon yang terdaftar untuk memverifikasi akun Anda
+            </p>
 
-            <div onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
               <div className="animate-fade-in-up stagger-2">
                 <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                  Email
+                  Email <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
-                    placeholder="Email"
+                    placeholder="Email yang terdaftar"
                     value={data.email}
                     onChange={(e) => setData('email', e.target.value)}
+                    required
                     className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ffd22f] transition"
                   />
                 </div>
@@ -258,121 +236,94 @@ export default function Login() {
                 )}
               </div>
 
-              {/* Password Field */}
+              {/* Phone Field */}
               <div className="animate-fade-in-up stagger-3">
                 <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                  Password
+                  Nomor Telepon <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={data.password}
-                    onChange={(e) => setData('password', e.target.value)}
-                    className="w-full pl-12 pr-12 py-3 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ffd22f] transition"
+                    type="tel"
+                    placeholder="08123456789"
+                    value={data.phone}
+                    onChange={(e) => setData('phone', e.target.value)}
+                    required
+                    className="w-full pl-12 pr-4 py-3 bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ffd22f] transition"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-800 transition"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
                 </div>
-                {errors.password && (
+                {errors.phone && (
                   <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
-                    {errors.password}
+                    {errors.phone}
                   </p>
                 )}
               </div>
 
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between animate-fade-in-up stagger-4">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={data.remember}
-                    onChange={(e) => setData('remember', e.target.checked)}
-                    className="w-4 h-4 accent-[#ffd22f]"
-                  />
-                  <span className="text-white text-sm group-hover:text-[#ffd22f] transition">Remember Me</span>
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-[#ffd22f] text-sm hover:underline font-medium"
-                >
-                  Lupa Password?
-                </Link>
-              </div>
+              {/* General Error */}
+              {errors.verification && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-fade-in-up">
+                  <p className="text-red-600 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.verification}
+                  </p>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={processing}
                 className="w-full bg-[#ffd22f] text-[#013064] py-3 font-bold text-lg hover:bg-[#ffe066] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 animate-fade-in-up stagger-4 shadow-lg hover:shadow-xl"
               >
                 {processing ? (
                   <>
                     <div className="w-5 h-5 border-2 border-[#013064] border-t-transparent rounded-full animate-spin"></div>
-                    Memproses...
+                    Memverifikasi...
                   </>
                 ) : (
                   <>
-                    <User className="w-5 h-5" />
-                    Masuk
+                    <CheckCircle className="w-5 h-5" />
+                    Verifikasi Akun
                   </>
                 )}
               </button>
 
-              {/* Register Link */}
-              <p className="text-center text-white text-sm animate-fade-in-up stagger-4">
-                Belum punya akun?{" "}
-                <Link
-                  href="/register"
-                  className="text-[#ffd22f] hover:underline font-semibold"
-                >
-                  Daftar di sini
-                </Link>
-              </p>
-            </div>
+              {/* Info Box */}
+              <div className="bg-white/10 border border-white/20 rounded-lg p-4 animate-fade-in-up stagger-4">
+                <p className="text-white text-xs leading-relaxed">
+                  <strong className="text-[#ffd22f]">Catatan:</strong> Email dan nomor telepon harus sesuai dengan data yang Anda gunakan saat registrasi.
+                </p>
+              </div>
+            </form>
           </div>
         </main>
+
+        {/* WhatsApp Button */}
         <a
-  href="https://wa.me/6281222977985"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-50 group"
-  aria-label="Chat WhatsApp"
->
-  {/* Pulse Ring Effect */}
-  <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
-  
-  {/* Main Button */}
-  <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
-    <img
-      src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
-      alt="WhatsApp"
-      className="w-8 h-8 md:w-9 md:h-9"
-    />
-  </div>
-  
-  {/* Tooltip */}
-  <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-    <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-      Chat dengan Kami
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
-        <div className="border-8 border-transparent border-l-gray-900"></div>
-      </div>
-    </div>
-  </div>
-</a>
+          href="https://wa.me/6281222977985"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 group"
+          aria-label="Chat WhatsApp"
+        >
+          <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
+          <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
+            <img
+              src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
+              alt="WhatsApp"
+              className="w-8 h-8 md:w-9 md:h-9"
+            />
+          </div>
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
+              Chat dengan Kami
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
+                <div className="border-8 border-transparent border-l-gray-900"></div>
+              </div>
+            </div>
+          </div>
+        </a>
       </div>
     </>
   );

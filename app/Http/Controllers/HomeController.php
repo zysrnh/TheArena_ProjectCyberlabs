@@ -173,7 +173,7 @@ class HomeController extends Controller
 
          // Di HomeController index(), ganti bagian EVENT NOTIF dengan ini:
 
-// ✅ GET ACTIVE EVENT NOTIF (POPUP)
+// ✅ GET ACTIVE EVENT NOTIF (POPUP) - SIMPLIFIED
 $activeEventNotif = EventNotif::active()->first();
 
 $eventNotifData = null;
@@ -182,12 +182,16 @@ if ($activeEventNotif) {
         'id' => $activeEventNotif->id,
         'title' => $activeEventNotif->title,
         'description' => $activeEventNotif->description,
+        'tagline' => $activeEventNotif->tagline, // ✅ TAMBAH TAGLINE
         'image_url' => $activeEventNotif->image_url,
         'formatted_date' => $activeEventNotif->formatted_date,
         'formatted_time' => $activeEventNotif->formatted_time,
         'location' => $activeEventNotif->location,
+        
+        // ✅ SHOW PRICING FLAG
+        'show_pricing' => $activeEventNotif->show_pricing,
 
-        // Pricing Options
+        // ✅ PRICING OPTIONS (SIMPLIFIED)
         'monthly_original_price' => $activeEventNotif->monthly_original_price,
         'formatted_monthly_original_price' => $activeEventNotif->formatted_monthly_original_price,
         'monthly_price' => $activeEventNotif->monthly_price,
@@ -196,27 +200,25 @@ if ($activeEventNotif) {
         'weekly_price' => $activeEventNotif->weekly_price,
         'formatted_weekly_price' => $activeEventNotif->formatted_weekly_price,
 
-        // ✅ MONTHLY BENEFITS
-        'monthly_frequency' => $activeEventNotif->monthly_frequency,
-        'monthly_loyalty_points' => $activeEventNotif->monthly_loyalty_points,
-        'monthly_note' => $activeEventNotif->monthly_note,
+        // ✅ BENEFITS (INCLUDING)
+        'benefits_list' => $activeEventNotif->benefits_list, // Langsung ambil JSON
 
-        // ✅ WEEKLY BENEFITS
-        'weekly_loyalty_points' => $activeEventNotif->weekly_loyalty_points,
-        'weekly_note' => $activeEventNotif->weekly_note,
-
-        // ✅ GENERAL BENEFITS
-        'benefits_list' => $activeEventNotif->benefits_array, // Accessor
-        'participant_count' => $activeEventNotif->participant_count,
-        'level_tagline' => $activeEventNotif->level_tagline,
-
-        // WhatsApp
+        // ✅ WHATSAPP
         'whatsapp_number' => $activeEventNotif->whatsapp_number,
         'whatsapp_message' => $activeEventNotif->whatsapp_message,
         'whatsapp_url' => $activeEventNotif->whatsapp_url,
     ];
-}
-            return Inertia::render('HomePage/HomePage', [
+
+    // ✅ DEBUGGING - CEK DATA HARGA
+    \Log::info('Active Event Notif Data:', [
+        'title' => $eventNotifData['title'],
+        'show_pricing' => $eventNotifData['show_pricing'],
+        'monthly_price' => $eventNotifData['monthly_price'],
+        'formatted_monthly_price' => $eventNotifData['formatted_monthly_price'],
+        'weekly_price' => $eventNotifData['weekly_price'],
+        'formatted_weekly_price' => $eventNotifData['formatted_weekly_price'],
+    ]);
+}            return Inertia::render('HomePage/HomePage', [
                 'auth' => [
                     'client' => Auth::guard('client')->user()
                 ],

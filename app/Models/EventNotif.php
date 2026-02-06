@@ -13,61 +13,58 @@ class EventNotif extends Model
     protected $fillable = [
         'title',
         'description',
+        'tagline',
         'image',
         'event_date',
+        'event_end_date',
         'event_time',
         'location',
         'monthly_original_price',
         'monthly_price',
         'monthly_discount_percent',
-        'monthly_frequency',
-        'monthly_loyalty_points',
-        'monthly_note',
         'weekly_price',
-        'weekly_loyalty_points',
-        'weekly_note',
         'benefits_list',
-        'participant_count',
-        'level_tagline',
         'whatsapp_number',
         'whatsapp_message',
         'is_active',
+        'show_pricing',
     ];
 
     protected $casts = [
         'event_date' => 'date',
+        'event_end_date' => 'date',
         'is_active' => 'boolean',
+        'show_pricing' => 'boolean',
         'monthly_original_price' => 'decimal:0',
         'monthly_price' => 'decimal:0',
         'weekly_price' => 'decimal:0',
         'monthly_discount_percent' => 'integer',
-        'monthly_loyalty_points' => 'integer',
-        'weekly_loyalty_points' => 'integer',
-        'benefits_list' => 'json', // Cast sebagai JSON array
+        'benefits_list' => 'json',
     ];
 
-    // Scope untuk event notif aktif
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    // Get formatted date (e.g., "Minggu, 18 Januari 2026")
     public function getFormattedDateAttribute()
     {
+        if ($this->event_end_date && $this->event_date->format('Y-m-d') !== $this->event_end_date->format('Y-m-d')) {
+            return Carbon::parse($this->event_date)->locale('id')->isoFormat('dddd, D MMMM YYYY') . 
+                   ' - ' . 
+                   Carbon::parse($this->event_end_date)->locale('id')->isoFormat('dddd, D MMMM YYYY');
+        }
         return Carbon::parse($this->event_date)->locale('id')->isoFormat('dddd, D MMMM YYYY');
     }
 
-    // Get formatted time (e.g., "12.50")
     public function getFormattedTimeAttribute()
     {
         if ($this->event_time) {
-            return Carbon::parse($this->event_time)->format('H.i');
+            return Carbon::parse($this->event_time)->format('H:i');
         }
         return null;
     }
 
-    // Get image URL
     public function getImageUrlAttribute()
     {
         if (!$this->image) {
@@ -81,42 +78,32 @@ class EventNotif extends Model
         return asset('storage/' . $this->image);
     }
 
-    // Format monthly original price
     public function getFormattedMonthlyOriginalPriceAttribute()
     {
         if (!$this->monthly_original_price) return null;
         return number_format($this->monthly_original_price, 0, ',', '.');
     }
 
-    // Format monthly price
     public function getFormattedMonthlyPriceAttribute()
     {
         if (!$this->monthly_price) return null;
         return number_format($this->monthly_price, 0, ',', '.');
     }
 
-    // Format weekly price
     public function getFormattedWeeklyPriceAttribute()
     {
         if (!$this->weekly_price) return null;
         return number_format($this->weekly_price, 0, ',', '.');
     }
 
-    // Get benefits as array
     public function getBenefitsArrayAttribute()
     {
         if (!$this->benefits_list) {
-            return [
-                ['label' => 'Shuttlecock', 'subLabel' => '(spin & kedut)'],
-                ['label' => 'Sewa lapangan'],
-                ['label' => 'Bermain', 'subLabel' => '3-4 match'],
-                ['label' => 'Bonus', 'subLabel' => '100 Loyalty Poin'],
-            ];
+            return [];
         }
         return $this->benefits_list;
     }
 
-    // Generate WhatsApp URL
     public function getWhatsappUrlAttribute()
     {
         $number = preg_replace('/[^0-9]/', '', $this->whatsapp_number);
@@ -130,7 +117,6 @@ class EventNotif extends Model
         return "https://wa.me/{$number}?text={$encodedMessage}";
     }
 
-    // Boot method untuk memastikan hanya 1 event notif aktif
     protected static function boot()
     {
         parent::boot();

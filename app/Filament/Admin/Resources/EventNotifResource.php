@@ -39,222 +39,190 @@ class EventNotifResource extends Resource
     
     protected static ?int $navigationSort = 4;
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Section::make('Informasi Event')
-                    ->description('Detail utama event yang akan ditampilkan')
-                    ->schema([
-                        TextInput::make('title')
-                            ->label('Judul Event')
-                            ->required()
-                            ->maxLength(255)
-                            ->placeholder('Contoh: MABAR RUTIN PVJ FUTSAL SEASON 3')
-                            ->columnSpanFull(),
-                        
-                        Textarea::make('description')
-                            ->label('Deskripsi Event')
-                            ->required()
-                            ->rows(4)
-                            ->placeholder('Deskripsi lengkap tentang event...')
-                            ->columnSpanFull()
-                            ->helperText('Akan ditampilkan jika tidak ada informasi pricing'),
-                        
-                        FileUpload::make('image')
-                            ->label('Banner Event')
-                            ->image()
-                            ->directory('event-notifs')
-                            ->imageEditor()
-                            ->imageEditorAspectRatios([
-                                '16:9',
-                                '4:3',
-                            ])
-                            ->maxSize(2048)
-                            ->helperText('Ukuran maksimal 2MB. Rekomendasi rasio 16:9')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2),
+public static function form(Form $form): Form
+{
+    return $form
+        ->schema([
+            Section::make('Informasi Event')
+                ->description('Detail utama event yang akan ditampilkan')
+                ->schema([
+                    TextInput::make('title')
+                        ->label('Judul Event')
+                        ->required()
+                        ->maxLength(255)
+                        ->placeholder('Contoh: The Arena\'s Annual Event')
+                        ->columnSpanFull(),
+                    
+                    Textarea::make('tagline')
+                        ->label('Tagline / Call to Action')
+                        ->rows(2)
+                        ->placeholder('Contoh: Secure your slot before the quota runs out. Register now and get the best experience.')
+                        ->helperText('Kalimat menarik yang ditampilkan di popup')
+                        ->columnSpanFull(),
+                    
+                    Textarea::make('description')
+                        ->label('Deskripsi Event')
+                        ->required()
+                        ->rows(4)
+                        ->placeholder('Deskripsi lengkap tentang event...')
+                        ->columnSpanFull()
+                        ->helperText('Deskripsi detail event'),
+                    
+                    FileUpload::make('image')
+                        ->label('Banner Event (Rasio 4:5)')
+                        ->image()
+                        ->directory('event-notifs')
+                        ->imageEditor()
+                        ->imageEditorAspectRatios([
+                            '4:5',
+                        ])
+                        ->imageEditorMode(2)
+                        ->imageEditorEmptyFillColor('#013064')
+                        ->maxSize(2048)
+                        ->helperText('⚠️ WAJIB rasio 4:5 (Portrait). Gunakan Image Editor untuk crop otomatis. Max 2MB.')
+                        ->columnSpanFull()
+                        ->required(),
+                ])
+                ->columns(2),
 
-                Section::make('Jadwal Event')
-                    ->description('Tanggal dan waktu pelaksanaan event')
-                    ->schema([
-                        DatePicker::make('event_date')
-                            ->label('Tanggal Event')
-                            ->required()
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->closeOnDateSelection()
-                            ->helperText('Format: Minggu, 18 Januari 2026'),
-                        
-                        TimePicker::make('event_time')
-                            ->label('Waktu Event')
-                            ->seconds(false)
-                            ->helperText('Contoh: 12.50 atau 12.50-16.00'),
-                        
-                        TextInput::make('location')
-                            ->label('Lokasi')
-                            ->maxLength(255)
-                            ->placeholder('Contoh: The Arena PVJ')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2),
+            Section::make('Jadwal Event')
+                ->description('Tanggal dan waktu pelaksanaan event')
+                ->schema([
+                    DatePicker::make('event_date')
+                        ->label('Tanggal Mulai Event')
+                        ->required()
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->closeOnDateSelection()
+                        ->helperText('Tanggal dimulainya event'),
+                    
+                    DatePicker::make('event_end_date')
+                        ->label('Tanggal Berakhir Event')
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->closeOnDateSelection()
+                        ->helperText('Kosongkan jika event hanya 1 hari')
+                        ->afterOrEqual('event_date'),
+                    
+                    TimePicker::make('event_time')
+                        ->label('Waktu Event')
+                        ->seconds(false)
+                        ->helperText('Contoh: 11:11'),
+                    
+                    TextInput::make('location')
+                        ->label('Lokasi')
+                        ->maxLength(255)
+                        ->placeholder('Contoh: TRANSMART')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
 
-                Section::make('Opsi Harga')
-                    ->description('Atur paket harga untuk event (opsional)')
-                    ->schema([
-                        Forms\Components\Grid::make(3)
-                            ->schema([
-                                TextInput::make('monthly_original_price')
-                                    ->label('Harga Asli Bulanan')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->placeholder('10000')
-                                    ->helperText('Harga sebelum diskon'),
-                                
-                                TextInput::make('monthly_price')
-                                    ->label('Harga Bulanan (Setelah Diskon)')
-                                    ->numeric()
-                                    ->prefix('Rp')
-                                    ->placeholder('21250')
-                                    ->helperText('Harga setelah diskon per pertemuan'),
-                                
-                                TextInput::make('monthly_discount_percent')
-                                    ->label('Persentase Diskon')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->minValue(0)
-                                    ->maxValue(100)
-                                    ->placeholder('23')
-                                    ->helperText('Otomatis dihitung dari harga asli'),
-                            ]),
-                        
-                        TextInput::make('weekly_price')
-                            ->label('Harga Mingguan')
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->placeholder('27500')
-                            ->helperText('Harga per pertemuan mingguan')
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed()
-                    ->columns(1),
+            Section::make('Pengaturan Tampilan')
+                ->description('Atur elemen yang ditampilkan di popup')
+                ->schema([
+                    Toggle::make('show_pricing')
+                        ->label('Tampilkan Harga')
+                        ->helperText('Nonaktifkan jika event tidak memerlukan informasi harga (misalnya: event umum, turnamen, dll)')
+                        ->default(true)
+                        ->inline(false)
+                        ->reactive(),
+                ])
+                ->collapsible()
+                ->collapsed(false),
 
-                Section::make('Benefit Bulanan')
-                    ->description('Benefit untuk paket bulanan')
-                    ->schema([
-                        TextInput::make('monthly_frequency')
-                            ->label('Frekuensi')
-                            ->default('4x pertemuan')
-                            ->placeholder('4x pertemuan')
-                            ->columnSpanFull(),
-                        
-                        TextInput::make('monthly_loyalty_points')
-                            ->label('Loyalty Points')
-                            ->numeric()
-                            ->default(500)
-                            ->prefix('+')
-                            ->suffix('TBB poin')
-                            ->columnSpanFull(),
-                        
-                        Textarea::make('monthly_note')
-                            ->label('Catatan Tambahan')
-                            ->rows(2)
-                            ->placeholder('Otomatis terdaftar di mabar berikutnya')
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
+            Section::make('Opsi Harga')
+                ->description('Atur paket harga untuk event (opsional)')
+                ->schema([
+                    Forms\Components\Grid::make(3)
+                        ->schema([
+                            TextInput::make('monthly_original_price')
+                                ->label('Harga Asli Bulanan')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->placeholder('500000')
+                                ->helperText('Harga sebelum diskon'),
+                            
+                            TextInput::make('monthly_price')
+                                ->label('Harga Bulanan (Setelah Diskon)')
+                                ->numeric()
+                                ->prefix('Rp')
+                                ->placeholder('250000')
+                                ->helperText('Harga setelah diskon'),
+                            
+                            TextInput::make('monthly_discount_percent')
+                                ->label('Persentase Diskon')
+                                ->numeric()
+                                ->suffix('%')
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->placeholder('50')
+                                ->helperText('Contoh: 50 untuk diskon 50%'),
+                        ]),
+                    
+                    TextInput::make('weekly_price')
+                        ->label('Harga Mingguan')
+                        ->numeric()
+                        ->prefix('Rp')
+                        ->placeholder('2500000')
+                        ->helperText('Harga per pertemuan mingguan')
+                        ->columnSpanFull(),
+                ])
+                ->visible(fn ($get) => $get('show_pricing'))
+                ->collapsible()
+                ->collapsed(),
 
-                Section::make('Benefit Mingguan')
-                    ->description('Benefit untuk paket mingguan')
-                    ->schema([
-                        TextInput::make('weekly_loyalty_points')
-                            ->label('Loyalty Points')
-                            ->numeric()
-                            ->default(100)
-                            ->prefix('+')
-                            ->suffix('TBB poin')
-                            ->columnSpanFull(),
-                        
-                        TextInput::make('weekly_note')
-                            ->label('Catatan')
-                            ->default('Dompet digital H+1')
-                            ->placeholder('Dompet digital H+1')
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
+            Section::make('Benefit / Including')
+                ->description('Benefit yang tercakup dalam event (ditampilkan sebagai "INCLUDING")')
+                ->schema([
+                    Repeater::make('benefits_list')
+                        ->label('Daftar Benefit')
+                        ->schema([
+                            TextInput::make('label')
+                                ->label('Benefit')
+                                ->required()
+                                ->placeholder('Contoh: Shuttlecock (spin & twitch)')
+                                ->columnSpanFull(),
+                        ])
+                        ->defaultItems(0)
+                        ->columnSpanFull()
+                        ->helperText('Benefit yang diterima peserta (ditampilkan dengan icon checklist)')
+                        ->addActionLabel('Tambah Benefit'),
+                ])
+                ->collapsible()
+                ->collapsed(),
 
-                Section::make('Benefit Umum')
-                    ->description('Benefit yang tercakup di kedua paket')
-                    ->schema([
-                        Repeater::make('benefits_list')
-                            ->label('Daftar Benefit')
-                            ->schema([
-                                TextInput::make('label')
-                                    ->label('Benefit')
-                                    ->required()
-                                    ->columnSpanFull(),
-                            ])
-                            ->default([
-                                ['label' => 'Shuttlecock (spin & kedut)'],
-                                ['label' => 'Sewa lapangan'],
-                                ['label' => 'Bermain 3-4 match'],
-                                ['label' => 'Bonus 100 Loyalty Poin'],
-                            ])
-                            ->columnSpanFull()
-                            ->helperText('Benefit yang diterima peserta'),
-                        
-                        TextInput::make('participant_count')
-                            ->label('Jumlah Peserta Saat Ini')
-                            ->default('25+')
-                            ->placeholder('25+')
-                            ->columnSpanFull(),
-                        
-                        Textarea::make('level_tagline')
-                            ->label('Tagline Level')
-                            ->rows(2)
-                            ->default('Semua Level Boleh Ikut — dari Pemula Sampai Pro')
-                            ->placeholder('Semua Level Boleh Ikut — dari Pemula Sampai Pro')
-                            ->columnSpanFull(),
-                    ])
-                    ->collapsible()
-                    ->collapsed(),
+            Section::make('Integrasi WhatsApp')
+                ->description('Konfigurasi untuk pendaftaran via WhatsApp')
+                ->schema([
+                    TextInput::make('whatsapp_number')
+                        ->label('Nomor WhatsApp')
+                        ->required()
+                        ->tel()
+                        ->placeholder('6281222977985')
+                        ->helperText('Format: 6281222977985 (mulai dari 62, tanpa + atau 0)')
+                        ->maxLength(17),
+                    
+                    Textarea::make('whatsapp_message')
+                        ->label('Template Pesan WhatsApp')
+                        ->rows(3)
+                        ->default('Halo, saya ingin mendaftar untuk event: {title}')
+                        ->placeholder('Halo, saya ingin mendaftar untuk event: {title}')
+                        ->helperText('Gunakan {title} untuk nama event otomatis')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
 
-                Section::make('Integrasi WhatsApp')
-                    ->description('Konfigurasi untuk pendaftaran via WhatsApp')
-                    ->schema([
-                        TextInput::make('whatsapp_number')
-                            ->label('Nomor WhatsApp')
-                            ->required()
-                            ->tel()
-                            ->prefix('+62')
-                            ->placeholder('81222977985')
-                            ->helperText('Format: 81222977985 (tanpa +62 atau 0)')
-                            ->maxLength(15),
-                        
-                        Textarea::make('whatsapp_message')
-                            ->label('Template Pesan WhatsApp')
-                            ->rows(3)
-                            ->placeholder('Halo, saya ingin mendaftar untuk event: {title}')
-                            ->helperText('Gunakan {title} untuk nama event otomatis')
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(2),
-
-                Section::make('Status')
-                    ->description('Aktifkan event notification ini')
-                    ->schema([
-                        Toggle::make('is_active')
-                            ->label('Aktifkan Event Notification')
-                            ->helperText('Hanya 1 event notification yang bisa aktif. Mengaktifkan ini akan menonaktifkan yang lain.')
-                            ->default(false)
-                            ->inline(false),
-                    ]),
-            ]);
-    }
+            Section::make('Status')
+                ->description('Aktifkan event notification ini')
+                ->schema([
+                    Toggle::make('is_active')
+                        ->label('Aktifkan Event Notification')
+                        ->helperText('Hanya 1 event notification yang bisa aktif. Mengaktifkan ini akan menonaktifkan yang lain.')
+                        ->default(false)
+                        ->inline(false),
+                ]),
+        ]);
+}
 
     public static function table(Table $table): Table
     {

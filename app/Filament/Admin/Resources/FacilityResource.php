@@ -34,16 +34,16 @@ class FacilityResource extends Resource
                         // ❌ DESKRIPSI DIHAPUS
 
                         Forms\Components\FileUpload::make('image_url')
-                            ->label('Gambar Fasilitas')
-                            ->image()
-                            ->directory('facility-images')
-                            ->maxSize(2048)
-                            ->imageEditor()
-                            ->imageEditorAspectRatios([
-                                '16:9',
-                                '4:3',
-                                '1:1',
-                            ])
+    ->label('Gambar Fasilitas')
+    ->image()
+    ->directory('facility-images')
+    ->maxSize(5120) // 5 MB
+    ->imageEditor()
+    ->imageEditorAspectRatios([
+        '16:9',
+        '4:3',
+        '1:1',
+    ])
                             ->helperText('Maksimal 2MB. Format: JPG, PNG. Klik untuk edit/crop gambar.')
                             ->columnSpanFull(),
                     ]),

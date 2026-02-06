@@ -10,7 +10,7 @@ const Contact = () => {
       {/* Court Background Image - starts after blue section */}
       <div
         className="absolute left-0 right-0 bottom-0 top-[120px] md:top-[140px] bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/lapang.jpg')" }}
+        style={{ backgroundImage: "url('/images/Lapangan/Lapangan.jpg')" }}
       />
 
       {/* Dark Overlay */}
@@ -47,7 +47,7 @@ const Contact = () => {
           {/* Player Image */}
           <div className="hidden md:flex justify-end items-end h-full">
             <img
-              src="/images/jelema.png"
+              src="/images/orang.png"
               alt="Basketball Player"
               className="h-[450px] lg:h-[580px] w-auto object-contain"
             />
