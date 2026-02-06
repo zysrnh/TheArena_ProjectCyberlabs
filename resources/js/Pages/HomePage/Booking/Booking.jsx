@@ -701,14 +701,12 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                             {v.name.replace('The Arena Basketball ', '')}
                           </h3>
 
-                          <div className="flex items-center gap-2">
-                            <MapPin className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-[#013064]/60' : 'text-gray-500'
-                              }`} />
-                            <p className={`text-sm ${isSelected ? 'text-[#013064]/80' : 'text-gray-600'
-                              }`}>
-                              {v.location}
-                            </p>
-                          </div>
+                         <div className="flex items-center gap-2">
+  <MapPin className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-[#013064]/60' : 'text-gray-500'}`} />
+  <p className={`text-sm notranslate ${isSelected ? 'text-[#013064]/80' : 'text-gray-600'}`}>
+    {v.location}
+  </p>
+</div>
                         </div>
                       </button>
                     );
@@ -1129,15 +1127,15 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
-                        <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs text-white/70">Venue</p>
-                          <p className="font-semibold text-sm sm:text-base truncate">
-                            {venue.name}
-                          </p>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
+  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
+  <div className="min-w-0">
+    <p className="text-xs text-white/70">Venue</p>
+    <p className="font-semibold text-sm sm:text-base truncate notranslate">
+      {venue.name}
+    </p>
+  </div>
+</div>
 
 
                       {selectedTimeSlots.length > 0 && (
@@ -1343,13 +1341,13 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                   <p className="font-semibold">{selectedSchedule?.display_date}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-[#013064]">
-                <MapPin className="w-5 h-5 text-[#ffd22f]" />
-                <div>
-                  <p className="text-xs text-gray-600">Venue</p>
-                  <p className="font-semibold">{venue.name}</p>
-                </div>
-              </div>
+         <div className="flex items-center gap-2 text-[#013064]">
+  <MapPin className="w-5 h-5 text-[#ffd22f]" />
+  <div>
+    <p className="text-xs text-gray-600">Venue</p>
+    <p className="font-semibold notranslate">{venue.name}</p>
+  </div>
+</div>
               <div className="border-t pt-3">
                 <p className="text-xs text-gray-600 mb-2">Slot Waktu:</p>
                 {selectedTimeSlots.map((slot, idx) => (

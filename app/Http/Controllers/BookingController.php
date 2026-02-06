@@ -168,7 +168,7 @@ class BookingController extends Controller
                 'id' => 4,
                 'venue_type' => 'urban',
                 'name' => 'The Arena Urban',
-                'location' => 'Jl. Urban Complex No. 88, Bandung',
+                'location' => 'Jl. Kelenteng no.41 Bandung',
                 'full_address' => 'Jl. Kelenteng No.41, Ciroyom, Kec. Andir, Kota Bandung, Jawa Barat 40181',
                 'description' => 'Lapangan basket semi-outdoor dengan lantai vinyl',
                 'full_description' => 'The Arena Urban merupakan lapangan basket semi-outdoor dengan lantai vinyl, dilengkapi seating area luas dan suasana yang nyaman. Cocok untuk bermain menonton, maupun bersantai.',
