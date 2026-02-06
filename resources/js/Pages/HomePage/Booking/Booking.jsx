@@ -324,15 +324,19 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     setShowConfirmModal(true);
   };
 
-  const confirmBooking = async () => {
+ const confirmBooking = async () => {
   setIsProcessing(true);
 
   try {
+    // ✅ Ambil CSRF token dari meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
     const response = await fetch("/api/booking/process", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "X-CSRF-TOKEN": csrfToken || '',
       },
       credentials: 'same-origin',
       body: JSON.stringify({
@@ -343,26 +347,62 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
       }),
     });
 
+    // ✅ HANDLE ERROR 419 - CSRF Token Expired
+    if (response.status === 419) {
+      setShowConfirmModal(false);
+      setNotification({
+        type: 'error',
+        message: 'Sesi Anda telah berakhir. Halaman akan di-refresh dalam 2 detik...'
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      return;
+    }
+
+    // ✅ HANDLE ERROR 500 atau error lainnya
+    if (!response.ok && response.status !== 419) {
+      throw new Error('Network response was not ok');
+    }
+
     const data = await response.json();
 
     if (data.success) {
       setShowConfirmModal(false);
-      setShowSuccessModal(true);
-      fetchTimeSlots();
-    } else {
-      // ✅ Close modal terlebih dahulu
-      setShowConfirmModal(false);
       
-      // ✅ Tampilkan error sebagai notification popup (sama seperti notif login)
       setNotification({
-        type: 'error',
-        message: data.message || "Terjadi kesalahan saat melakukan booking"
+        type: 'success',
+        message: 'Booking berhasil dibuat! Anda akan diarahkan ke halaman pembayaran...'
       });
       
-      // ✅ Auto dismiss after 5 seconds
-      setTimeout(() => setNotification(null), 5000);
+      setTimeout(() => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/payment/process/${data.booking_id}`;
+        
+        const newCsrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (newCsrfToken) {
+          const csrfInput = document.createElement('input');
+          csrfInput.type = 'hidden';
+          csrfInput.name = '_token';
+          csrfInput.value = newCsrfToken;
+          form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+      }, 1500);
       
-      // ✅ Refresh time slots untuk update status booking
+    } else {
+      setShowConfirmModal(false);
+      
+      setNotification({
+        type: 'error',
+        message: data.message || "Pembayaran gagal diproses. Silakan coba lagi."
+      });
+      
+      setTimeout(() => setNotification(null), 5000);
       fetchTimeSlots();
     }
   } catch (error) {
@@ -370,10 +410,9 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     
     setShowConfirmModal(false);
     
-    // ✅ Tampilkan error sebagai notification popup
     setNotification({
       type: 'error',
-      message: "Terjadi kesalahan saat melakukan booking. Silakan coba lagi."
+      message: "Pembayaran gagal diproses. Silakan refresh halaman dan coba lagi."
     });
     
     setTimeout(() => setNotification(null), 5000);
@@ -381,7 +420,6 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     setIsProcessing(false);
   }
 };
-
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
@@ -1364,46 +1402,7 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
         </div>
       )}
 
-      {/* Modal Sukses */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-8 shadow-xl text-center">
-            <div className="w-20 h-20 bg-[#ffd22f] rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12 text-[#013064]" />
-            </div>
-
-            <h3 className="text-3xl font-bold text-[#013064] mb-3">Booking Dalam Prosess</h3>
-            <p className="text-gray-600 mb-6">
-              Lakukan Pembayaran di Halaman Profile Jadwal Booking Anda.
-            </p>
-
-            <div className="bg-[#013064]/5 rounded-lg p-4 mb-6 text-left">
-              <div className="flex items-center gap-2 text-[#013064] mb-3">
-                <Calendar className="w-5 h-5 text-[#ffd22f]" />
-                <div>
-                  <p className="text-xs text-gray-600">Tanggal</p>
-                  <p className="font-semibold">{selectedSchedule?.display_date}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-[#013064]">
-                <MapPin className="w-5 h-5 text-[#ffd22f]" />
-                <div>
-                  <p className="text-xs text-gray-600">Venue</p>
-                  <p className="font-semibold">{venue.name}</p>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleSuccessClose}
-              className="w-full py-3 bg-[#ffd22f] text-[#013064] rounded-lg font-bold hover:bg-[#ffe066] transition"
-            >
-              Menuju Jadwal Booking Anda
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       {/* Modal Review */}
       {showReviewModal && (

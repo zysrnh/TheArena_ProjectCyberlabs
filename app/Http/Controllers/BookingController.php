@@ -405,164 +405,167 @@ class BookingController extends Controller
      * ✅ IMPROVED: Better error messages for different booking conflicts
      */
     public function processBooking(Request $request)
-    {
-        $validated = $request->validate([
-            'venue_id' => 'required|integer',
-            'date' => 'required|date|after_or_equal:today',
-            'time_slots' => 'required|array|min:1',
-            'time_slots.*.time' => 'required|string',
-            'time_slots.*.price' => 'required|numeric',
-            'time_slots.*.duration' => 'required|numeric',
-            'venue_type' => 'required|string|in:cibadak_a,cibadak_b,pvj,urban',
-        ]);
+{
+    $validated = $request->validate([
+        'venue_id' => 'required|integer',
+        'date' => 'required|date|after_or_equal:today',
+        'time_slots' => 'required|array|min:1',
+        'time_slots.*.time' => 'required|string',
+        'time_slots.*.price' => 'required|numeric',
+        'time_slots.*.duration' => 'required|numeric',
+        'venue_type' => 'required|string|in:cibadak_a,cibadak_b,pvj,urban',
+    ]);
 
-        if (!Auth::guard('client')->check()) {
-            if ($request->expectsJson() || $request->is('api/*')) {
+    if (!Auth::guard('client')->check()) {
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
+            ], 401);
+        }
+        return back()->withErrors([
+            'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
+        ]);
+    }
+
+    try {
+        $this->cancelExpiredPendingBookings();
+
+        DB::beginTransaction();
+
+        // Validate prices
+        foreach ($validated['time_slots'] as $slot) {
+            $expectedPrice = $this->calculatePrice(
+                $validated['venue_type'],
+                $validated['date'],
+                $slot['time']
+            );
+
+            if ($slot['price'] != $expectedPrice) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
-                    'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
-                ], 401);
+                    'message' => 'Harga tidak sesuai. Silakan refresh halaman dan coba lagi.'
+                ], 422);
             }
-            return back()->withErrors([
-                'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
-            ]);
         }
 
-        try {
-            $this->cancelExpiredPendingBookings();
+        $requestedSlots = array_column($validated['time_slots'], 'time');
 
-            DB::beginTransaction();
+        // ✅ IMPROVED: Cek dengan 2 kategori berbeda untuk error message yang lebih spesifik
+        
+        // 1. Cek slot yang SUDAH TERBAYAR/CONFIRMED (tidak bisa diambil sama sekali)
+        $confirmedBooked = BookedTimeSlot::where('date', $validated['date'])
+            ->where('venue_type', $validated['venue_type'])
+            ->whereIn('time_slot', $requestedSlots)
+            ->whereHas('booking', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('payment_status', 'paid')
+                        ->orWhere('status', 'confirmed');
+                });
+            })
+            ->exists();
 
-            // Validate prices
-            foreach ($validated['time_slots'] as $slot) {
-                $expectedPrice = $this->calculatePrice(
-                    $validated['venue_type'],
-                    $validated['date'],
-                    $slot['time']
-                );
-
-                if ($slot['price'] != $expectedPrice) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Harga tidak sesuai. Silakan refresh halaman dan coba lagi.'
-                    ], 422);
-                }
-            }
-
-            $requestedSlots = array_column($validated['time_slots'], 'time');
-
-            // ✅ IMPROVED: Cek dengan 2 kategori berbeda untuk error message yang lebih spesifik
-            
-            // 1. Cek slot yang SUDAH TERBAYAR/CONFIRMED (tidak bisa diambil sama sekali)
-            $confirmedBooked = BookedTimeSlot::where('date', $validated['date'])
-                ->where('venue_type', $validated['venue_type'])
-                ->whereIn('time_slot', $requestedSlots)
-                ->whereHas('booking', function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('payment_status', 'paid')
-                            ->orWhere('status', 'confirmed');
-                    });
-                })
-                ->exists();
-
-            if ($confirmedBooked) {
-                DB::rollBack();
-
-                if ($request->expectsJson() || $request->is('api/*')) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
-                    ], 422);
-                }
-
-                return back()->withErrors([
-                    'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
-                ]);
-            }
-
-            // 2. Cek slot yang MASIH PENDING (belum bayar, masih dalam batas waktu 10 menit)
-            $pendingBooked = BookedTimeSlot::where('date', $validated['date'])
-                ->where('venue_type', $validated['venue_type'])
-                ->whereIn('time_slot', $requestedSlots)
-                ->whereHas('booking', function ($query) {
-                    $query->where('status', 'pending')
-                          ->where('payment_status', 'pending')
-                          ->where('created_at', '>=', Carbon::now()->subMinutes(10)); // Masih fresh
-                })
-                ->exists();
-
-            if ($pendingBooked) {
-                DB::rollBack();
-
-                if ($request->expectsJson() || $request->is('api/*')) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
-                    ], 423); // 423 Locked - slot sementara dikunci
-                }
-
-                return back()->withErrors([
-                    'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
-                ]);
-            }
-
-            $totalPrice = array_sum(array_column($validated['time_slots'], 'price'));
-
-            $booking = Booking::create([
-                'client_id' => Auth::guard('client')->id(),
-                'venue_id' => $validated['venue_id'],
-                'booking_date' => $validated['date'],
-                'venue_type' => $validated['venue_type'],
-                'time_slots' => $validated['time_slots'],
-                'total_price' => $totalPrice,
-                'status' => 'pending',
-                'payment_status' => 'pending',
-            ]);
-
-            foreach ($validated['time_slots'] as $slot) {
-                BookedTimeSlot::create([
-                    'booking_id' => $booking->id,
-                    'date' => $validated['date'],
-                    'time_slot' => $slot['time'],
-                    'venue_type' => $validated['venue_type'],
-                ]);
-            }
-
-            DB::commit();
-
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Booking berhasil! Silakan lanjutkan ke pembayaran dalam 10 menit.',
-                    'booking_id' => $booking->id,
-                    'redirect_to_profile' => true,
-                    'expires_at' => $booking->created_at->addMinutes(10)->toIso8601String(),
-                ]);
-            }
-
-            return back()->with([
-                'flash' => [
-                    'success' => true,
-                    'message' => 'Booking berhasil! Silakan lanjutkan ke pembayaran dalam 10 menit.',
-                    'booking_id' => $booking->id,
-                ]
-            ]);
-        } catch (\Exception $e) {
+        if ($confirmedBooked) {
             DB::rollBack();
 
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
-                ], 500);
+                    'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
+                ], 422);
             }
 
             return back()->withErrors([
-                'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+                'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
             ]);
         }
+
+        // 2. Cek slot yang MASIH PENDING (belum bayar, masih dalam batas waktu 10 menit)
+        $pendingBooked = BookedTimeSlot::where('date', $validated['date'])
+            ->where('venue_type', $validated['venue_type'])
+            ->whereIn('time_slot', $requestedSlots)
+            ->whereHas('booking', function ($query) {
+                $query->where('status', 'pending')
+                      ->where('payment_status', 'pending')
+                      ->where('created_at', '>=', Carbon::now()->subMinutes(10)); // Masih fresh
+            })
+            ->exists();
+
+        if ($pendingBooked) {
+            DB::rollBack();
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
+                ], 423); // 423 Locked - slot sementara dikunci
+            }
+
+            return back()->withErrors([
+                'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
+            ]);
+        }
+
+        $totalPrice = array_sum(array_column($validated['time_slots'], 'price'));
+
+        $booking = Booking::create([
+            'client_id' => Auth::guard('client')->id(),
+            'venue_id' => $validated['venue_id'],
+            'booking_date' => $validated['date'],
+            'venue_type' => $validated['venue_type'],
+            'time_slots' => $validated['time_slots'],
+            'total_price' => $totalPrice,
+            'status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+
+        foreach ($validated['time_slots'] as $slot) {
+            BookedTimeSlot::create([
+                'booking_id' => $booking->id,
+                'date' => $validated['date'],
+                'time_slot' => $slot['time'],
+                'venue_type' => $validated['venue_type'],
+            ]);
+        }
+
+        DB::commit();
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking berhasil! Silakan lakukan pembayaran dalam 10 menit.',
+                'booking_id' => $booking->id,
+                'bill_no' => $booking->bill_no ?? null,
+                'total_price' => $booking->total_price,
+                'expires_at' => $booking->created_at->addMinutes(10)->toIso8601String(),
+                // ✅ TAMBAHKAN INFO UNTUK REDIRECT
+                'redirect_to_payment' => true,
+            ]);
+        }
+
+        return back()->with([
+            'flash' => [
+                'success' => true,
+                'message' => 'Booking berhasil! Silakan lanjutkan ke pembayaran dalam 10 menit.',
+                'booking_id' => $booking->id,
+            ]
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return back()->withErrors([
+            'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+        ]);
     }
+}
 
     public function storeReview(Request $request)
     {
