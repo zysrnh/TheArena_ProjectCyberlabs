@@ -23,6 +23,11 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
+  
+  const [voucherCode, setVoucherCode] = useState('');
+const [appliedVoucher, setAppliedVoucher] = useState(null);
+const [voucherError, setVoucherError] = useState('');
+const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
 
   const openImagePreview = (index) => {
     setPreviewImageIndex(index);
@@ -244,6 +249,66 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     return selectedTimeSlots.reduce((total, slot) => total + slot.price, 0);
   };
 
+  // ✅ TAMBAHKAN FUNCTIONS INI
+const handleApplyVoucher = async () => {
+  if (!voucherCode.trim()) {
+    setVoucherError('Masukkan kode voucher');
+    return;
+  }
+
+  setIsApplyingVoucher(true);
+  setVoucherError('');
+
+  try {
+    const response = await fetch('/api/voucher/apply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        voucher_code: voucherCode,
+        total_amount: calculateTotal(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      setAppliedVoucher(data.voucher);
+      setNotification({
+        type: 'success',
+        message: data.message
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } else {
+      setVoucherError(data.message);
+      setAppliedVoucher(null);
+    }
+  } catch (error) {
+    console.error('Apply voucher error:', error);
+    setVoucherError('Terjadi kesalahan saat memvalidasi voucher');
+    setAppliedVoucher(null);
+  } finally {
+    setIsApplyingVoucher(false);
+  }
+};
+
+const handleRemoveVoucher = () => {
+  setVoucherCode('');
+  setAppliedVoucher(null);
+  setVoucherError('');
+};
+
+const getFinalTotal = () => {
+  const originalTotal = calculateTotal();
+  if (appliedVoucher) {
+    return appliedVoucher.final_amount;
+  }
+  return originalTotal;
+};
+
   const handleWeekChange = (direction) => {
     const newWeek = direction === 'next' ? weekOffset + 1 : weekOffset - 1;
 
@@ -324,11 +389,10 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     setShowConfirmModal(true);
   };
 
- const confirmBooking = async () => {
+const confirmBooking = async () => {
   setIsProcessing(true);
 
   try {
-    // ✅ Ambil CSRF token dari meta tag
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
     const response = await fetch("/api/booking/process", {
@@ -344,10 +408,10 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
         date: selectedDate,
         time_slots: selectedTimeSlots,
         venue_type: venue.venue_type,
+        voucher_code: appliedVoucher?.code || null, // ✅ TAMBAHKAN INI
       }),
     });
 
-    // ✅ HANDLE ERROR 419 - CSRF Token Expired
     if (response.status === 419) {
       setShowConfirmModal(false);
       setNotification({
@@ -361,7 +425,6 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
       return;
     }
 
-    // ✅ HANDLE ERROR 500 atau error lainnya
     if (!response.ok && response.status !== 419) {
       throw new Error('Network response was not ok');
     }
@@ -1111,81 +1174,168 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
                   )}
                 </div>
 
-                <div className="lg:col-span-1">
-                  <div className="bg-[#013064] text-white p-4 sm:p-6 rounded-lg border-2 border-white/30 lg:sticky lg:top-4">
-                    <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
-                      Rp. {venue.price_per_session?.toLocaleString("id-ID") || 0}/sesi
-                    </h3>
+             <div className="lg:col-span-1">
+  <div className="bg-[#013064] text-white p-4 sm:p-6 rounded-lg border-2 border-white/30 lg:sticky lg:top-4">
+    <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
+      Rp. {venue.price_per_session?.toLocaleString("id-ID") || 0}/sesi
+    </h3>
 
-                    <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-                      <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-xs text-white/70">Tanggal</p>
-                          <p className="font-semibold text-sm sm:text-base truncate">
-                            {selectedSchedule?.display_date || "Pilih tanggal"}
-                          </p>
-                        </div>
-                      </div>
-                    <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
-  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
-  <div className="min-w-0">
-    <p className="text-xs text-white/70">Venue</p>
-    <p className="font-semibold text-sm sm:text-base truncate notranslate">
-      {venue.name}
-    </p>
+    <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+      <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
+        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-xs text-white/70">Tanggal</p>
+          <p className="font-semibold text-sm sm:text-base truncate">
+            {selectedSchedule?.display_date || "Pilih tanggal"}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 p-3 bg-white/10 rounded">
+        <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
+        <div className="min-w-0">
+          <p className="text-xs text-white/70">Venue</p>
+          <p className="font-semibold text-sm sm:text-base truncate notranslate">
+            {venue.name}
+          </p>
+        </div>
+      </div>
+
+      {selectedTimeSlots.length > 0 && (
+        <div className="space-y-2">
+          {selectedTimeSlots.map((slot, idx) => (
+            <div key={idx} className="flex items-center gap-2 sm:gap-3 p-3 bg-white/10 rounded">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/70">Waktu</p>
+                <p className="font-semibold text-sm sm:text-base">{slot.time}</p>
+              </div>
+              <button
+                onClick={() => handleTimeSlotToggle(slot)}
+                className="text-red-400 hover:text-red-300 text-xs flex-shrink-0"
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* ✅ VOUCHER SECTION - TAMBAHKAN INI */}
+    {selectedTimeSlots.length > 0 && (
+      <div className="mb-4 sm:mb-6">
+        <label className="block text-sm font-semibold text-white mb-2">
+          Kode Voucher (Opsional)
+        </label>
+        
+        {!appliedVoucher ? (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={voucherCode}
+                onChange={(e) => {
+                  setVoucherCode(e.target.value.toUpperCase());
+                  setVoucherError('');
+                }}
+                placeholder="Masukkan kode voucher"
+                className="flex-1 px-3 py-2 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-[#ffd22f] text-sm"
+                disabled={isApplyingVoucher}
+              />
+              <button
+                onClick={handleApplyVoucher}
+                disabled={isApplyingVoucher || !voucherCode.trim()}
+                className="px-4 py-2 bg-[#ffd22f] text-[#013064] rounded-lg font-semibold hover:bg-[#ffe066] transition disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+              >
+                {isApplyingVoucher ? (
+                  <div className="w-5 h-5 border-2 border-[#013064] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  'Terapkan'
+                )}
+              </button>
+            </div>
+            
+            {voucherError && (
+              <p className="text-red-400 text-xs">{voucherError}</p>
+            )}
+          </div>
+        ) : (
+          <div className="bg-[#ffd22f]/20 border border-[#ffd22f] rounded-lg p-3">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <p className="font-bold text-[#ffd22f] text-sm">{appliedVoucher.code}</p>
+                {appliedVoucher.description && (
+                  <p className="text-xs text-white/70 mt-1">{appliedVoucher.description}</p>
+                )}
+              </div>
+              <button
+                onClick={handleRemoveVoucher}
+                className="text-red-400 hover:text-red-300 text-xs ml-2"
+              >
+                Hapus
+              </button>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-white/70">Diskon:</span>
+              <span className="font-bold text-[#ffd22f] notranslate">
+                - Rp. {appliedVoucher.discount_amount.toLocaleString("id-ID")}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* ✅ UPDATE BAGIAN TOTAL PAYMENT */}
+    <div className="border-t border-white/20 pt-4 mb-4 sm:mb-6">
+      {appliedVoucher && (
+        <>
+          <div className="flex justify-between items-center mb-2 text-sm">
+            <span className="text-white/70">Harga Asli</span>
+            <span className="text-white/70 line-through notranslate">
+              Rp. {appliedVoucher.original_amount.toLocaleString("id-ID")}
+            </span>
+          </div>
+          <div className="flex justify-between items-center mb-2 text-sm">
+            <span className="text-[#ffd22f]">Diskon Voucher</span>
+            <span className="text-[#ffd22f] notranslate">
+              - Rp. {appliedVoucher.discount_amount.toLocaleString("id-ID")}
+            </span>
+          </div>
+        </>
+      )}
+      
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-[#ffd22f] text-sm sm:text-base">Total Pembayaran</span>
+        <span className="text-xl sm:text-2xl font-bold notranslate">
+          Rp. {getFinalTotal().toLocaleString("id-ID")}
+        </span>
+      </div>
+    </div>
+
+    <button
+      onClick={handleBooking}
+      disabled={selectedTimeSlots.length === 0}
+      className={`w-full py-3 rounded-lg font-bold text-base sm:text-lg transition ${
+        selectedTimeSlots.length === 0
+          ? "bg-white/20 cursor-not-allowed"
+          : "bg-[#ffd22f] text-[#013064] hover:bg-[#ffe066]"
+      }`}
+    >
+      Booking
+    </button>
+
+    {selectedTimeSlots.length === 0 && (
+      <p className="text-xs text-white/70 mt-3 text-center">
+        Pilih minimal 1 slot waktu untuk melanjutkan
+      </p>
+    )}
   </div>
 </div>
 
 
-                      {selectedTimeSlots.length > 0 && (
-                        <div className="space-y-2">
-                          {selectedTimeSlots.map((slot, idx) => (
-                            <div key={idx} className="flex items-center gap-2 sm:gap-3 p-3 bg-white/10 rounded">
-                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#ffd22f] flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-white/70">Waktu</p>
-                                <p className="font-semibold text-sm sm:text-base">{slot.time}</p>
-                              </div>
-                              <button
-                                onClick={() => handleTimeSlotToggle(slot)}
-                                className="text-red-400 hover:text-red-300 text-xs flex-shrink-0"
-                              >
-                                Hapus
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
 
-                    <div className="border-t border-white/20 pt-4 mb-4 sm:mb-6">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[#ffd22f] text-sm sm:text-base">Total Pembayaran</span>
-                        <span className="text-xl sm:text-2xl font-bold notranslate">
-  Rp. {calculateTotal().toLocaleString("id-ID")}
-</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={handleBooking}
-                      disabled={selectedTimeSlots.length === 0}
-                      className={`w-full py-3 rounded-lg font-bold text-base sm:text-lg transition ${selectedTimeSlots.length === 0
-                        ? "bg-white/20 cursor-not-allowed"
-                        : "bg-[#ffd22f] text-[#013064] hover:bg-[#ffe066]"
-                        }`}
-                    >
-                      Booking
-                    </button>
-
-                    {selectedTimeSlots.length === 0 && (
-                      <p className="text-xs text-white/70 mt-3 text-center">
-                        Pilih minimal 1 slot waktu untuk melanjutkan
-                      </p>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1348,29 +1498,56 @@ export default function Booking({ auth, venue, venues = {}, schedules = [], curr
     <p className="font-semibold notranslate">{venue.name}</p>
   </div>
 </div>
-              <div className="border-t pt-3">
-                <p className="text-xs text-gray-600 mb-2">Slot Waktu:</p>
-                {selectedTimeSlots.map((slot, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded mb-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-[#ffd22f]" />
-                      <span className="font-medium text-[#013064]">{slot.time}</span>
-                    </div>
-                   <span className="text-sm font-semibold text-[#013064] notranslate">
-  Rp. {slot.price.toLocaleString("id-ID")}
-</span>
-                  </div>
-                ))}
-              </div>
+             {/* Di dalam Modal Konfirmasi Booking, ganti bagian dari "Slot Waktu" sampai "Total Pembayaran" */}
 
-              <div className="border-t pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold text-[#013064]">Total Pembayaran</span>
-                  <span className="text-2xl font-bold text-[#ffd22f] notranslate">
-  Rp. {calculateTotal().toLocaleString("id-ID")}
-</span>
-                </div>
-              </div>
+<div className="border-t pt-3">
+  <p className="text-xs text-gray-600 mb-2">Slot Waktu:</p>
+  {selectedTimeSlots.map((slot, idx) => (
+    <div key={idx} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded mb-2">
+      <div className="flex items-center gap-2">
+        <Clock className="w-4 h-4 text-[#ffd22f]" />
+        <span className="font-medium text-[#013064]">{slot.time}</span>
+      </div>
+      <span className="text-sm font-semibold text-[#013064] notranslate">
+        Rp. {slot.price.toLocaleString("id-ID")}
+      </span>
+    </div>
+  ))}
+</div>
+
+{/* ✅ TAMBAHKAN BAGIAN VOUCHER DI MODAL */}
+<div className="border-t pt-3">
+  {appliedVoucher && (
+    <>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm text-gray-600">Harga Asli</span>
+        <span className="text-sm text-gray-600 line-through notranslate">
+          Rp. {calculateTotal().toLocaleString("id-ID")}
+        </span>
+      </div>
+      <div className="flex justify-between items-center mb-2 bg-green-50 p-2 rounded">
+        <div>
+          <span className="text-sm font-semibold text-green-700">
+            Voucher: {appliedVoucher.code}
+          </span>
+          {appliedVoucher.description && (
+            <p className="text-xs text-green-600">{appliedVoucher.description}</p>
+          )}
+        </div>
+        <span className="text-sm font-bold text-green-700 notranslate">
+          - Rp. {appliedVoucher.discount_amount.toLocaleString("id-ID")}
+        </span>
+      </div>
+    </>
+  )}
+  
+  <div className="flex justify-between items-center">
+    <span className="text-lg font-bold text-[#013064]">Total Pembayaran</span>
+    <span className="text-2xl font-bold text-[#ffd22f] notranslate">
+      Rp. {getFinalTotal().toLocaleString("id-ID")}
+    </span>
+  </div>
+</div>
             </div>
 
             <div className="flex gap-3">

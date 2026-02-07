@@ -40,6 +40,10 @@ Route::prefix('api/booking')->group(function () {
     Route::post('/process', [BookingController::class, 'processBooking']);
 });
 
+Route::prefix('api/voucher')->group(function () {
+    Route::post('/apply', [BookingController::class, 'applyVoucher']);
+});
+
 // ============================================
 // BOOKING PERALATAN ROUTES
 // ============================================
