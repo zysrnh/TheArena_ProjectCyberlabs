@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class AuthController extends Controller
@@ -20,7 +21,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // Proses login untuk client
+    // ✅ ALTERNATIF: Proses login dengan backend redirect + force reload
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -32,7 +33,13 @@ class AuthController extends Controller
         if (Auth::guard('client')->attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
             
-            return redirect()->intended('/profile');
+            Log::info('✅ Client logged in successfully', [
+                'client_id' => Auth::guard('client')->id(),
+                'email' => Auth::guard('client')->user()->email,
+            ]);
+            
+            // ✅ FIX: Redirect dengan Inertia location visit (force reload)
+            return Inertia::location('/profile');
         }
 
         return back()->withErrors([
@@ -50,13 +57,13 @@ class AuthController extends Controller
         ]);
     }
 
-    // ✅ Proses register untuk client - DENGAN PHONE MANDATORY
+    // Proses register untuk client
     public function register(Request $request)
     {
         $validated = $request->validate([
             'username' => 'required|string|max:255|unique:clients,name',
             'email' => 'required|string|email|max:255|unique:clients',
-            'phone' => 'required|string|max:20',  // ← TAMBAH INI (POINT 9)
+            'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8',
         ], [
             'username.required' => 'Username wajib diisi',
@@ -64,7 +71,7 @@ class AuthController extends Controller
             'email.required' => 'Email wajib diisi',
             'email.email' => 'Format email tidak valid',
             'email.unique' => 'Email sudah terdaftar',
-            'phone.required' => 'Nomor telepon wajib diisi',  // ← TAMBAH INI
+            'phone.required' => 'Nomor telepon wajib diisi',
             'password.required' => 'Password wajib diisi',
             'password.min' => 'Password minimal 8 karakter',
         ]);
@@ -72,19 +79,29 @@ class AuthController extends Controller
         $client = Client::create([
             'name' => $validated['username'],
             'email' => $validated['email'],
-            'phone' => $validated['phone'],  // ← TAMBAH INI
+            'phone' => $validated['phone'],
             'password' => bcrypt($validated['password']),
         ]);
 
-        // Login otomatis setelah register menggunakan guard 'client'
+        // Login otomatis setelah register
         Auth::guard('client')->login($client);
+        
+        Log::info('✅ New client registered and logged in', [
+            'client_id' => $client->id,
+            'email' => $client->email,
+        ]);
 
-        return redirect('/profile');
+        // ✅ FIX: Gunakan Inertia location untuk force reload
+        return Inertia::location('/profile');
     }
 
     // Logout
     public function logout(Request $request)
     {
+        Log::info('🚪 Client logging out', [
+            'client_id' => Auth::guard('client')->id(),
+        ]);
+        
         Auth::guard('client')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -17,14 +17,21 @@ export default function Login() {
     e.preventDefault();
     
     post('/login', {
+      preserveScroll: true,
       onSuccess: () => {
         setNotification({
           type: 'success',
           message: 'Login berhasil! Mengalihkan ke halaman profil...'
         });
         
+        // ✅ FIX: Gunakan router.visit dengan opsi yang tepat untuk menghindari blank screen
         setTimeout(() => {
-          router.visit('/profile');
+          router.visit('/profile', {
+            method: 'get',
+            preserveState: false,  // Reset state untuk fresh data
+            preserveScroll: false,
+            replace: true  // Replace history untuk menghindari back button issue
+          });
         }, 1500);
       },
       onError: (errors) => {
