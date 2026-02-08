@@ -344,7 +344,7 @@ class BookingController extends Controller
     }
 
     /**
-     * ✅ UPDATED: Hanya slot yang SUDAH BAYAR yang dianggap booked
+     * ✅ FIXED: Include manual bookings and all confirmed bookings
      */
     public function getTimeSlots(Request $request)
     {
@@ -365,12 +365,14 @@ class BookingController extends Controller
             ['time' => '22.00 - 00.00', 'duration' => 120],
         ];
 
+        // ✅ FIX: Include is_paid = true untuk manual bookings
         $bookedFromTimeSlots = BookedTimeSlot::where('date', $date)
             ->where('venue_type', $venueType)
             ->whereHas('booking', function ($query) {
                 $query->where(function ($q) {
                     $q->where('payment_status', 'paid')
-                        ->orWhere('status', 'confirmed');
+                        ->orWhere('status', 'confirmed')
+                        ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
                 });
             })
             ->pluck('time_slot')
@@ -380,7 +382,8 @@ class BookingController extends Controller
             ->where('venue_type', $venueType)
             ->where(function ($query) {
                 $query->where('payment_status', 'paid')
-                    ->orWhere('status', 'confirmed');
+                    ->orWhere('status', 'confirmed')
+                    ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
             })
             ->get()
             ->flatMap(function ($booking) {
@@ -562,14 +565,15 @@ class BookingController extends Controller
 
             $requestedSlots = array_column($validated['time_slots'], 'time');
 
-            // Check confirmed bookings
+            // ✅ FIX: Check confirmed bookings termasuk manual bookings
             $confirmedBooked = BookedTimeSlot::where('date', $validated['date'])
                 ->where('venue_type', $validated['venue_type'])
                 ->whereIn('time_slot', $requestedSlots)
                 ->whereHas('booking', function ($query) {
                     $query->where(function ($q) {
                         $q->where('payment_status', 'paid')
-                            ->orWhere('status', 'confirmed');
+                            ->orWhere('status', 'confirmed')
+                            ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
                     });
                 })
                 ->exists();

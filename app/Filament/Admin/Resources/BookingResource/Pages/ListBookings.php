@@ -13,6 +13,12 @@ class ListBookings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('calendar')
+                ->label('Lihat Kalender')
+                ->icon('heroicon-o-calendar-days')
+                ->color('info')
+                ->url(fn (): string => static::getResource()::getUrl('calendar')),
+            
             Actions\CreateAction::make(),
         ];
     }
