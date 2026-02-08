@@ -29,6 +29,14 @@ class Booking extends Model
         'original_price',
         'voucher_code',
         'voucher_discount',
+        // ✅ KOLOM BARU UNTUK FASPAY
+        'payment_reff',
+        'payment_date',
+        'payment_status_code',
+        'payment_status_desc',
+        'payment_channel_uid',
+        'payment_channel',
+        'discount_amount',
     ];
 
     protected $casts = [
@@ -38,6 +46,7 @@ class Booking extends Model
         'total_price' => 'decimal:2',
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
+        'payment_date' => 'datetime', // ✅ TAMBAHAN
     ];
 
     /**
