@@ -450,7 +450,7 @@ export default function HomePage() {
 
             {/* Content */}
             <div className="relative z-10 h-full flex items-center justify-center">
-              <div className="text-center text-white px-4 max-w-4xl">
+              <div key={currentSlide} className="text-center text-white px-4 max-w-4xl">
                 <h2 className="text-[#FDB913] text-lg md:text-xl lg:text-2xl font-semibold mb-2">
                   {slides[currentSlide].subtitle}
                 </h2>
