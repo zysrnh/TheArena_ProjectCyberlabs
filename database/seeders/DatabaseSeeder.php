@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Jalankan RoleSeeder terlebih dahulu
         $this->call([
-            
+            VoucherSeeder::class,
             RoleSeeder::class,
             EventNotifSeeder::class,
         ]);

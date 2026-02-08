@@ -18,13 +18,17 @@ class Booking extends Model
         'time_slot',
         'total_price',
         'status',
-        'is_paid',           // ✅ Tetap ada
+        'is_paid',
         'notes',
         'bill_no',
         'trx_id',
         'payment_method',
         'payment_status',
         'paid_at',
+        'booking_type',
+        'original_price',
+        'voucher_code',
+        'voucher_discount',
     ];
 
     protected $casts = [
@@ -32,7 +36,7 @@ class Booking extends Model
         'time_slots' => 'array',
         'time_slot' => 'array',
         'total_price' => 'decimal:2',
-        'is_paid' => 'boolean',  // ✅ Tetap ada, Laravel akan handle 0/1 conversion
+        'is_paid' => 'boolean',
         'paid_at' => 'datetime',
     ];
 
@@ -41,7 +45,6 @@ class Booking extends Model
      */
     public function isPaid()
     {
-        // ✅ Cek keduanya untuk backward compatibility
         return $this->payment_status === 'paid' || $this->is_paid === true;
     }
 
@@ -75,6 +78,14 @@ class Booking extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Relasi ke Venue
+     */
+    public function venue()
+    {
+        return $this->belongsTo(Venue::class);
     }
 
     /**
@@ -115,7 +126,7 @@ class Booking extends Model
     public function canBeReviewed()
     {
         return $this->status === 'completed'
-            && $this->isPaid()  // ✅ Gunakan method isPaid()
+            && $this->isPaid()
             && $this->booking_date < now()->toDateString()
             && !$this->hasReview();
     }
@@ -260,5 +271,70 @@ class Booking extends Model
             'cancelled' => 'Dibatalkan',
             default     => 'Unknown',
         };
+    }
+
+    /**
+     * ✅ Cek apakah booking manual (input admin)
+     */
+    public function isManualBooking()
+    {
+        return $this->payment_method === null || $this->payment_method === 'manual';
+    }
+
+    /**
+     * ✅ Get tipe booking untuk kalender
+     */
+    public function getBookingTypeAttribute()
+    {
+        if ($this->payment_status === 'pending') {
+            return 'pending';
+        }
+        
+        if ($this->isPaid()) {
+            if ($this->isManualBooking()) {
+                return $this->client && $this->client->is_member ? 'member_manual' : 'manual';
+            }
+            return 'paid';
+        }
+        
+        return 'unknown';
+    }
+
+    /**
+     * ✅ Get warna untuk kalender
+     */
+    public function getCalendarColorAttribute()
+    {
+        return match($this->booking_type) {
+            'paid' => 'bg-green-200 border-green-400 text-green-900',
+            'pending' => 'bg-pink-200 border-pink-400 text-pink-900',
+            'manual' => 'bg-yellow-200 border-yellow-400 text-yellow-900',
+            'member_manual' => 'bg-orange-200 border-orange-400 text-orange-900',
+            default => 'bg-gray-200 border-gray-400 text-gray-900',
+        };
+    }
+
+    /**
+     * ✅ Get icon untuk kalender
+     */
+    public function getCalendarIconAttribute()
+    {
+        return match($this->booking_type) {
+            'paid' => '✓',
+            'pending' => '⏱',
+            'manual' => '📝',
+            'member_manual' => '⭐',
+            default => '',
+        };
+    }
+
+    /**
+     * ✅ AUTO DELETE booked_time_slots saat booking dihapus
+     */
+    protected static function booted()
+    {
+        static::deleting(function ($booking) {
+            $booking->bookedTimeSlots()->delete();
+        });
     }
 }

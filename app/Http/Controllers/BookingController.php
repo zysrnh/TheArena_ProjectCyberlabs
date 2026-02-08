@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\Booking;
 use App\Models\BookedTimeSlot;
 use App\Models\Review;
+use App\Models\Voucher;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -40,13 +42,13 @@ class BookingController extends Controller
                     DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    \Log::error('Failed to cancel expired booking: ' . $e->getMessage());
+                    Log::error('Failed to cancel expired booking: ' . $e->getMessage());
                 }
             }
 
             return $expiredBookings->count();
         } catch (\Exception $e) {
-            \Log::error('Error in cancelExpiredPendingBookings: ' . $e->getMessage());
+            Log::error('Error in cancelExpiredPendingBookings: ' . $e->getMessage());
             return 0;
         }
     }
@@ -342,7 +344,7 @@ class BookingController extends Controller
     }
 
     /**
-     * ✅ UPDATED: Hanya slot yang SUDAH BAYAR yang dianggap booked
+     * ✅ FIXED: Include manual bookings and all confirmed bookings
      */
     public function getTimeSlots(Request $request)
     {
@@ -363,12 +365,14 @@ class BookingController extends Controller
             ['time' => '22.00 - 00.00', 'duration' => 120],
         ];
 
+        // ✅ FIX: Include is_paid = true untuk manual bookings
         $bookedFromTimeSlots = BookedTimeSlot::where('date', $date)
             ->where('venue_type', $venueType)
             ->whereHas('booking', function ($query) {
                 $query->where(function ($q) {
                     $q->where('payment_status', 'paid')
-                        ->orWhere('status', 'confirmed');
+                        ->orWhere('status', 'confirmed')
+                        ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
                 });
             })
             ->pluck('time_slot')
@@ -378,7 +382,8 @@ class BookingController extends Controller
             ->where('venue_type', $venueType)
             ->where(function ($query) {
                 $query->where('payment_status', 'paid')
-                    ->orWhere('status', 'confirmed');
+                    ->orWhere('status', 'confirmed')
+                    ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
             })
             ->get()
             ->flatMap(function ($booking) {
@@ -402,170 +407,311 @@ class BookingController extends Controller
     }
 
     /**
-     * ✅ IMPROVED: Better error messages for different booking conflicts
+     * ✅ Validate and apply voucher
      */
-    public function processBooking(Request $request)
-{
-    $validated = $request->validate([
-        'venue_id' => 'required|integer',
-        'date' => 'required|date|after_or_equal:today',
-        'time_slots' => 'required|array|min:1',
-        'time_slots.*.time' => 'required|string',
-        'time_slots.*.price' => 'required|numeric',
-        'time_slots.*.duration' => 'required|numeric',
-        'venue_type' => 'required|string|in:cibadak_a,cibadak_b,pvj,urban',
-    ]);
+    public function applyVoucher(Request $request)
+    {
+        $validated = $request->validate([
+            'voucher_code' => 'required|string|max:50',
+            'total_amount' => 'required|numeric|min:0',
+        ]);
 
-    if (!Auth::guard('client')->check()) {
-        if ($request->expectsJson() || $request->is('api/*')) {
+        if (!Auth::guard('client')->check()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
+                'message' => 'Silakan login terlebih dahulu.'
             ], 401);
         }
-        return back()->withErrors([
-            'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
-        ]);
-    }
 
-    try {
-        $this->cancelExpiredPendingBookings();
+        try {
+            $voucher = Voucher::where('code', strtoupper($validated['voucher_code']))
+                ->first();
 
-        DB::beginTransaction();
-
-        // Validate prices
-        foreach ($validated['time_slots'] as $slot) {
-            $expectedPrice = $this->calculatePrice(
-                $validated['venue_type'],
-                $validated['date'],
-                $slot['time']
-            );
-
-            if ($slot['price'] != $expectedPrice) {
-                DB::rollBack();
+            if (!$voucher) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Harga tidak sesuai. Silakan refresh halaman dan coba lagi.'
-                ], 422);
+                    'message' => 'Kode voucher tidak ditemukan.'
+                ], 404);
             }
-        }
 
-        $requestedSlots = array_column($validated['time_slots'], 'time');
-
-        // ✅ IMPROVED: Cek dengan 2 kategori berbeda untuk error message yang lebih spesifik
-        
-        // 1. Cek slot yang SUDAH TERBAYAR/CONFIRMED (tidak bisa diambil sama sekali)
-        $confirmedBooked = BookedTimeSlot::where('date', $validated['date'])
-            ->where('venue_type', $validated['venue_type'])
-            ->whereIn('time_slot', $requestedSlots)
-            ->whereHas('booking', function ($query) {
-                $query->where(function ($q) {
-                    $q->where('payment_status', 'paid')
-                        ->orWhere('status', 'confirmed');
-                });
-            })
-            ->exists();
-
-        if ($confirmedBooked) {
-            DB::rollBack();
-
-            if ($request->expectsJson() || $request->is('api/*')) {
+            // Check if voucher is valid
+            if (!$voucher->isValid()) {
+                $reason = $this->getVoucherInvalidReason($voucher);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
+                    'message' => $reason
                 ], 422);
             }
 
-            return back()->withErrors([
-                'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
-            ]);
-        }
-
-        // 2. Cek slot yang MASIH PENDING (belum bayar, masih dalam batas waktu 10 menit)
-        $pendingBooked = BookedTimeSlot::where('date', $validated['date'])
-            ->where('venue_type', $validated['venue_type'])
-            ->whereIn('time_slot', $requestedSlots)
-            ->whereHas('booking', function ($query) {
-                $query->where('status', 'pending')
-                      ->where('payment_status', 'pending')
-                      ->where('created_at', '>=', Carbon::now()->subMinutes(10)); // Masih fresh
-            })
-            ->exists();
-
-        if ($pendingBooked) {
-            DB::rollBack();
-
-            if ($request->expectsJson() || $request->is('api/*')) {
+            // Check if user can use this voucher
+            $clientId = Auth::guard('client')->id();
+            if (!$voucher->canBeUsedBy($clientId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
-                ], 423); // 423 Locked - slot sementara dikunci
+                    'message' => 'Anda sudah menggunakan voucher ini sebelumnya.'
+                ], 422);
             }
 
-            return back()->withErrors([
-                'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
-            ]);
-        }
+            // Calculate discount
+            $discountAmount = $voucher->calculateDiscount($validated['total_amount']);
 
-        $totalPrice = array_sum(array_column($validated['time_slots'], 'price'));
+            if ($discountAmount <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Minimal pembelian untuk voucher ini adalah Rp. ' . number_format($voucher->min_purchase, 0, ',', '.')
+                ], 422);
+            }
 
-        $booking = Booking::create([
-            'client_id' => Auth::guard('client')->id(),
-            'venue_id' => $validated['venue_id'],
-            'booking_date' => $validated['date'],
-            'venue_type' => $validated['venue_type'],
-            'time_slots' => $validated['time_slots'],
-            'total_price' => $totalPrice,
-            'status' => 'pending',
-            'payment_status' => 'pending',
-        ]);
+            $finalAmount = $validated['total_amount'] - $discountAmount;
 
-        foreach ($validated['time_slots'] as $slot) {
-            BookedTimeSlot::create([
-                'booking_id' => $booking->id,
-                'date' => $validated['date'],
-                'time_slot' => $slot['time'],
-                'venue_type' => $validated['venue_type'],
-            ]);
-        }
-
-        DB::commit();
-
-        if ($request->expectsJson() || $request->is('api/*')) {
             return response()->json([
                 'success' => true,
-                'message' => 'Booking berhasil! Silakan lakukan pembayaran dalam 10 menit.',
-                'booking_id' => $booking->id,
-                'bill_no' => $booking->bill_no ?? null,
-                'total_price' => $booking->total_price,
-                'expires_at' => $booking->created_at->addMinutes(10)->toIso8601String(),
-                // ✅ TAMBAHKAN INFO UNTUK REDIRECT
-                'redirect_to_payment' => true,
+                'message' => 'Voucher berhasil diterapkan!',
+                'voucher' => [
+                    'code' => $voucher->code,
+                    'discount_type' => $voucher->discount_type,
+                    'discount_value' => $voucher->discount_value,
+                    'discount_amount' => $discountAmount,
+                    'original_amount' => $validated['total_amount'],
+                    'final_amount' => $finalAmount,
+                    'description' => $voucher->description,
+                ]
             ]);
-        }
 
-        return back()->with([
-            'flash' => [
-                'success' => true,
-                'message' => 'Booking berhasil! Silakan lanjutkan ke pembayaran dalam 10 menit.',
-                'booking_id' => $booking->id,
-            ]
-        ]);
-    } catch (\Exception $e) {
-        DB::rollBack();
-
-        if ($request->expectsJson() || $request->is('api/*')) {
+        } catch (\Exception $e) {
+            Log::error('Apply voucher error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan saat memvalidasi voucher.'
             ], 500);
         }
-
-        return back()->withErrors([
-            'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
-        ]);
     }
-}
+
+    /**
+     * Get reason why voucher is invalid
+     */
+    private function getVoucherInvalidReason($voucher): string
+    {
+        if (!$voucher->is_active) {
+            return 'Voucher tidak aktif.';
+        }
+
+        $now = Carbon::now();
+        
+        if ($voucher->valid_from && $now->lt($voucher->valid_from)) {
+            return 'Voucher belum dapat digunakan.';
+        }
+
+        if ($voucher->valid_until && $now->gt($voucher->valid_until)) {
+            return 'Voucher sudah kadaluarsa.';
+        }
+
+        if ($voucher->usage_limit !== null && $voucher->used_count >= $voucher->usage_limit) {
+            return 'Voucher sudah mencapai batas penggunaan.';
+        }
+
+        return 'Voucher tidak valid.';
+    }
+
+    /**
+     * ✅ IMPROVED: Process booking with voucher support
+     */
+    public function processBooking(Request $request)
+    {
+        $validated = $request->validate([
+            'venue_id' => 'required|integer',
+            'date' => 'required|date|after_or_equal:today',
+            'time_slots' => 'required|array|min:1',
+            'time_slots.*.time' => 'required|string',
+            'time_slots.*.price' => 'required|numeric',
+            'time_slots.*.duration' => 'required|numeric',
+            'venue_type' => 'required|string|in:cibadak_a,cibadak_b,pvj,urban',
+            'voucher_code' => 'nullable|string|max:50',
+        ]);
+
+        if (!Auth::guard('client')->check()) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
+                ], 401);
+            }
+            return back()->withErrors([
+                'message' => 'Silakan login terlebih dahulu untuk melakukan booking.'
+            ]);
+        }
+
+        try {
+            $this->cancelExpiredPendingBookings();
+
+            DB::beginTransaction();
+
+            // Validate prices
+            foreach ($validated['time_slots'] as $slot) {
+                $expectedPrice = $this->calculatePrice(
+                    $validated['venue_type'],
+                    $validated['date'],
+                    $slot['time']
+                );
+
+                if ($slot['price'] != $expectedPrice) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Harga tidak sesuai. Silakan refresh halaman dan coba lagi.'
+                    ], 422);
+                }
+            }
+
+            $requestedSlots = array_column($validated['time_slots'], 'time');
+
+            // ✅ FIX: Check confirmed bookings termasuk manual bookings
+            $confirmedBooked = BookedTimeSlot::where('date', $validated['date'])
+                ->where('venue_type', $validated['venue_type'])
+                ->whereIn('time_slot', $requestedSlots)
+                ->whereHas('booking', function ($query) {
+                    $query->where(function ($q) {
+                        $q->where('payment_status', 'paid')
+                            ->orWhere('status', 'confirmed')
+                            ->orWhere('is_paid', true);  // ✅ TAMBAHKAN INI
+                    });
+                })
+                ->exists();
+
+            if ($confirmedBooked) {
+                DB::rollBack();
+
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
+                    ], 422);
+                }
+
+                return back()->withErrors([
+                    'message' => 'Maaf, slot waktu yang Anda pilih sudah dibooking dan terkonfirmasi. Silakan pilih slot waktu lain.'
+                ]);
+            }
+
+            // Check pending bookings
+            $pendingBooked = BookedTimeSlot::where('date', $validated['date'])
+                ->where('venue_type', $validated['venue_type'])
+                ->whereIn('time_slot', $requestedSlots)
+                ->whereHas('booking', function ($query) {
+                    $query->where('status', 'pending')
+                          ->where('payment_status', 'pending')
+                          ->where('created_at', '>=', Carbon::now()->subMinutes(10));
+                })
+                ->exists();
+
+            if ($pendingBooked) {
+                DB::rollBack();
+
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
+                    ], 423);
+                }
+
+                return back()->withErrors([
+                    'message' => 'Slot waktu ini sedang dalam proses booking oleh pengguna lain. Silakan tunggu beberapa menit atau pilih slot waktu lain.'
+                ]);
+            }
+
+            // Calculate prices
+            $originalPrice = array_sum(array_column($validated['time_slots'], 'price'));
+            $totalPrice = $originalPrice;
+            $discountAmount = 0;
+            $voucherCode = null;
+            $voucher = null;
+
+            // ✅ APPLY VOUCHER IF PROVIDED
+            if (!empty($validated['voucher_code'])) {
+                $voucher = Voucher::where('code', strtoupper($validated['voucher_code']))
+                    ->first();
+
+                if ($voucher && $voucher->isValid() && $voucher->canBeUsedBy(Auth::guard('client')->id())) {
+                    $discountAmount = $voucher->calculateDiscount($originalPrice);
+                    if ($discountAmount > 0) {
+                        $totalPrice = $originalPrice - $discountAmount;
+                        $voucherCode = $voucher->code;
+                    }
+                }
+            }
+
+          $booking = Booking::create([
+    'client_id' => Auth::guard('client')->id(),
+    'venue_id' => $validated['venue_id'],
+    'booking_date' => $validated['date'],
+    'venue_type' => $validated['venue_type'],
+    'time_slots' => $validated['time_slots'],
+    'original_price' => $originalPrice,
+    'discount_amount' => $discountAmount,
+    'voucher_code' => $voucherCode,
+    'total_price' => $totalPrice,
+    'status' => 'pending',
+    'payment_status' => 'pending',
+]);
+
+            // Create booked time slots
+            foreach ($validated['time_slots'] as $slot) {
+                BookedTimeSlot::create([
+                    'booking_id' => $booking->id,
+                    'date' => $validated['date'],
+                    'time_slot' => $slot['time'],
+                    'venue_type' => $validated['venue_type'],
+                ]);
+            }
+
+            // ✅ RECORD VOUCHER USAGE
+            if ($voucher && $discountAmount > 0) {
+                $voucher->apply(
+                    Auth::guard('client')->id(),
+                    $booking->id,
+                    $discountAmount
+                );
+            }
+
+            DB::commit();
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Booking berhasil! Silakan lakukan pembayaran dalam 10 menit.',
+                    'booking_id' => $booking->id,
+                    'bill_no' => $booking->bill_no ?? null,
+                    'total_price' => $booking->total_price,
+                    'original_price' => $booking->original_price,
+                    'discount_amount' => $booking->discount_amount,
+                    'voucher_code' => $booking->voucher_code,
+                    'expires_at' => $booking->created_at->addMinutes(10)->toIso8601String(),
+                    'redirect_to_payment' => true,
+                ]);
+            }
+
+            return back()->with([
+                'flash' => [
+                    'success' => true,
+                    'message' => 'Booking berhasil! Silakan lanjutkan ke pembayaran dalam 10 menit.',
+                    'booking_id' => $booking->id,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors([
+                'message' => 'Terjadi kesalahan saat memproses booking: ' . $e->getMessage()
+            ]);
+        }
+    }
 
     public function storeReview(Request $request)
     {
