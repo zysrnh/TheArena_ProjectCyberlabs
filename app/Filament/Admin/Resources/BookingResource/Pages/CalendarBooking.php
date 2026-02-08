@@ -30,6 +30,12 @@ class CalendarBooking extends Page
 
     public $dateRangeText = null;
 
+    // ✅ NEW: Modal state untuk pilihan booking type
+    public $showBookingTypeModal = false;
+    public $selectedDate = null;
+    public $selectedTimeSlot = null;
+    public $selectedVenueForBooking = null;
+
     public function mount(): void
     {
         // ✅ Auto-cancel expired bookings saat halaman pertama kali dimuat
@@ -47,7 +53,6 @@ class CalendarBooking extends Page
 
     /**
      * ✅ AUTO-CANCEL EXPIRED PENDING BOOKINGS
-     * Sama seperti di BookingController
      */
     private function cancelExpiredPendingBookings()
     {
@@ -67,7 +72,6 @@ class CalendarBooking extends Page
                         'payment_status' => 'cancelled'
                     ]);
 
-                    // Hapus BookedTimeSlot yang terkait
                     BookedTimeSlot::where('booking_id', $booking->id)->delete();
 
                     DB::commit();
@@ -95,31 +99,68 @@ class CalendarBooking extends Page
     }
 
     /**
-     * ✅ CREATE BOOKING DARI CALENDAR - AUTO FILL TIME SLOT
+     * ✅ NEW: Open modal untuk pilih booking type
      */
-    public function createBooking($date, $timeSlot, $venue = null)
+    public function openBookingTypeModal($date, $timeSlot, $venue = null)
     {
-        // ✅ Jalankan auto-cancel sebelum create booking
+        $this->selectedDate = $date;
+        $this->selectedTimeSlot = $timeSlot;
+        $this->selectedVenueForBooking = $venue !== 'all' ? $venue : null;
+        $this->showBookingTypeModal = true;
+    }
+
+    /**
+     * ✅ NEW: Create booking biasa
+     */
+    public function createRegularBooking()
+    {
         $this->cancelExpiredPendingBookings();
 
-        // Simpan data ke session untuk auto-fill form
         session([
             'calendar_prefill' => [
-                'booking_date' => $date,
-                'time_slot' => $timeSlot,
-                'venue_type' => $venue !== 'all' ? $venue : null,
+                'booking_date' => $this->selectedDate,
+                'time_slot' => $this->selectedTimeSlot,
+                'venue_type' => $this->selectedVenueForBooking,
             ]
         ]);
 
-        // Redirect ke create page
+        $this->showBookingTypeModal = false;
         return redirect()->route('filament.admin.resources.bookings.create');
+    }
+
+    /**
+     * ✅ NEW: Create booking bulanan
+     */
+    public function createRecurringBooking()
+    {
+        $this->cancelExpiredPendingBookings();
+
+        session([
+            'recurring_prefill' => [
+                'booking_date' => $this->selectedDate,
+                'time_slot' => $this->selectedTimeSlot,
+                'venue_type' => $this->selectedVenueForBooking,
+            ]
+        ]);
+
+        $this->showBookingTypeModal = false;
+        return redirect()->route('filament.admin.resources.recurring-bookings.create');
+    }
+
+    /**
+     * ✅ Close modal
+     */
+    public function closeBookingTypeModal()
+    {
+        $this->showBookingTypeModal = false;
+        $this->selectedDate = null;
+        $this->selectedTimeSlot = null;
+        $this->selectedVenueForBooking = null;
     }
 
     public function applyDateRange()
     {
-        // ✅ Auto-cancel sebelum apply filter
         $this->cancelExpiredPendingBookings();
-        
         $this->updateDateRangeText();
         $this->dispatch('close-modal', id: 'date-range-modal');
     }
@@ -129,8 +170,6 @@ class CalendarBooking extends Page
         $this->startDate = Carbon::today()->format('Y-m-d');
         $this->endDate = Carbon::today()->addDays(6)->format('Y-m-d');
         $this->dateRangeText = null;
-        
-        // ✅ Auto-cancel setelah clear filter
         $this->cancelExpiredPendingBookings();
     }
 
@@ -145,7 +184,6 @@ class CalendarBooking extends Page
 
     public function getScheduleData()
     {
-        // ✅ Auto-cancel sebelum load data
         $this->cancelExpiredPendingBookings();
 
         $startDate = Carbon::parse($this->startDate);
@@ -162,11 +200,11 @@ class CalendarBooking extends Page
                 'bookings' => []
             ];
 
-            // ✅ FIXED: Ambil SEMUA booking kecuali yang cancelled
+            // ✅ Ambil SEMUA booking termasuk recurring
             $query = DB::table('bookings')
                 ->join('clients', 'bookings.client_id', '=', 'clients.id')
                 ->where('bookings.booking_date', $date->format('Y-m-d'))
-                ->whereNotIn('bookings.status', ['cancelled']) // Exclude yang cancelled aja
+                ->whereNotIn('bookings.status', ['cancelled'])
                 ->select(
                     'bookings.*',
                     'clients.name as client_name'
@@ -191,12 +229,20 @@ class CalendarBooking extends Page
                                 $daySchedule['bookings'][$time] = collect();
                             }
                             
+                            // ✅ Check if booking is recurring (monthly)
+                            $isRecurring = $booking->notes && (
+                                stripos($booking->notes, 'rutin') !== false ||
+                                stripos($booking->notes, 'recurring') !== false ||
+                                stripos($booking->notes, 'bulanan') !== false
+                            );
+                            
                             $daySchedule['bookings'][$time]->push((object)[
                                 'id' => $booking->id,
                                 'client' => (object)['name' => $booking->client_name],
                                 'venue_type' => $booking->venue_type,
                                 'total_price' => $booking->total_price,
-                                'booking_type' => $booking->booking_type ?? ($booking->is_paid ? 'paid' : 'pending'),
+                                'is_recurring' => $isRecurring, // ✅ Flag untuk recurring
+                                'booking_type' => $isRecurring ? 'recurring' : ($booking->booking_type ?? ($booking->is_paid ? 'paid' : 'pending')),
                             ]);
                         }
                     }
@@ -214,7 +260,6 @@ class CalendarBooking extends Page
      */
     public function getScheduleDataPerVenue()
     {
-        // ✅ Auto-cancel sebelum load data
         $this->cancelExpiredPendingBookings();
 
         $venues = [
@@ -241,19 +286,17 @@ class CalendarBooking extends Page
                     'bookings' => []
                 ];
 
-                // ✅ FIXED: Ambil SEMUA booking kecuali yang cancelled
                 $bookings = DB::table('bookings')
                     ->join('clients', 'bookings.client_id', '=', 'clients.id')
                     ->where('bookings.booking_date', $date->format('Y-m-d'))
                     ->where('bookings.venue_type', $venueKey)
-                    ->whereNotIn('bookings.status', ['cancelled']) // Exclude yang cancelled aja
+                    ->whereNotIn('bookings.status', ['cancelled'])
                     ->select(
                         'bookings.*',
                         'clients.name as client_name'
                     )
                     ->get();
 
-                // Group bookings by time slot
                 foreach ($bookings as $booking) {
                     $timeSlots = json_decode($booking->time_slots, true);
                     
@@ -266,12 +309,20 @@ class CalendarBooking extends Page
                                     $daySchedule['bookings'][$time] = collect();
                                 }
                                 
+                                // ✅ Check if booking is recurring
+                                $isRecurring = $booking->notes && (
+                                    stripos($booking->notes, 'rutin') !== false ||
+                                    stripos($booking->notes, 'recurring') !== false ||
+                                    stripos($booking->notes, 'bulanan') !== false
+                                );
+                                
                                 $daySchedule['bookings'][$time]->push((object)[
                                     'id' => $booking->id,
                                     'client' => (object)['name' => $booking->client_name],
                                     'venue_type' => $booking->venue_type,
                                     'total_price' => $booking->total_price,
-                                    'booking_type' => $booking->booking_type ?? ($booking->is_paid ? 'paid' : 'pending'),
+                                    'is_recurring' => $isRecurring,
+                                    'booking_type' => $isRecurring ? 'recurring' : ($booking->booking_type ?? ($booking->is_paid ? 'paid' : 'pending')),
                                 ]);
                             }
                         }
@@ -306,17 +357,11 @@ class CalendarBooking extends Page
         ];
     }
 
-    /**
-     * ✅ LIVEWIRE LIFECYCLE: Auto-cancel setiap kali component di-render ulang
-     */
     public function hydrate()
     {
         $this->cancelExpiredPendingBookings();
     }
 
-    /**
-     * ✅ Manual refresh calendar (bisa dipanggil dari frontend)
-     */
     public function refreshCalendar()
     {
         $this->cancelExpiredPendingBookings();
