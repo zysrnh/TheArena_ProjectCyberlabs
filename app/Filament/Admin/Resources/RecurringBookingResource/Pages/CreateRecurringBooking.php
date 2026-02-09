@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\RecurringBookingResource\Pages;
 use App\Filament\Admin\Resources\RecurringBookingResource;
 use App\Models\Booking;
 use App\Models\BookedTimeSlot;
+use App\Models\Client;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 use Carbon\Carbon;
@@ -30,13 +31,16 @@ class CreateRecurringBooking extends CreateRecord
         DB::beginTransaction();
         
         try {
-            $recurringDates = $this->calculateRecurringDates(
-                $data['recurring_month'],
-                $data['recurring_days']
-            );
+            // ✅ Generate dates based on recurring mode
+            $selectedDates = $this->generateRecurringDates($data);
 
+            if (empty($selectedDates)) {
+                throw new \RuntimeException('Tidak ada tanggal yang berhasil di-generate');
+            }
+
+            // ✅ Check conflicts untuk semua tanggal
             $conflicts = $this->checkConflicts(
-                $recurringDates,
+                $selectedDates,
                 $data['venue_type'],
                 $data['time_slots_selection']
             );
@@ -44,12 +48,19 @@ class CreateRecurringBooking extends CreateRecord
             if (!empty($conflicts)) {
                 DB::rollBack();
                 
+                $conflictDates = implode(', ', array_map(function($date) {
+                    return Carbon::parse($date)->format('d M');
+                }, array_slice($conflicts, 0, 5))); // Show first 5
+                
+                $totalConflicts = count($conflicts);
+                $message = $totalConflicts > 5 
+                    ? "Ada {$totalConflicts} tanggal konflik. Contoh: {$conflictDates}..."
+                    : "Tanggal konflik: {$conflictDates}";
+                
                 Notification::make()
                     ->title('Ada Konflik Booking!')
                     ->danger()
-                    ->body('Tanggal berikut sudah dibooking: ' . implode(', ', array_map(function($date) {
-                        return Carbon::parse($date)->format('d M');
-                    }, $conflicts)))
+                    ->body($message)
                     ->persistent()
                     ->send();
                 
@@ -57,29 +68,40 @@ class CreateRecurringBooking extends CreateRecord
                 throw new \RuntimeException('Booking conflict detected');
             }
 
-            $clientId = $data['customer_type'] === 'existing' ? $data['client_id'] : null;
-
-            $notes = $data['notes'] ?? '';
+            // ✅ Handle manual customer dengan membuat dummy client
+            $clientId = null;
+            
             if ($data['customer_type'] === 'manual') {
-                $customerInfo = "Customer: {$data['customer_name_manual']}";
-                if (!empty($data['customer_phone_manual'])) {
-                    $customerInfo .= " | Phone: {$data['customer_phone_manual']}";
-                }
-                $notes = $customerInfo . ($notes ? " | " . $notes : '');
+                $guestClient = Client::firstOrCreate(
+                    ['email' => 'guest_manual@thearena.local'],
+                    [
+                        'name' => $data['customer_name_manual'],
+                        'phone' => $data['customer_phone_manual'] ?? null,
+                        'password' => bcrypt('dummy_password_' . time()),
+                    ]
+                );
+                
+                $clientId = $guestClient->id;
+            } else {
+                $clientId = $data['client_id'];
             }
-            $notes .= " | Booking Rutin Bulanan | Generated: " . Carbon::now()->format('d M Y H:i');
+
+            // ✅ Build notes dengan pattern info
+            $notes = $this->buildNotesWithPattern($data);
 
             $createdCount = 0;
             $firstBooking = null;
+            $totalPrice = 0;
 
-            foreach ($recurringDates as $date) {
-                // ✅ DYNAMIC PRICING: Calculate price per date
+            // ✅ Create booking untuk setiap tanggal yang di-generate
+            foreach ($selectedDates as $date) {
                 $timeSlots = $this->formatTimeSlots(
                     $data['time_slots_selection'], 
                     $data['venue_type'],
                     $date
                 );
-                $totalPrice = array_sum(array_column($timeSlots, 'price'));
+                $bookingPrice = array_sum(array_column($timeSlots, 'price'));
+                $totalPrice += $bookingPrice;
 
                 $booking = Booking::create([
                     'client_id' => $clientId,
@@ -87,13 +109,15 @@ class CreateRecurringBooking extends CreateRecord
                     'booking_date' => $date,
                     'venue_type' => $data['venue_type'],
                     'time_slots' => $timeSlots,
-                    'total_price' => $totalPrice,
+                    'total_price' => $bookingPrice,
                     'status' => $data['status'] ?? 'confirmed',
                     'payment_status' => $data['payment_status'] ?? 'paid',
                     'is_paid' => $data['is_paid'] ?? true,
+                    'booking_type' => 'recurring',
                     'notes' => $notes,
                 ]);
 
+                // ✅ Create booked time slots
                 foreach ($timeSlots as $slot) {
                     BookedTimeSlot::create([
                         'booking_id' => $booking->id,
@@ -112,11 +136,20 @@ class CreateRecurringBooking extends CreateRecord
 
             DB::commit();
 
+            // ✅ Success notification dengan info pattern
+            $firstDate = Carbon::parse($selectedDates[0])->format('d M Y');
+            $lastDate = Carbon::parse(end($selectedDates))->format('d M Y');
+            
+            $customerName = $data['customer_type'] === 'manual' 
+                ? $data['customer_name_manual'] 
+                : 'Selected Customer';
+
+            $patternInfo = $this->getPatternDescription($data);
+
             Notification::make()
-                ->title('Booking Rutin Berhasil!')
+                ->title('Booking Member Berhasil!')
                 ->success()
-                ->body("Berhasil membuat {$createdCount} booking untuk periode " . 
-                       Carbon::parse($data['recurring_month'])->format('F Y'))
+                ->body("✅ {$customerName}\n📅 {$createdCount} booking ({$patternInfo})\n💰 Total: Rp " . number_format($totalPrice, 0, ',', '.') . "\n📆 {$firstDate} - {$lastDate}")
                 ->send();
 
             return $firstBooking;
@@ -142,7 +175,166 @@ class CreateRecurringBooking extends CreateRecord
     }
 
     /**
-     * ✅ DYNAMIC PRICING: Calculate price based on venue, date, and time
+     * ✅ Generate dates based on recurring pattern
+     */
+    protected function generateRecurringDates(array $data): array
+    {
+        $mode = $data['recurring_mode'] ?? 'custom';
+        
+        switch ($mode) {
+            case 'weekly':
+                return $this->generateWeeklyDates($data);
+            
+            case 'monthly_date':
+                return $this->generateMonthlyDates($data);
+            
+            case 'custom':
+            default:
+                return $this->generateCustomDates($data);
+        }
+    }
+
+    /**
+     * ✅ Generate dates for WEEKLY pattern
+     * Example: Every Monday & Wednesday for 12 weeks
+     */
+    protected function generateWeeklyDates(array $data): array
+    {
+        $dates = [];
+        $selectedDays = $data['weekly_days'] ?? [];
+        $startDate = Carbon::parse($data['weekly_start_date'] ?? now());
+        $duration = (int)($data['weekly_duration'] ?? 4); // weeks
+        
+        if (empty($selectedDays)) {
+            return [];
+        }
+
+        // Start from the beginning of the week
+        $currentDate = $startDate->copy()->startOfWeek();
+        $endDate = $startDate->copy()->addWeeks($duration);
+
+        while ($currentDate->lt($endDate)) {
+            $dayOfWeek = $currentDate->dayOfWeek;
+            
+            // Check if this day is selected AND date is >= start date
+            if (in_array($dayOfWeek, $selectedDays) && $currentDate->gte($startDate)) {
+                $dates[] = $currentDate->format('Y-m-d');
+            }
+            
+            $currentDate->addDay();
+        }
+
+        return $dates;
+    }
+
+    /**
+     * ✅ Generate dates for MONTHLY DATE pattern
+     * Example: Every 10th and 25th for 6 months
+     */
+    protected function generateMonthlyDates(array $data): array
+    {
+        $dates = [];
+        $selectedDates = $data['monthly_dates'] ?? [];
+        $startDate = Carbon::parse($data['monthly_start_date'] ?? now())->startOfMonth();
+        $duration = (int)($data['monthly_duration'] ?? 3); // months
+        
+        if (empty($selectedDates)) {
+            return [];
+        }
+
+        for ($i = 0; $i < $duration; $i++) {
+            $currentMonth = $startDate->copy()->addMonths($i);
+            
+            foreach ($selectedDates as $day) {
+                try {
+                    // Create date for this day in current month
+                    $date = $currentMonth->copy()->day((int)$day);
+                    
+                    // Only add if date is in the future or today
+                    if ($date->gte(now()->startOfDay())) {
+                        $dates[] = $date->format('Y-m-d');
+                    }
+                } catch (\Exception $e) {
+                    // Skip invalid dates (e.g., Feb 30)
+                    continue;
+                }
+            }
+        }
+
+        sort($dates);
+        return $dates;
+    }
+
+    /**
+     * ✅ Generate dates for CUSTOM pattern (manual selection)
+     */
+    protected function generateCustomDates(array $data): array
+    {
+        return collect($data['selected_dates'] ?? [])
+            ->pluck('date')
+            ->filter()
+            ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * ✅ Build notes with pattern information
+     */
+    protected function buildNotesWithPattern(array $data): string
+    {
+        $notes = $data['notes'] ?? '';
+        
+        // Add customer info if manual
+        if ($data['customer_type'] === 'manual') {
+            $customerInfo = "Customer Manual: {$data['customer_name_manual']}";
+            if (!empty($data['customer_phone_manual'])) {
+                $customerInfo .= " | Phone: {$data['customer_phone_manual']}";
+            }
+            $notes = $customerInfo . ($notes ? " | " . $notes : '');
+        }
+
+        // Add pattern info
+        $patternInfo = $this->getPatternDescription($data);
+        $notes .= " | Booking Member ({$patternInfo})";
+        $notes .= " | Generated: " . Carbon::now()->format('d M Y H:i');
+
+        return $notes;
+    }
+
+    /**
+     * ✅ Get human-readable pattern description
+     */
+    protected function getPatternDescription(array $data): string
+    {
+        $mode = $data['recurring_mode'] ?? 'custom';
+        
+        switch ($mode) {
+            case 'weekly':
+                $days = collect($data['weekly_days'] ?? [])->map(function($d) {
+                    $names = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 
+                             4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'];
+                    return $names[$d] ?? '';
+                })->filter()->join(', ');
+                $duration = $data['weekly_duration'] ?? 4;
+                return "Setiap {$days} selama {$duration} minggu";
+            
+            case 'monthly_date':
+                $dates = collect($data['monthly_dates'] ?? [])->sort()->join(', ');
+                $duration = $data['monthly_duration'] ?? 3;
+                return "Tanggal {$dates} tiap bulan selama {$duration} bulan";
+            
+            case 'custom':
+            default:
+                $count = count($data['selected_dates'] ?? []);
+                return "{$count} tanggal custom";
+        }
+    }
+
+    /**
+     * ✅ Calculate price based on venue, date, and time
      */
     protected function calculatePrice($venueType, $date, $timeSlot): int
     {
@@ -154,92 +346,51 @@ class CreateRecurringBooking extends CreateRecord
 
         if ($venueType === 'pvj') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 700000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 700000;
+                elseif ($startHour >= 16 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 350000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 350000;
+                elseif ($startHour >= 16 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             }
         }
 
         if ($venueType === 'cibadak_a') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 350000;
-                } elseif ($startHour >= 16 && $startHour < 24) {
-                    return 700000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 350000;
+                elseif ($startHour >= 16 && $startHour < 24) return 700000;
             }
         }
 
         if ($venueType === 'cibadak_b') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) {
-                    return 550000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 450000;
-                }
+                if ($startHour >= 6 && $startHour < 20) return 550000;
+                elseif ($startHour >= 20 && $startHour < 24) return 450000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 300000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 550000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 450000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 300000;
+                elseif ($startHour >= 16 && $startHour < 20) return 550000;
+                elseif ($startHour >= 20 && $startHour < 24) return 450000;
             }
         }
 
         if ($venueType === 'urban') {
-            if ($isWeekend) {
-                return 550000;
-            } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 300000;
-                } elseif ($startHour >= 16 && $startHour < 24) {
-                    return 550000;
-                }
+            if ($isWeekend) return 550000;
+            else {
+                if ($startHour >= 6 && $startHour < 16) return 300000;
+                elseif ($startHour >= 16 && $startHour < 24) return 550000;
             }
         }
 
         return 350000;
     }
 
-    protected function calculateRecurringDates(string $month, array $days): array
-    {
-        $dates = [];
-        $startDate = Carbon::parse($month . '-01');
-        $endDate = $startDate->copy()->endOfMonth();
-        
-        $current = $startDate->copy();
-        while ($current <= $endDate) {
-            if (in_array((string)$current->dayOfWeek, $days, true)) {
-                if ($current->gte(Carbon::today())) {
-                    $dates[] = $current->format('Y-m-d');
-                }
-            }
-            $current->addDay();
-        }
-        
-        return $dates;
-    }
-
+    /**
+     * ✅ Check conflicts untuk tanggal-tanggal yang dipilih
+     */
     protected function checkConflicts(array $dates, string $venueType, array $timeSlots): array
     {
         $conflicts = [];
@@ -249,8 +400,11 @@ class CreateRecurringBooking extends CreateRecord
                 ->where('venue_type', $venueType)
                 ->whereIn('time_slot', $timeSlots)
                 ->whereHas('booking', function ($query) {
-                    $query->whereIn('status', ['pending', 'confirmed'])
-                          ->whereIn('payment_status', ['pending', 'paid']);
+                    $query->where(function($q) {
+                        $q->where('payment_status', 'paid')
+                          ->orWhere('status', 'confirmed')
+                          ->orWhere('is_paid', true);
+                    });
                 })
                 ->exists();
 
@@ -276,6 +430,9 @@ class CreateRecurringBooking extends CreateRecord
         }, $selectedSlots);
     }
 
+    /**
+     * ✅ Get venue ID from venue type
+     */
     protected function getVenueId(string $venueType): int
     {
         $venueMap = [

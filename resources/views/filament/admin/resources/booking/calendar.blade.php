@@ -45,35 +45,42 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
+        /* ✅ VENUE SECTION - Improved spacing and sizing */
         .venue-section {
-            margin-bottom: 2.5rem;
+            margin-bottom: 3.5rem; /* Increased from 2.5rem */
+            page-break-inside: avoid;
         }
 
         .venue-header {
             background: linear-gradient(135deg, #013064 0%, #024a8f 100%);
-            padding: 1.25rem 2rem;
+            padding: 1.5rem 2rem; /* Increased from 1.25rem */
             border-radius: 12px 12px 0 0;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .venue-title {
-            font-size: 1.5rem;
+            font-size: 1.65rem; /* Increased from 1.5rem */
             font-weight: 800;
             color: white;
             letter-spacing: -0.02em;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem; /* Increased from 0.75rem */
         }
 
         .venue-icon {
-            width: 2rem;
-            height: 2rem;
+            width: 2.5rem; /* Increased from 2rem */
+            height: 2.5rem;
             background: rgba(255, 210, 47, 0.2);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .venue-icon svg {
+            width: 1.5rem; /* Explicit size for icon */
+            height: 1.5rem;
         }
         
         .booking-cell {
@@ -120,11 +127,10 @@
         }
 
         .booking-manual {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            box-shadow: 0 3px 12px 0 rgba(245, 158, 11, 0.2);
-            color: #ffffff !important;
+            background: linear-gradient(135deg, #FFD22F 0%, #FFA500 100%);
+            box-shadow: 0 3px 12px 0 rgba(255, 210, 47, 0.3);
+            color: #1e293b !important;
         }
-
 
         .booking-recurring {
             background: linear-gradient(135deg, #ea580c 0%, #ea580c 100%);
@@ -271,23 +277,55 @@
             backdrop-filter: blur(8px);
         }
 
+        .booking-manual .booking-badge {
+            background: rgba(30, 41, 59, 0.15);
+            color: #1e293b;
+            font-weight: 800;
+        }
+
+        /* ✅ LEGEND - Improved spacing and layout */
+        .legend-container {
+            padding-top: 1.75rem; /* Increased from 1.25rem */
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* More flexible */
+            gap: 1rem; /* Increased from 0.75rem */
+        }
+
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 0.625rem;
-            padding: 0.625rem 1rem;
+            gap: 0.875rem; /* Increased from 0.625rem */
+            padding: 0.875rem 1.25rem; /* Increased padding */
             background: rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
+            border-radius: 12px; /* Increased from 10px */
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.2s ease;
+        }
+
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .legend-box {
-            width: 20px;
-            height: 20px;
-            border-radius: 5px;
+            width: 24px; /* Increased from 20px */
+            height: 24px;
+            border-radius: 6px; /* Increased from 5px */
             flex-shrink: 0;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+
+        .legend-text {
+            color: white;
+            font-weight: 600;
+            font-size: 0.9375rem; /* Slightly increased */
+            letter-spacing: 0.01em;
         }
 
         .date-header {
@@ -323,77 +361,127 @@
         .filter-button {
             background: white;
             color: #013064;
-            padding: 0.75rem 1.25rem;
-            border-radius: 10px;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 13px;
-            border: 2px solid #ffd22f;
+            font-size: 14px;
+            border: 2px solid #e5e7eb;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.625rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
+            min-height: 48px;
+        }
+
+        select.filter-button {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23013064' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1.25rem;
-            padding-right: 2.5rem;
-        }
-        
-        .filter-button:not(select) {
-            background-image: none;
-            padding-right: 1.25rem;
+            background-position: right 1rem center;
+            background-size: 1.125rem;
+            padding-right: 3rem;
         }
 
         .filter-button:hover {
-            background: linear-gradient(135deg, #ffd22f 0%, #fbbf24 100%);
-            color: #013064;
-            border-color: #ffd22f;
+            background: #f8fafc;
+            border-color: #013064;
             transform: translateY(-2px);
-            box-shadow: 0 5px 14px rgba(255, 210, 47, 0.25);
+            box-shadow: 0 4px 12px rgba(1, 48, 100, 0.12);
+        }
+
+        /* ✅ Export Button Styling */
+        .export-button {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.625rem;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+            min-height: 48px;
+        }
+
+        .export-button:hover {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
+        }
+
+        /* ✅ Export By Color Button Styling */
+        .export-color-button {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.625rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+            min-height: 48px;
+        }
+
+        .export-color-button:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35);
         }
 
         .active-filter-tag {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             color: white;
-            padding: 0.5rem 0.875rem;
-            border-radius: 16px;
-            font-size: 12px;
+            padding: 0.625rem 1rem;
+            border-radius: 24px;
+            font-size: 13px;
             font-weight: 600;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .active-filter-tag:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.35);
         }
 
         .remove-filter-btn {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .remove-filter-btn:hover {
-            background: rgba(239, 68, 68, 0.8);
-            transform: scale(1.1);
+            background: rgba(239, 68, 68, 0.9);
+            transform: scale(1.15);
         }
 
-        /* ✅ BOOKING TYPE MODAL */
         .booking-type-modal-overlay {
             position: fixed;
             inset: 0;
@@ -520,7 +608,6 @@
             }
         }
 
-        /* ✅ DATE PICKER MODAL */
         .date-picker-modal .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -679,6 +766,14 @@
             .modal-title {
                 font-size: 1.5rem;
             }
+
+            .legend-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-section {
+                margin-bottom: 2.5rem;
+            }
         }
     </style>
 
@@ -692,10 +787,10 @@
                     </p>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
                     <select 
                         wire:model.live="selectedVenue"
-                        class="filter-button w-full sm:w-auto"
+                        class="filter-button"
                         style="min-width: 200px;"
                     >
                         <option value="all">Semua Venue</option>
@@ -708,43 +803,77 @@
                     <button 
                         x-data
                         x-on:click="$dispatch('open-modal', { id: 'date-range-modal' })"
-                        class="filter-button w-full sm:w-auto whitespace-nowrap"
+                        class="filter-button whitespace-nowrap"
                     >
                         <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <span class="hidden sm:inline">Pilih Tanggal</span>
-                        <span class="sm:hidden">Tanggal</span>
+                        <span>Pilih Tanggal</span>
+                    </button>
+
+                    <button 
+                        wire:click="setCurrentMonth"
+                        class="filter-button whitespace-nowrap"
+                    >
+                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>Bulan Ini</span>
+                    </button>
+
+                    {{-- Export Matrix Button --}}
+                    <button 
+                        wire:click="exportToCSV"
+                        class="export-button whitespace-nowrap"
+                        title="Export format matrix seperti kalender"
+                    >
+                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>Export Matrix</span>
+                    </button>
+
+                    {{-- Export By Color Button --}}
+                    <button 
+                        wire:click="exportToCSVByColor"
+                        class="export-color-button whitespace-nowrap"
+                        title="Export dengan pemisahan berdasarkan warna/kategori"
+                    >
+                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                        <span>Export by Color</span>
                     </button>
                 </div>
             </div>
 
-            <div class="pt-5 border-t border-white/10">
-                <div class="grid grid-cols-2 lg:flex lg:flex-wrap gap-2 lg:gap-3">
-                    <div class="legend-item text-xs lg:text-sm">
+            {{-- ✅ IMPROVED LEGEND SECTION --}}
+            <div class="legend-container">
+                <div class="legend-grid">
+                    <div class="legend-item">
                         <div class="legend-box" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);"></div>
-                        <span class="text-white font-semibold">Lunas</span>
+                        <span class="legend-text">Lunas</span>
                     </div>
-                    <div class="legend-item text-xs lg:text-sm">
+                    <div class="legend-item">
                         <div class="legend-box" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);"></div>
-                        <span class="text-white font-semibold">Pending</span>
+                        <span class="legend-text">Pending</span>
                     </div>
-                    <div class="legend-item text-xs lg:text-sm">
-                        <div class="legend-box" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div>
-                        <span class="text-white font-semibold">Manual</span>
+                    <div class="legend-item">
+                        <div class="legend-box" style="background: linear-gradient(135deg, #FFD22F 0%, #FFA500 100%);"></div>
+                        <span class="legend-text">Manual</span>
                     </div>
-                    <div class="legend-item text-xs lg:text-sm">
+                    <div class="legend-item">
                         <div class="legend-box" style="background: linear-gradient(135deg, #ea580c 0%, #ea580c 100%);"></div>
-                        <span class="text-white font-semibold">Member</span>
+                        <span class="legend-text">Member</span>
                     </div>
                 </div>
             </div>
 
             @if($selectedVenue !== 'all' || $dateRangeText)
-                <div class="mt-3 flex flex-wrap gap-2">
+                <div class="mt-4 flex flex-wrap gap-2.5">
                     @if($selectedVenue !== 'all')
-                        <span class="active-filter-tag text-xs">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span class="active-filter-tag">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                             {{ match($selectedVenue) {
@@ -756,21 +885,21 @@
                             } }}
                             <button wire:click="$set('selectedVenue', 'all')" class="remove-filter-btn">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </span>
                     @endif
 
                     @if($dateRangeText)
-                        <span class="active-filter-tag text-xs">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <span class="active-filter-tag">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                             {{ $dateRangeText }}
                             <button wire:click="clearDateRange" class="remove-filter-btn">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </span>
@@ -779,7 +908,7 @@
             @endif
         </div>
 
-        {{-- CALENDAR CONTENT --}}
+        {{-- Rest of the calendar content remains the same --}}
         <div style="padding: 2rem;">
             @if($selectedVenue === 'all')
                 @foreach($schedulesByVenue as $venueData)
@@ -787,7 +916,7 @@
                         <div class="venue-header">
                             <div class="venue-title">
                                 <div class="venue-icon">
-                                    <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                 </div>
@@ -895,6 +1024,7 @@
                     </div>
                 @endforeach
             @else
+                {{-- Single venue view --}}
                 <div class="calendar-table-wrapper">
                     <div class="overflow-x-auto">
                         <table class="calendar-table">
@@ -977,7 +1107,7 @@
                                                                         <span class="booking-badge">LUNAS</span>
                                                                     @endif
                                                                 </div>
-                                                            </a>
+                                            </a>
                                                         @endforeach
                                                     </div>
                                                 @else
@@ -1002,7 +1132,7 @@
         </div>
     </div>
 
-    {{-- ✅ BOOKING TYPE SELECTION MODAL --}}
+    {{-- Modals remain the same --}}
     @if($showBookingTypeModal)
         <div class="booking-type-modal-overlay" wire:click="closeBookingTypeModal">
             <div class="booking-type-modal" wire:click.stop>
@@ -1046,7 +1176,7 @@
         </div>
     @endif
 
-    {{-- ✅ DATE RANGE MODAL --}}
+    {{-- DATE RANGE MODAL --}}
     <x-filament::modal id="date-range-modal" width="5xl">
         <x-slot name="heading">
             <div class="flex items-center gap-3">

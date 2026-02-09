@@ -10,7 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
-use Filament\Navigation\NavigationItem; // ✅ TAMBAH INI
+use Filament\Navigation\NavigationItem;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 
@@ -26,13 +26,11 @@ class BookingResource extends Resource
 
     protected static ?string $pluralLabel = 'Booking Lapangan';
 
-    protected static ?int $navigationSort = 3; // ✅ List booking di urutan 3
+    protected static ?int $navigationSort = 3;
 
-    // ✅ TAMBAHKAN METHOD INI UNTUK MUNCULIN 2 MENU DI SIDEBAR
     public static function getNavigationItems(): array
     {
         return [
-            // ✅ Menu 1: Kalender Booking (urutan 2)
             NavigationItem::make('Kalender Booking')
                 ->group(static::getNavigationGroup())
                 ->icon('heroicon-o-calendar')
@@ -40,7 +38,6 @@ class BookingResource extends Resource
                 ->url(static::getUrl('calendar'))
                 ->isActiveWhen(fn () => request()->routeIs(static::getRouteBaseName() . '.calendar')),
             
-            // ✅ Menu 2: List Bookings (urutan 3)
             NavigationItem::make(static::getNavigationLabel())
                 ->group(static::getNavigationGroup())
                 ->icon(static::getNavigationIcon())
@@ -105,7 +102,6 @@ class BookingResource extends Resource
                                     ->required()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                        // Auto-calculate price saat waktu dipilih
                                         $venueType = $get('../../venue_type');
                                         $bookingDate = $get('../../booking_date');
 
@@ -113,7 +109,6 @@ class BookingResource extends Resource
                                             $price = static::calculatePrice($venueType, $bookingDate, $state);
                                             $set('price', $price);
                                             
-                                            // Update total price
                                             static::updateTotalPrice($set, $get);
                                         }
                                     }),
@@ -139,7 +134,6 @@ class BookingResource extends Resource
                             ->collapsible()
                             ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                // Update total saat ada perubahan di repeater (add/delete slot)
                                 static::updateTotalPrice($set, $get);
                             })
                             ->addActionLabel('Add to slot Waktu')
@@ -165,16 +159,16 @@ class BookingResource extends Resource
                                 'completed' => 'Completed',
                             ])
                             ->required()
-                            ->default('pending')
+                            ->default('confirmed') // ✅ Default confirmed untuk booking manual
                             ->live(),
 
+                        // ✅ UPDATED: Toggle untuk menandai booking sudah dibayar
                         Forms\Components\Toggle::make('is_paid')
                             ->label('Sudah Dibayar')
-                            ->default(false)
+                            ->default(true) // ✅ Default true untuk booking manual
                             ->inline(false)
                             ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                // Auto update status jadi confirmed kalau sudah bayar
                                 if ($state === true && $get('status') === 'pending') {
                                     $set('status', 'confirmed');
                                 }
@@ -183,14 +177,12 @@ class BookingResource extends Resource
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan')
                             ->rows(3)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->placeholder('Contoh: Booking manual oleh admin'),
                     ])->columns(2),
             ]);
     }
 
-    /**
-     * ✅ UPDATE TOTAL PRICE - Method helper untuk hitung total otomatis
-     */
     protected static function updateTotalPrice(Forms\Set $set, Forms\Get $get): void
     {
         $timeSlots = $get('../../time_slots') ?? [];
@@ -289,6 +281,25 @@ class BookingResource extends Resource
                     ->money('IDR')
                     ->sortable(),
 
+                // ✅ NEW: Kolom untuk tipe booking
+                Tables\Columns\TextColumn::make('booking_type')
+                    ->label('Tipe')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'manual' => 'warning',
+                        'recurring' => 'danger',
+                        'paid' => 'success',
+                        'pending' => 'gray',
+                        default => 'info',
+                    })
+                    ->formatStateUsing(fn(?string $state): string => match ($state) {
+                        'manual' => 'Manual',
+                        'recurring' => 'Member',
+                        'paid' => 'Lunas',
+                        'pending' => 'Pending',
+                        default => 'Reguler',
+                    }),
+
                 Tables\Columns\IconColumn::make('is_paid')
                     ->label('Bayar')
                     ->boolean()
@@ -323,6 +334,17 @@ class BookingResource extends Resource
                         'confirmed' => 'Confirmed',
                         'cancelled' => 'Cancelled',
                         'completed' => 'Completed',
+                    ])
+                    ->multiple(),
+
+                // ✅ NEW: Filter berdasarkan booking type
+                Tables\Filters\SelectFilter::make('booking_type')
+                    ->label('Tipe Booking')
+                    ->options([
+                        'manual' => 'Manual (Admin)',
+                        'recurring' => 'Member',
+                        'paid' => 'Lunas',
+                        'pending' => 'Pending',
                     ])
                     ->multiple(),
 
@@ -483,10 +505,6 @@ class BookingResource extends Resource
             ->poll('30s');
     }
 
-    /**
-     * ✅ DYNAMIC PRICING: Calculate price based on venue, date, and time
-     * ✅ PUBLIC STATIC: bisa dipanggil dari CreateBooking untuk auto-fill
-     */
     public static function calculatePrice($venueType, $date, $timeSlot): int
     {
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;

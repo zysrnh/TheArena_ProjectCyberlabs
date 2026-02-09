@@ -25,11 +25,10 @@ class Booking extends Model
         'payment_method',
         'payment_status',
         'paid_at',
-        'booking_type',
+        'booking_type', // ✅ PENTING: Kolom ini harus ada di fillable
         'original_price',
         'voucher_code',
         'voucher_discount',
-        // ✅ KOLOM BARU UNTUK FASPAY
         'payment_reff',
         'payment_date',
         'payment_status_code',
@@ -46,8 +45,38 @@ class Booking extends Model
         'total_price' => 'decimal:2',
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
-        'payment_date' => 'datetime', // ✅ TAMBAHAN
+        'payment_date' => 'datetime',
     ];
+
+    // ... (semua method lain tetap sama, tidak berubah)
+
+    /**
+     * ✅ UPDATED: Get tipe booking untuk kalender
+     * Priority: 
+     * 1. Cek kolom booking_type dari database (jika ada)
+     * 2. Generate dari kondisi (fallback untuk data lama)
+     */
+    public function getBookingTypeAttribute($value)
+    {
+        // ✅ Priority 1: Kalau kolom booking_type sudah ada di database, pakai itu
+        if (!empty($value)) {
+            return $value;
+        }
+
+        // ✅ Priority 2: Kalau tidak ada, generate dari kondisi (untuk backward compatibility)
+        if ($this->payment_status === 'pending') {
+            return 'pending';
+        }
+        
+        if ($this->isPaid()) {
+            if ($this->isManualBooking()) {
+                return $this->client && $this->client->is_member ? 'member_manual' : 'manual';
+            }
+            return 'paid';
+        }
+        
+        return 'unknown';
+    }
 
     /**
      * ✅ Cek apakah booking sudah dibayar
@@ -291,48 +320,36 @@ class Booking extends Model
     }
 
     /**
-     * ✅ Get tipe booking untuk kalender
-     */
-    public function getBookingTypeAttribute()
-    {
-        if ($this->payment_status === 'pending') {
-            return 'pending';
-        }
-        
-        if ($this->isPaid()) {
-            if ($this->isManualBooking()) {
-                return $this->client && $this->client->is_member ? 'member_manual' : 'manual';
-            }
-            return 'paid';
-        }
-        
-        return 'unknown';
-    }
-
-    /**
-     * ✅ Get warna untuk kalender
+     * ✅ UPDATED: Get warna untuk kalender
      */
     public function getCalendarColorAttribute()
     {
-        return match($this->booking_type) {
+        // ✅ Gunakan booking_type yang sudah di-resolve di getBookingTypeAttribute
+        $type = $this->booking_type;
+        
+        return match($type) {
             'paid' => 'bg-green-200 border-green-400 text-green-900',
             'pending' => 'bg-pink-200 border-pink-400 text-pink-900',
             'manual' => 'bg-yellow-200 border-yellow-400 text-yellow-900',
             'member_manual' => 'bg-orange-200 border-orange-400 text-orange-900',
+            'recurring' => 'bg-orange-600 border-orange-700 text-white',
             default => 'bg-gray-200 border-gray-400 text-gray-900',
         };
     }
 
     /**
-     * ✅ Get icon untuk kalender
+     * ✅ UPDATED: Get icon untuk kalender
      */
     public function getCalendarIconAttribute()
     {
-        return match($this->booking_type) {
+        $type = $this->booking_type;
+        
+        return match($type) {
             'paid' => '✓',
             'pending' => '⏱',
             'manual' => '📝',
             'member_manual' => '⭐',
+            'recurring' => '🔄',
             default => '',
         };
     }
