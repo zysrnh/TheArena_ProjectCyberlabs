@@ -710,28 +710,28 @@ const confirmBooking = async () => {
         )}
 
         <main className="flex-1">
-          <div className="bg-[#013064] py-6 px-4">
+          <div className="bg-[#013064] py-6 px-2 sm:px-4">
             <div className="max-w-7xl mx-auto">
-              <div className="flex items-start gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-4 mb-4">
                 <button
                   onClick={() => router.visit("/")}
                   className="flex items-center gap-2 text-white hover:text-[#ffd22f] transition flex-shrink-0 mt-1"
+                  style={{ minWidth: 48 }}
                 >
                   <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                     <ArrowLeft className="w-6 h-6 text-[#013064]" />
                   </div>
                 </button>
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white break-words">
                   {venue.name}
                 </h1>
               </div>
 
               <div className="mb-8 animate-fade-in">
                 <h2 className="text-2xl font-bold text-white mb-6">Pilihan Lapangan The Arena</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-row gap-2 sm:gap-4 overflow-x-auto pb-2">
                   {Object.values(venues).map((v, index) => {
                     const isSelected = venue.venue_type === v.venue_type;
-
                     return (
                       <button
                         key={v.venue_type}
@@ -741,35 +741,24 @@ const confirmBooking = async () => {
                             preserveScroll: true,
                           });
                         }}
-                        style={{ animationDelay: `${index * 100}ms` }}
-                        className={`p-6 rounded-lg relative transition-all duration-300 animate-slide-up min-h-[140px] ${isSelected
+                        style={{ animationDelay: `${index * 100}ms`, minWidth: 180, maxWidth: 260 }}
+                        className={`p-4 sm:p-6 rounded-lg relative transition-all duration-300 animate-slide-up min-h-[120px] sm:min-h-[140px] ${isSelected
                             ? 'bg-[#ffd22f] border-2 border-[#ffd22f] shadow-lg'
                             : 'bg-white border-2 border-white hover:border-[#ffd22f] hover:shadow-md hover:-translate-y-1'
                           }`}
                       >
                         {isSelected && (
-                          <div className="absolute top-4 right-4 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center shadow-md animate-bounce-in">
+                          <div className="absolute top-2 right-2 w-8 h-8 bg-[#013064] rounded-full flex items-center justify-center shadow-md animate-bounce-in">
                             <Check className="w-5 h-5 text-white" />
                           </div>
                         )}
-
-                        <div className="text-left pr-10">
-                          <p className={`text-xs uppercase tracking-wide mb-3 font-medium ${isSelected ? 'text-[#013064]/70' : 'text-gray-500'
-                            }`}>
-                            Lapangan
-                          </p>
-
-                          <h3 className={`text-xl font-bold mb-4 ${isSelected ? 'text-[#013064]' : 'text-gray-900'
-                            }`}>
-                            {v.name.replace('The Arena Basketball ', '')}
-                          </h3>
-
-                         <div className="flex items-center gap-2">
-  <MapPin className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-[#013064]/60' : 'text-gray-500'}`} />
-  <p className={`text-sm notranslate ${isSelected ? 'text-[#013064]/80' : 'text-gray-600'}`}>
-    {v.location}
-  </p>
-</div>
+                        <div className="text-left pr-6">
+                          <p className={`text-xs uppercase tracking-wide mb-2 font-medium ${isSelected ? 'text-[#013064]/70' : 'text-gray-500'}`}>Lapangan</p>
+                          <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 ${isSelected ? 'text-[#013064]' : 'text-gray-900'}`}>{v.name.replace('The Arena Basketball ', '')}</h3>
+                          <div className="flex items-center gap-2">
+                            <MapPin className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-[#013064]/60' : 'text-gray-500'}`} />
+                            <p className={`text-xs sm:text-sm notranslate ${isSelected ? 'text-[#013064]/80' : 'text-gray-600'}`}>{v.location}</p>
+                          </div>
                         </div>
                       </button>
                     );
@@ -834,52 +823,50 @@ const confirmBooking = async () => {
                       style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
                     >
                       {venue.images?.slice(0, 5).map((img, idx) => (
-                        <div key={idx} className="w-full h-full flex-shrink-0">
+                        <div key={idx} className="w-full h-full flex-shrink-0 min-w-0">
                           <img
                             src={img}
                             alt={`${venue.name} - ${idx + 1}`}
                             className="w-full h-full object-cover"
+                            style={{ minWidth: '100%', minHeight: '100%' }}
                           />
                         </div>
                       ))}
                     </div>
-
                     {/* Navigation Arrows */}
                     {currentImageIndex > 0 && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // ✅ TAMBAHKAN INI biar gak trigger preview
+                          e.stopPropagation();
                           setCurrentImageIndex(prev => prev - 1);
                         }}
                         className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition animate-fade-in z-10"
+                        style={{ fontSize: 18 }}
                       >
                         <ChevronLeft className="w-6 h-6 text-[#013064]" />
                       </button>
                     )}
-
                     {currentImageIndex < (venue.images?.length - 1 || 0) && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // ✅ TAMBAHKAN INI biar gak trigger preview
+                          e.stopPropagation();
                           setCurrentImageIndex(prev => prev + 1);
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition animate-fade-in z-10"
+                        style={{ fontSize: 18 }}
                       >
                         <ChevronRight className="w-6 h-6 text-[#013064]" />
                       </button>
                     )}
-
                     {/* Image Counter */}
                     <div className="absolute bottom-4 right-4 bg-[#013064]/80 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-semibold">
                       {currentImageIndex + 1} / {venue.images?.length || 0}
                     </div>
-
-                    {/* ✅ TAMBAHKAN Hint Text */}
+                    {/* Hint Text */}
                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-[#013064]">
                       Tap untuk zoom
                     </div>
                   </div>
-
                   {/* Dots Indicator */}
                   <div className="flex justify-center gap-2 mt-4">
                     {venue.images?.slice(0, 5).map((_, idx) => (
