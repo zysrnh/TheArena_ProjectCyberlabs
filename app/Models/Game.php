@@ -18,9 +18,10 @@ class Game extends Model
         'time',
         'venue',
         'team1_id',
-        'team1_category_id', // ✅ BARU
+        'team1_division',
         'team2_id',
-        'team2_category_id', // ✅ BARU
+        'team2_division',
+        'category_id',
         'score',
         'status',
         'quarters',
@@ -28,7 +29,6 @@ class Game extends Model
         'year',
         'series',
         'region',
-        // Team Statistics Fields
         'stat_fg_team1',
         'stat_fg_team2',
         'stat_2pt_team1',
@@ -56,12 +56,12 @@ class Game extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'time' => 'datetime:H:i',
-        'stats' => 'array',
+        'date'            => 'date',
+        'time'            => 'datetime:H:i',
+        'stats'           => 'array',
         'box_score_team1' => 'array',
         'box_score_team2' => 'array',
-        'quarters' => 'array',
+        'quarters'        => 'array',
     ];
 
     protected $appends = [
@@ -79,15 +79,9 @@ class Game extends Model
         return $this->belongsTo(Team::class, 'team2_id');
     }
 
-    // ✅ RELASI BARU UNTUK TEAM CATEGORIES
-    public function team1Category(): BelongsTo
+    public function category(): BelongsTo
     {
-        return $this->belongsTo(TeamCategory::class, 'team1_category_id');
-    }
-
-    public function team2Category(): BelongsTo
-    {
-        return $this->belongsTo(TeamCategory::class, 'team2_category_id');
+        return $this->belongsTo(TeamCategory::class, 'category_id');
     }
 
     public function playerStats(): HasMany
@@ -95,209 +89,72 @@ class Game extends Model
         return $this->hasMany(PlayerStat::class);
     }
 
-    public function matchHighlights()
+    public function matchHighlights(): HasMany
     {
         return $this->hasMany(MatchHighlight::class);
     }
 
-    // ✅ HELPER METHOD BARU - Get match title with categories
     public function getMatchTitleAttribute(): string
     {
-        $team1Name = $this->team1->name;
-        $team2Name = $this->team2->name;
-        
-        if ($this->team1Category) {
-            $team1Name .= ' ' . $this->team1Category->category_name;
+        $team1Name = $this->team1->name . ($this->team1_division ? ' ' . $this->team1_division : '');
+        $team2Name = $this->team2->name . ($this->team2_division ? ' ' . $this->team2_division : '');
+
+        if ($this->category) {
+            $cat = ' ' . $this->category->category_name;
+            $team1Name .= $cat;
+            $team2Name .= $cat;
         }
-        
-        if ($this->team2Category) {
-            $team2Name .= ' ' . $this->team2Category->category_name;
-        }
-        
+
         return "{$team1Name} vs {$team2Name}";
     }
 
-    /**
-     * Get box score untuk Team 1
-     */
     public function boxScoreTeam1()
-{
-    // Cek apakah box_score_team1 sudah diisi dari form Filament
-    if (!empty($this->box_score_team1) && is_array($this->box_score_team1)) {
-        return collect($this->box_score_team1)->map(function ($item) {
-            $player = Player::find($item['player_id']);
-            return [
-                'id' => $player->id ?? 0,
-                'no' => $player->jersey_no ?? '-',
-                'name' => $player->name ?? 'Unknown',
-                'photo' => $player && $player->photo ? asset('storage/' . $player->photo) : null,
-                'position' => $player->position ?? '-',
-                'minutes' => $item['minutes'] ?? 0,
-                'points' => $item['points'] ?? 0,
-                'assists' => $item['assists'] ?? 0,
-                'rebounds' => $item['rebounds'] ?? 0,
-                'isMVP' => $item['is_mvp'] ?? false,
-            ];
-        });
-    }
+    {
+        $statsQuery = $this->playerStats()->where('team_id', $this->team1_id);
 
-    // Cek apakah sudah ada stats untuk team1 dari player_stats table
-    $statsQuery = $this->playerStats()
-        ->where('team_id', $this->team1_id);
-    
-    // ✅ FILTER BY CATEGORY - Jika ada category dipilih
-    if ($this->team1_category_id) {
-        $statsQuery->whereHas('player', function ($q) {
-            $q->where('team_category_id', $this->team1_category_id);
-        });
-    }
-    
-    $statsExist = $statsQuery->exists();
-
-    if ($statsExist) {
-        return $statsQuery
-            ->with('player')
-            ->orderByDesc('points')
-            ->get()
-            ->map(function ($stat, $index) {
+        if ($statsQuery->exists()) {
+            return $statsQuery->with('player')->orderBy('player_id')->get()->map(function ($stat) {
                 return [
-                    'id' => $stat->player->id,
-                    'no' => $stat->player->jersey_no ?? ($index + 1),
-                    'name' => $stat->player->name,
-                    'photo' => $stat->player->photo ? asset('storage/' . $stat->player->photo) : null,
+                    'id'       => $stat->player->id,
+                    'no'       => $stat->player->jersey_no ?? '-',
+                    'name'     => $stat->player->name,
+                    'photo'    => $stat->player->photo ? asset('storage/' . $stat->player->photo) : null,
                     'position' => $stat->player->position ?? '-',
-                    'minutes' => $stat->minutes ?? 0,
-                    'points' => $stat->points ?? 0,
-                    'assists' => $stat->assists ?? 0,
+                    'minutes'  => $stat->minutes ?? 0,
+                    'points'   => $stat->points ?? 0,
+                    'assists'  => $stat->assists ?? 0,
                     'rebounds' => $stat->rebounds ?? 0,
-                    'isMVP' => $stat->is_mvp ?? false,
+                    'isMVP'    => $stat->is_mvp ?? false,
                 ];
             });
-    }
+        }
 
-    // Default: ambil pemain aktif dari team1
-    if (!$this->team1) {
         return collect([]);
     }
 
-    $playersQuery = $this->team1->players()
-        ->where('is_active', true);
-    
-    // ✅ FILTER BY CATEGORY - Jika ada category dipilih
-    if ($this->team1_category_id) {
-        $playersQuery->where('team_category_id', $this->team1_category_id);
-    }
-    
-    return $playersQuery
-        ->orderBy('jersey_no')
-        ->get()
-        ->values()
-        ->map(function ($player, $index) {
-            return [
-                'id' => $player->id,
-                'no' => $player->jersey_no ?? ($index + 1),
-                'name' => $player->name,
-                'photo' => $player->photo ? asset('storage/' . $player->photo) : null,
-                'position' => $player->position ?? '-',
-                'minutes' => 0,
-                'points' => 0,
-                'assists' => 0,
-                'rebounds' => 0,
-                'isMVP' => false,
-            ];
-        });
-}
+    public function boxScoreTeam2()
+    {
+        $statsQuery = $this->playerStats()->where('team_id', $this->team2_id);
 
-/**
- * Get box score untuk Team 2 - DENGAN FILTER CATEGORY
- */
-public function boxScoreTeam2()
-{
-    // Cek apakah box_score_team2 sudah diisi dari form Filament
-    if (!empty($this->box_score_team2) && is_array($this->box_score_team2)) {
-        return collect($this->box_score_team2)->map(function ($item) {
-            $player = Player::find($item['player_id']);
-            return [
-                'id' => $player->id ?? 0,
-                'no' => $player->jersey_no ?? '-',
-                'name' => $player->name ?? 'Unknown',
-                'photo' => $player && $player->photo ? asset('storage/' . $player->photo) : null,
-                'position' => $player->position ?? '-',
-                'minutes' => $item['minutes'] ?? 0,
-                'points' => $item['points'] ?? 0,
-                'assists' => $item['assists'] ?? 0,
-                'rebounds' => $item['rebounds'] ?? 0,
-                'isMVP' => $item['is_mvp'] ?? false,
-            ];
-        });
-    }
-
-    // Cek apakah sudah ada stats untuk team2 dari player_stats table
-    $statsQuery = $this->playerStats()
-        ->where('team_id', $this->team2_id);
-    
-    // ✅ FILTER BY CATEGORY - Jika ada category dipilih
-    if ($this->team2_category_id) {
-        $statsQuery->whereHas('player', function ($q) {
-            $q->where('team_category_id', $this->team2_category_id);
-        });
-    }
-    
-    $statsExist = $statsQuery->exists();
-
-    if ($statsExist) {
-        return $statsQuery
-            ->with('player')
-            ->orderByDesc('points')
-            ->get()
-            ->map(function ($stat, $index) {
+        if ($statsQuery->exists()) {
+            return $statsQuery->with('player')->orderBy('player_id')->get()->map(function ($stat) {
                 return [
-                    'id' => $stat->player->id,
-                    'no' => $stat->player->jersey_no ?? ($index + 1),
-                    'name' => $stat->player->name,
-                    'photo' => $stat->player->photo ? asset('storage/' . $stat->player->photo) : null,
+                    'id'       => $stat->player->id,
+                    'no'       => $stat->player->jersey_no ?? '-',
+                    'name'     => $stat->player->name,
+                    'photo'    => $stat->player->photo ? asset('storage/' . $stat->player->photo) : null,
                     'position' => $stat->player->position ?? '-',
-                    'minutes' => $stat->minutes ?? 0,
-                    'points' => $stat->points ?? 0,
-                    'assists' => $stat->assists ?? 0,
+                    'minutes'  => $stat->minutes ?? 0,
+                    'points'   => $stat->points ?? 0,
+                    'assists'  => $stat->assists ?? 0,
                     'rebounds' => $stat->rebounds ?? 0,
-                    'isMVP' => $stat->is_mvp ?? false,
+                    'isMVP'    => $stat->is_mvp ?? false,
                 ];
             });
-    }
+        }
 
-    // Default: ambil pemain aktif dari team2
-    if (!$this->team2) {
         return collect([]);
     }
-
-    $playersQuery = $this->team2->players()
-        ->where('is_active', true);
-    
-    // ✅ FILTER BY CATEGORY - Jika ada category dipilih
-    if ($this->team2_category_id) {
-        $playersQuery->where('team_category_id', $this->team2_category_id);
-    }
-    
-    return $playersQuery
-        ->orderBy('jersey_no')
-        ->get()
-        ->values()
-        ->map(function ($player, $index) {
-            return [
-                'id' => $player->id,
-                'no' => $player->jersey_no ?? ($index + 1),
-                'name' => $player->name,
-                'photo' => $player->photo ? asset('storage/' . $player->photo) : null,
-                'position' => $player->position ?? '-',
-                'minutes' => 0,
-                'points' => 0,
-                'assists' => 0,
-                'rebounds' => 0,
-                'isMVP' => false,
-            ];
-        });
-}
 
     public function getFormattedDateAttribute()
     {
@@ -327,17 +184,13 @@ public function boxScoreTeam2()
 
     public function scopeBySeries($query, $series)
     {
-        if ($series === 'Semua Series') {
-            return $query;
-        }
+        if ($series === 'Semua Series') return $query;
         return $query->where('series', $series);
     }
 
     public function scopeByRegion($query, $region)
     {
-        if ($region === 'Regional') {
-            return $query;
-        }
+        if ($region === 'Regional') return $query;
         return $query->where('region', $region);
     }
 

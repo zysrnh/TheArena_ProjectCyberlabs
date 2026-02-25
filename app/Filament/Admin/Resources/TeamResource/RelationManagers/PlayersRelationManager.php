@@ -60,42 +60,19 @@ class PlayersRelationManager extends RelationManager
                             ->placeholder('e.g., Yudha Saputera')
                             ->columnSpanFull(),
 
+                        // ✅ FIX: Hapus filter team_id karena kolom tersebut tidak ada di tabel team_categories
+                        // TeamCategory adalah global (tidak terikat ke team tertentu)
                         Forms\Components\Select::make('team_category_id')
                             ->label('Team Category')
-                            ->relationship('teamCategory', 'category_name', function ($query, $livewire) {
-                                $query->where('team_id', $livewire->getOwnerRecord()->id)
-                                      ->where('is_active', true);
+                            ->relationship('teamCategory', 'category_name', function ($query) {
+                                $query->where('is_active', true)
+                                      ->orderBy('category_name');
                             })
                             ->searchable()
                             ->preload()
                             ->placeholder('Select category (optional)')
                             ->helperText('Assign player to category: U-16, U-18, U-22, Senior, etc.')
-                            ->columnSpanFull()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('category_name')
-                                    ->label('Category Name')
-                                    ->required()
-                                    ->placeholder('e.g., U-16, U-18, Senior')
-                                    ->helperText('Quick add category'),
-                                
-                                Forms\Components\Grid::make(2)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('min_age')
-                                            ->label('Min Age')
-                                            ->numeric()
-                                            ->placeholder('e.g., 14'),
-                                        
-                                        Forms\Components\TextInput::make('max_age')
-                                            ->label('Max Age')
-                                            ->numeric()
-                                            ->placeholder('e.g., 16'),
-                                    ]),
-                            ])
-                            ->createOptionUsing(function (array $data, $livewire) {
-                                $data['team_id'] = $livewire->getOwnerRecord()->id;
-                                $data['is_active'] = true;
-                                return \App\Models\TeamCategory::create($data)->id;
-                            }),
+                            ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('photo')
                             ->label('Player Photo')
@@ -233,10 +210,11 @@ class PlayersRelationManager extends RelationManager
                     ])
                     ->label('Position'),
 
+                // ✅ FIX: Hapus filter team_id, query semua category yang aktif
                 Tables\Filters\SelectFilter::make('team_category_id')
                     ->label('Category')
-                    ->relationship('teamCategory', 'category_name', function ($query, $livewire) {
-                        $query->where('team_id', $livewire->getOwnerRecord()->id);
+                    ->relationship('teamCategory', 'category_name', function ($query) {
+                        $query->where('is_active', true)->orderBy('category_name');
                     })
                     ->searchable()
                     ->preload()
@@ -314,9 +292,10 @@ class PlayersRelationManager extends RelationManager
                         ->form([
                             Forms\Components\Select::make('team_category_id')
                                 ->label('Select Category')
-                                ->options(function ($livewire) {
-                                    return \App\Models\TeamCategory::where('team_id', $livewire->getOwnerRecord()->id)
-                                        ->where('is_active', true)
+                                // ✅ FIX: Hapus filter team_id
+                                ->options(function () {
+                                    return \App\Models\TeamCategory::where('is_active', true)
+                                        ->orderBy('category_name')
                                         ->pluck('category_name', 'id');
                                 })
                                 ->searchable()

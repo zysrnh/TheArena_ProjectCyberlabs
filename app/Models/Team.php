@@ -12,6 +12,7 @@ class Team extends Model
 
     protected $fillable = [
         'name',
+        'division',
         'logo',
         'region',
         'city',
@@ -26,16 +27,6 @@ class Team extends Model
     public function players(): HasMany
     {
         return $this->hasMany(Player::class);
-    }
-
-    public function categories(): HasMany
-    {
-        return $this->hasMany(TeamCategory::class);
-    }
-
-    public function activeCategories(): HasMany
-    {
-        return $this->hasMany(TeamCategory::class)->where('is_active', true);
     }
 
     public function homeGames(): HasMany

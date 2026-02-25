@@ -3,7 +3,6 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\TeamResource\Pages;
-use App\Filament\Admin\Resources\TeamResource\RelationManagers\CategoriesRelationManager;
 use App\Filament\Admin\Resources\TeamResource\RelationManagers\PlayersRelationManager;
 use App\Models\Team;
 use Filament\Forms;
@@ -36,6 +35,16 @@ class TeamResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->placeholder('e.g., PRAWIRA BANDUNG'),
+
+                        Forms\Components\TextInput::make('division')
+                            ->label('Division')
+                            ->maxLength(50)
+                            ->placeholder('e.g., Blue, White...')
+                            ->datalist([
+                                'Blue',
+                                'White',
+                            ])
+                            ->helperText('Opsional - ketik atau pilih divisi tim'),
 
                         Forms\Components\FileUpload::make('logo')
                             ->label('Team Logo')
@@ -105,7 +114,20 @@ class TeamResource extends Resource
                     ->label('Team Name')
                     ->searchable()
                     ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->description(fn (Team $record): ?string => $record->division ? 'Divisi: ' . $record->division : null),
+
+                Tables\Columns\TextColumn::make('division')
+                    ->label('Division')
+                    ->badge()
+                    ->color(fn (?string $state): string => match($state) {
+                        'Blue'  => 'info',
+                        'White' => 'gray',
+                        default => 'primary',
+                    })
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('region')
                     ->badge()
@@ -116,14 +138,6 @@ class TeamResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
-
-                Tables\Columns\TextColumn::make('categories_count')
-                    ->counts('categories')
-                    ->label('Categories')
-                    ->sortable()
-                    ->badge()
-                    ->color('warning')
-                    ->tooltip('Total team categories (U-16, U-22, etc.)'),
 
                 Tables\Columns\TextColumn::make('players_count')
                     ->counts('players')
@@ -143,6 +157,14 @@ class TeamResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('division')
+                    ->options([
+                        'Blue'  => 'Blue',
+                        'White' => 'White',
+                    ])
+                    ->label('Division')
+                    ->placeholder('All Divisions'),
+
                 Tables\Filters\SelectFilter::make('region')
                     ->options([
                         'Jakarta' => 'Jakarta',
@@ -167,14 +189,8 @@ class TeamResource extends Resource
                         $q->where('is_active', true);
                     }, '>=', 5))
                     ->toggle(),
-
-                Tables\Filters\Filter::make('has_categories')
-                    ->label('Has Categories')
-                    ->query(fn ($query) => $query->has('categories'))
-                    ->toggle(),
             ])
             ->actions([
-                // View Detail Action with Slide Over Modal
                 Tables\Actions\Action::make('view_details')
                     ->label('Lihat Detail')
                     ->icon('heroicon-o-eye')
@@ -188,7 +204,6 @@ class TeamResource extends Resource
                     ->slideOver()
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
-                
 
                 Tables\Actions\Action::make('viewLogo')
                     ->label('Lihat Logo')
@@ -202,7 +217,6 @@ class TeamResource extends Resource
                     ->modalCancelActionLabel('Tutup')
                     ->visible(fn (Team $record): bool => !empty($record->logo)),
 
-                // Toggle Active Status
                 Tables\Actions\Action::make('toggle_status')
                     ->label(fn (Team $record): string => $record->is_active ? 'Nonaktifkan' : 'Aktifkan')
                     ->icon(fn (Team $record): string => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
@@ -217,7 +231,6 @@ class TeamResource extends Resource
                     ->action(function (Team $record) {
                         $activePlayersCount = $record->players()->where('is_active', true)->count();
                         
-                        // Jika ingin aktifkan tim, cek minimal player
                         if (!$record->is_active && $activePlayersCount < 5) {
                             Notification::make()
                                 ->title('Tidak Dapat Mengaktifkan Tim')
@@ -238,23 +251,10 @@ class TeamResource extends Resource
 
                 Tables\Actions\EditAction::make(),
                 
-                Tables\Actions\DeleteAction::make()
-                    ->before(function (Team $record) {
-                        // Cek apakah tim memiliki pertandingan
-                        // Uncomment jika ada relasi dengan match
-                        // if ($record->matches()->count() > 0) {
-                        //     Notification::make()
-                        //         ->title('Tidak Dapat Menghapus Tim')
-                        //         ->danger()
-                        //         ->body('Tim ini memiliki riwayat pertandingan dan tidak dapat dihapus.')
-                        //         ->send();
-                        //     return false;
-                        // }
-                    }),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // Bulk Activate Teams
                     Tables\Actions\BulkAction::make('bulk_activate')
                         ->label('Aktifkan Tim')
                         ->icon('heroicon-o-check-circle')
@@ -289,7 +289,6 @@ class TeamResource extends Resource
                                 ->send();
                         }),
                     
-                    // Bulk Deactivate Teams
                     Tables\Actions\BulkAction::make('bulk_deactivate')
                         ->label('Nonaktifkan Tim')
                         ->icon('heroicon-o-x-circle')
@@ -315,7 +314,6 @@ class TeamResource extends Resource
     public static function getRelations(): array
     {
         return [
-            CategoriesRelationManager::class,
             PlayersRelationManager::class,
         ];
     }

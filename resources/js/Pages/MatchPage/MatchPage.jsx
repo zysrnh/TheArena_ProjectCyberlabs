@@ -471,22 +471,22 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                                 e.target.src = '/images/default-team-logo.png';
                               }}
                             />
-                            <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                              {match.team1.name}
-                            </p>
-                            {match.team1.category && (
-                              <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-                                {match.team1.category.name}
-                              </p>
-                            )}
+                           <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+    {match.team1.name}{match.team1.division ? ` ${match.team1.division}` : ''}
+</p>
                           </div>
 
                           {/* Match Info */}
                           <div className="flex flex-col items-center justify-center min-w-[130px] md:min-w-[150px]">
                             <p className="text-sm md:text-base font-bold text-gray-800 mb-2 text-center">
-                              {match.league}
-                            </p>
-
+    {match.league}
+</p>
+{/* ✅ Category tampil sekali di bawah league */}
+{(match.team1.category || match.team2.category) && (
+    <p className="text-xs text-gray-500 font-semibold text-center mb-2">
+        {match.team1.category?.name || match.team2.category?.name}
+    </p>
+)}
                             <div className="mb-1.5">
                               <span className={`px-2.5 py-1 text-xs font-bold uppercase ${match.type === 'live'
                                   ? 'bg-red-600 text-white'
@@ -524,14 +524,9 @@ export default function MatchPage({ auth, filters, dates, matches, today, weekIn
                                 e.target.src = '/images/default-team-logo.png';
                               }}
                             />
-                            <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                              {match.team2.name}
-                            </p>
-                            {match.team2.category && (
-                              <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-                                {match.team2.category.name}
-                              </p>
-                            )}
+                           <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
+    {match.team2.name}{match.team2.division ? ` ${match.team2.division}` : ''}
+</p>
                           </div>
                         </div>
                       </div>

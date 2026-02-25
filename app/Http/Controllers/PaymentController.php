@@ -134,19 +134,7 @@ class PaymentController extends Controller
                 Log::info('🚀 Redirecting to Faspay payment gateway...');
                 Log::info('🎯 ===== PAYMENT PROCESS END (SUCCESS) =====');
 
-                // ✅ MULTIPLE REDIRECT METHODS - Try all
-                // Method 1: Direct away redirect (best for external URLs)
                 return redirect()->away($result['redirect_url']);
-                
-                // Alternative methods if above doesn't work:
-                // Method 2: Response redirect
-                // return response()->redirectTo($result['redirect_url']);
-                
-                // Method 3: Inertia external redirect (if using Inertia)
-                // return \Inertia\Inertia::location($result['redirect_url']);
-                
-                // Method 4: Manual header redirect
-                // return response('', 302)->header('Location', $result['redirect_url']);
             }
 
             // ❌ PAYMENT CREATION FAILED
@@ -359,19 +347,19 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅ Return URL (user kembali dari Faspay)
+     * ✅ Return URL (user kembali dari Faspay) - WITH WHATSAPP REDIRECT
      */
     public function return(Request $request)
     {
         try {
-            $billNo = $request->query('bill_no');
-            $status = $request->query('status');
-            $trxId = $request->query('trx_id');
-            $paymentReff = $request->query('payment_reff');
-            $paymentDate = $request->query('payment_date');
-            $signature = $request->query('signature');
-            $bankUserName = $request->query('bank_user_name');
-            $paymentChannel = $request->query('payment_channel');
+            $billNo            = $request->query('bill_no');
+            $status            = $request->query('status');
+            $trxId             = $request->query('trx_id');
+            $paymentReff       = $request->query('payment_reff');
+            $paymentDate       = $request->query('payment_date');
+            $signature         = $request->query('signature');
+            $bankUserName      = $request->query('bank_user_name');
+            $paymentChannel    = $request->query('payment_channel');
             $paymentChannelUid = $request->query('payment_channel_uid');
 
             Log::info('📍 User Returned from Faspay', [
@@ -385,7 +373,7 @@ class PaymentController extends Controller
                 return redirect()->route('profile')->with('info', 'Menunggu konfirmasi pembayaran.');
             }
 
-            $booking = Booking::where('bill_no', $billNo)->first();
+            $booking = Booking::where('bill_no', $billNo)->with('client')->first();
 
             if (!$booking) {
                 return redirect()->route('profile')->with('error', 'Booking tidak ditemukan');
@@ -405,18 +393,18 @@ class PaymentController extends Controller
                 if ($signatureValid) {
                     DB::beginTransaction();
                     try {
-                        $booking->payment_status = 'paid';
-                        $booking->is_paid = true;
-                        $booking->paid_at = now();
-                        $booking->status = 'confirmed';
-                        $booking->trx_id = $trxId;
-                        $booking->payment_reff = $paymentReff;
-                        $booking->payment_date = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
+                        $booking->payment_status    = 'paid';
+                        $booking->is_paid           = true;
+                        $booking->paid_at           = now();
+                        $booking->status            = 'confirmed';
+                        $booking->trx_id            = $trxId;
+                        $booking->payment_reff      = $paymentReff;
+                        $booking->payment_date      = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
                         $booking->payment_status_code = '2';
                         $booking->payment_status_desc = 'Payment Sukses';
-                        $booking->payment_channel = $paymentChannel ?? 'Faspay Xpress';
+                        $booking->payment_channel   = $paymentChannel ?? 'Faspay Xpress';
                         $booking->payment_channel_uid = $paymentChannelUid ?? $bankUserName ?? $trxId;
-                        $booking->payment_method = $paymentChannel ?? 'Faspay';
+                        $booking->payment_method    = $paymentChannel ?? 'Faspay';
                         
                         $booking->save();
                         DB::commit();
@@ -429,8 +417,8 @@ class PaymentController extends Controller
                 }
             }
 
-            $booking = $booking->fresh();
-            $isPaid = $booking->isPaid();
+            $booking = $booking->fresh(['client']);
+            $isPaid  = $booking->isPaid();
 
             Log::info('📊 Return Status', [
                 'is_paid' => $isPaid,
@@ -438,8 +426,36 @@ class PaymentController extends Controller
             ]);
 
             if ($isPaid) {
+                // ✅ BUILD WHATSAPP MESSAGE
+                $client      = $booking->client;
+                $bookingDate = $booking->booking_date->format('d/m/Y');
+
+                $venueName = match($booking->venue_type) {
+                    'cibadak_a' => 'The Arena Cibadak A',
+                    'cibadak_b' => 'The Arena Cibadak B',
+                    'pvj'       => 'The Arena PVJ',
+                    'urban'     => 'The Arena Urban',
+                    default     => 'The Arena',
+                };
+
+                $timeSlots  = collect($booking->time_slots)->pluck('time')->join(', ');
+                $totalPrice = 'Rp ' . number_format($booking->total_price, 0, ',', '.');
+
+                $message  = "Halo Admin The Arena! 👋\n\n";
+                $message .= "Berikut bukti pembayaran saya:\n\n";
+                $message .= "👤 *Nama:* {$client->name}\n";
+                $message .= "🏟️ *Lapangan:* {$venueName}\n";
+                $message .= "📅 *Tanggal:* {$bookingDate}\n";
+                $message .= "⏰ *Jam:* {$timeSlots}\n";
+                $message .= "🧾 *No. Tagihan:* {$booking->bill_no}\n";
+                $message .= "💰 *Total:* {$totalPrice}\n\n";
+                $message .= "Mohon konfirmasinya. Terima kasih! 🙏";
+
+                $whatsappUrl = "https://wa.me/6281222977985?text=" . urlencode($message);
+
                 return redirect()->route('profile', ['tab' => 'jadwal-booking'])
-                    ->with('success', '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.');
+                    ->with('success', '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.')
+                    ->with('whatsapp_url', $whatsappUrl);
             }
 
             return redirect()->route('profile', ['tab' => 'jadwal-booking'])
@@ -448,7 +464,7 @@ class PaymentController extends Controller
         } catch (\Exception $e) {
             Log::error('💥 Payment Return Error', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'trace'   => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('profile')->with('error', 'Terjadi kesalahan');
@@ -492,14 +508,14 @@ class PaymentController extends Controller
             }
 
             return response()->json([
-                'success' => true,
+                'success'        => true,
                 'transaction_id' => $booking->trx_id,
-                'bill_no' => $booking->bill_no,
+                'bill_no'        => $booking->bill_no,
                 'payment_status' => $booking->payment_status,
                 'booking_status' => $booking->status,
-                'total_amount' => $booking->total_price,
-                'booking_date' => $booking->booking_date,
-                'is_paid' => $booking->isPaid(),
+                'total_amount'   => $booking->total_price,
+                'booking_date'   => $booking->booking_date,
+                'is_paid'        => $booking->isPaid(),
             ], 200);
 
         } catch (\Exception $e) {
@@ -507,7 +523,7 @@ class PaymentController extends Controller
             
             return response()->json([
                 'success' => false,
-                'error' => 'Internal server error'
+                'error'   => 'Internal server error'
             ], 500);
         }
     }

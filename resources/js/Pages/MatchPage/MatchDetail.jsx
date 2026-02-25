@@ -107,7 +107,12 @@ export default function MatchDetail({ auth, match, matchHighlights = [], related
               {/* Match Score Display */}
               <div className="bg-[#002855] p-8 mb-8">
                 <div className="text-center mb-6">
-                  <p className="text-gray-300 text-sm mb-2">{match.league}</p>
+                 <p className="text-gray-300 text-sm mb-2">{match.league}</p>
+{(match.team1.category || match.team2.category) && (
+    <p className="text-[#ffd22f] text-xs font-semibold mb-2">
+        {match.team1.category?.name || match.team2.category?.name}
+    </p>
+)}
                   <p className="text-white text-lg font-semibold mb-1">
                     {match.date}
                   </p>
@@ -125,13 +130,13 @@ export default function MatchDetail({ auth, match, matchHighlights = [], related
                       className="w-32 h-32 md:w-40 md:h-40 object-contain mb-4"
                     />
                     <h3 className="text-white text-xl md:text-2xl font-bold text-center">
-                      {match.team1.name}
-                    </h3>
-                    {match.team1.category && (
-                      <p className="text-gray-300 text-sm mt-2 text-center">
-                        {match.team1.category.name}
-                      </p>
-                    )}
+    {match.team1.name}{match.team1.division ? ` ${match.team1.division}` : ''}
+</h3>
+{match.team1.category && (
+    <p className="text-gray-300 text-sm mt-2 text-center">
+        {match.team1.category.name}
+    </p>
+)}
                   </div>
 
                   {/* Score */}
@@ -155,13 +160,13 @@ export default function MatchDetail({ auth, match, matchHighlights = [], related
                       className="w-32 h-32 md:w-40 md:h-40 object-contain mb-4"
                     />
                     <h3 className="text-white text-xl md:text-2xl font-bold text-center">
-                      {match.team2.name}
-                    </h3>
-                    {match.team2.category && (
-                      <p className="text-gray-300 text-sm mt-2 text-center">
-                        {match.team2.category.name}
-                      </p>
-                    )}
+    {match.team2.name}{match.team2.division ? ` ${match.team2.division}` : ''}
+</h3>
+{match.team2.category && (
+    <p className="text-gray-300 text-sm mt-2 text-center">
+        {match.team2.category.name}
+    </p>
+)}
                   </div>
                 </div>
               </div>

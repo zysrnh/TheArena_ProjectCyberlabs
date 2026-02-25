@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\LiveMatchResource\Pages;
 use App\Models\LiveMatch;
-use App\Models\Team;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -41,39 +40,21 @@ class LiveMatchResource extends Resource
                             ->columnSpanFull()
                             ->placeholder('Contoh: SMP JUBILEE JAKARTA VS SMP DIAN HARAPAN'),
 
-                        Forms\Components\Select::make('team_home')
+                        Forms\Components\TextInput::make('team_home')
                             ->label('Tim Home')
-                            ->options(function () {
-                                return Team::where('is_active', true)
-                                    ->orderBy('name')
-                                    ->pluck('name', 'name');
-                            })
-                            ->searchable()
-                            ->preload()
-                            ->placeholder('Pilih tim home')
-                            ->helperText('Pilih dari daftar tim yang tersedia'),
+                            ->maxLength(255)
+                            ->placeholder('Contoh: SMP Jubilee Jakarta'),
 
-                        Forms\Components\Select::make('team_away')
+                        Forms\Components\TextInput::make('team_away')
                             ->label('Tim Away')
-                            ->options(function () {
-                                return Team::where('is_active', true)
-                                    ->orderBy('name')
-                                    ->pluck('name', 'name');
-                            })
-                            ->searchable()
-                            ->preload()
-                            ->placeholder('Pilih tim away')
-                            ->helperText('Pilih dari daftar tim yang tersedia'),
+                            ->maxLength(255)
+                            ->placeholder('Contoh: SMP Dian Harapan'),
 
-                        Forms\Components\Select::make('category')
+                        Forms\Components\TextInput::make('category')
                             ->label('Kategori')
-                            ->required()
-                            ->options([
-                                'Professional Men' => 'Professional Men',
-                                'Professional Women' => 'Professional Women',
-                            ])
-                            ->searchable()
-                            ->native(false),
+                            ->maxLength(255)
+                            ->placeholder('Contoh: U-12 Putra, Professional Men, dll')
+                            ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('venue')
                             ->label('Venue')
@@ -201,7 +182,8 @@ class LiveMatchResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color('info'),
+                    ->color('info')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('match_date')
                     ->label('Tanggal')
@@ -265,19 +247,6 @@ class LiveMatchResource extends Resource
                     ])
                     ->native(false),
 
-                Tables\Filters\SelectFilter::make('category')
-                    ->label('Kategori')
-                    ->options([
-                        'Junior 3x3 Girls' => 'Junior 3x3 Girls',
-                        'Junior 3x3 Boys' => 'Junior 3x3 Boys',
-                        'Senior 3x3 Girls' => 'Senior 3x3 Girls',
-                        'Senior 3x3 Boys' => 'Senior 3x3 Boys',
-                        'Professional Men' => 'Professional Men',
-                        'Professional Women' => 'Professional Women',
-                    ])
-                    ->native(false)
-                    ->multiple(),
-
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Status Aktif')
                     ->placeholder('Semua')
@@ -286,7 +255,6 @@ class LiveMatchResource extends Resource
                     ->native(false),
             ])
             ->actions([
-                // Modal View Details
                 Tables\Actions\Action::make('view_details')
                     ->label('View Details')
                     ->icon('heroicon-o-eye')
@@ -300,7 +268,6 @@ class LiveMatchResource extends Resource
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
 
-                // Quick Status Actions
                 Tables\Actions\Action::make('setLive')
                     ->label('Set Live')
                     ->icon('heroicon-o-signal')
@@ -416,7 +383,7 @@ class LiveMatchResource extends Resource
             ->defaultSort('match_date', 'desc')
             ->paginated([10, 25, 50, 100])
             ->defaultPaginationPageOption(25)
-            ->poll('30s'); // Auto refresh setiap 30 detik
+            ->poll('30s');
     }
 
     public static function getRelations(): array

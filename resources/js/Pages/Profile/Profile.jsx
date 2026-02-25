@@ -1,10 +1,10 @@
 import { Head, Link, useForm, usePage, router } from "@inertiajs/react";
-import { useState, useEffect, useRef } from "react"; // ✅ Tambah useRef
+import { useState, useEffect, useRef } from "react";
 import { Phone, Mail, Calendar, User, MapPin, LogOut, Video, Clock, X, CreditCard, CheckCircle, AlertCircle, Star, MessageSquare } from "lucide-react";
 
 import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
-// ✅ GANTI PaymentTimer Component (baris 7-52)
+
 function PaymentTimer({ createdAt, onExpired, onAlert }) {
   const [timeLeft, setTimeLeft] = useState(null);
   const alertShownRef = useRef({
@@ -31,18 +31,15 @@ function PaymentTimer({ createdAt, onExpired, onAlert }) {
       const seconds = Math.floor((diff % 60000) / 1000);
       const totalSeconds = Math.floor(diff / 1000);
 
-      // Alert notifications dengan type checking
       if (onAlert && typeof onAlert === 'function') {
         if (totalSeconds <= 300 && !alertShownRef.current.fiveMin) {
           alertShownRef.current.fiveMin = true;
           onAlert('⚠️ Sisa 5 menit lagi! Segera selesaikan pembayaran Anda.');
         }
-
         if (totalSeconds <= 120 && !alertShownRef.current.twoMin) {
           alertShownRef.current.twoMin = true;
           onAlert('🚨 Sisa 2 menit lagi! Booking akan otomatis dibatalkan jika belum dibayar.');
         }
-
         if (totalSeconds <= 60 && !alertShownRef.current.oneMin) {
           alertShownRef.current.oneMin = true;
           onAlert('🔴 SISA 1 MENIT! Segera lakukan pembayaran sekarang!');
@@ -53,7 +50,6 @@ function PaymentTimer({ createdAt, onExpired, onAlert }) {
     };
 
     setTimeLeft(calculateTimeLeft());
-
     const timer = setInterval(() => {
       setTimeLeft(calculateTimeLeft());
     }, 1000);
@@ -66,24 +62,28 @@ function PaymentTimer({ createdAt, onExpired, onAlert }) {
   const isUrgent = timeLeft.total < 3 * 60 * 1000;
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${isUrgent ? 'bg-red-100 text-red-800 animate-pulse' : 'bg-orange-100 text-orange-800'
-      }`}>
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
+      isUrgent ? 'bg-red-100 text-red-800 animate-pulse' : 'bg-orange-100 text-orange-800'
+    }`}>
       <Clock className="w-3 h-3" />
-      <span>
-        Bayar dalam: {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}
-      </span>
+      <span>Bayar dalam: {timeLeft.minutes}:{String(timeLeft.seconds).padStart(2, '0')}</span>
     </div>
   );
 }
+
 export default function Profile() {
-
-
-  const { auth, upcomingBookings = [], historyBookings = {}, reviewHistory = [], flash,
-    shouldShowReviewReminder, completedBookingCount } = usePage().props;
+  const {
+    auth,
+    upcomingBookings = [],
+    historyBookings = {},
+    reviewHistory = [],
+    flash,
+    shouldShowReviewReminder,
+    completedBookingCount
+  } = usePage().props;
 
   const [showPaymentCheckModal, setShowPaymentCheckModal] = useState(false);
   const [checkingBillNo, setCheckingBillNo] = useState(null);
-
   const [activeTab, setActiveTab] = useState('data-profil');
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
@@ -94,8 +94,10 @@ export default function Profile() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('success');
-  const [expiredBookings, setExpiredBookings] = useState(new Set()); // ✅ TAMBAH INI
+  const [expiredBookings, setExpiredBookings] = useState(new Set());
 
+  // ✅ STATE untuk WhatsApp notification setelah bayar
+  const [whatsappUrl, setWhatsappUrl] = useState(null);
 
   useEffect(() => {
     console.log('📊 Profile Page Props:', {
@@ -109,13 +111,15 @@ export default function Profile() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const checkPayment = urlParams.get('check_payment');
+    const tab = urlParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
 
+    const checkPayment = urlParams.get('check_payment');
     if (checkPayment) {
       setCheckingBillNo(checkPayment);
       setShowPaymentCheckModal(true);
-
-      // Auto refresh setelah 3 detik
       setTimeout(() => {
         router.reload({ only: ['upcomingBookings'] });
         setShowPaymentCheckModal(false);
@@ -123,10 +127,9 @@ export default function Profile() {
     }
   }, []);
 
-
   const { data, setData, post, processing, errors } = useForm({
     name: auth.client?.name || "",
-    email: auth.client?.email || "",  // ✅ TAMBAH INI
+    email: auth.client?.email || "",
     province: auth.client?.province || "",
     city: auth.client?.city || "",
     address: auth.client?.address || "",
@@ -136,9 +139,7 @@ export default function Profile() {
     profile_image: null,
   });
 
-
-
-  // Tampilkan notifikasi jika ada flash message
+  // ✅ useEffect flash - UPDATED dengan whatsapp_url handler
   useEffect(() => {
     if (flash?.success) {
       setNotificationMessage(flash.success);
@@ -151,6 +152,13 @@ export default function Profile() {
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     }
+
+    // ✅ Munculkan notif bubble WA setelah pembayaran berhasil
+    if (flash?.whatsapp_url) {
+      setWhatsappUrl(flash.whatsapp_url);
+      // Auto dismiss setelah 15 detik
+      setTimeout(() => setWhatsappUrl(null), 15000);
+    }
   }, [flash]);
 
   useEffect(() => {
@@ -160,7 +168,6 @@ export default function Profile() {
       );
       setNotificationType('error');
       setShowNotification(true);
-
       setTimeout(() => {
         router.visit("/#ulasan");
       }, 1500);
@@ -173,7 +180,6 @@ export default function Profile() {
       setSelectedImage(file);
       setData('profile_image', file);
       setImageFileName(file.name);
-
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -185,7 +191,6 @@ export default function Profile() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // ✅ DEBUGGING
     console.log('📤 Data yang dikirim:', {
       name: data.name,
       email: data.email,
@@ -201,8 +206,6 @@ export default function Profile() {
         setNotificationType('success');
         setShowNotification(true);
         setTimeout(() => setShowNotification(false), 3000);
-
-        // ✅ Reset preview image
         setSelectedImage(null);
         setPreviewImage(null);
         setImageFileName("No file chosen");
@@ -264,11 +267,12 @@ export default function Profile() {
       router.reload();
     }, 2000);
   };
+
   const handlePaymentAlert = (message) => {
     setNotificationMessage(message);
-    setNotificationType('error'); // Merah untuk urgent
+    setNotificationType('error');
     setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 5000); // 5 detik
+    setTimeout(() => setShowNotification(false), 5000);
   };
 
   return (
@@ -276,82 +280,46 @@ export default function Profile() {
       <Head title="THE ARENA - Profile" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
-        * {
-          font-family: 'Montserrat', sans-serif;
-        }
+        * { font-family: 'Montserrat', sans-serif; }
+
         @keyframes slide-in {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
+
+        @keyframes slide-up {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
-          @keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
 
-@keyframes progress {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
-}
+        @keyframes progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
 
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
-}
         @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
 
-@keyframes pulse-ring {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.5);
-    opacity: 0;
-  }
-}
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-ring {
-  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
+        .animate-slide-in { animation: slide-in 0.3s ease-out; }
+        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-pulse-ring { animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       `}</style>
-      {/* Notification Toast - HARUS ADA INI! */}
+
+      {/* ============ NOTIFICATION TOAST ============ */}
       {showNotification && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
           <div
             className="absolute inset-0 bg-[#013064]/80 backdrop-blur-sm"
             onClick={() => setShowNotification(false)}
           />
-
           <div className="relative bg-white max-w-md w-full animate-slide-in shadow-2xl">
             <div className={`border-t-4 ${notificationType === 'success' ? 'border-green-500' : 'border-red-500'}`}>
               <div className="bg-[#013064] px-6 py-4 flex items-center justify-between">
@@ -361,20 +329,13 @@ export default function Profile() {
                     {notificationType === 'success' ? 'Berhasil!' : 'Perhatian'}
                   </h3>
                 </div>
-                <button
-                  onClick={() => setShowNotification(false)}
-                  className="text-white/70 hover:text-white transition"
-                >
+                <button onClick={() => setShowNotification(false)} className="text-white/70 hover:text-white transition">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <div className="p-6 bg-white">
-                <p className="text-[#013064] text-base leading-relaxed">
-                  {notificationMessage}
-                </p>
+                <p className="text-[#013064] text-base leading-relaxed">{notificationMessage}</p>
               </div>
-
               <div className="h-1 bg-gray-200 overflow-hidden">
                 <div
                   className={`h-full ${notificationType === 'success' ? 'bg-green-500' : 'bg-red-500'}`}
@@ -385,6 +346,7 @@ export default function Profile() {
           </div>
         </div>
       )}
+
       <div className="min-h-screen flex flex-col bg-[#013064]">
         <Navigation activePage="profile" />
 
@@ -396,52 +358,46 @@ export default function Profile() {
             </div>
 
             <div className="grid grid-cols-12 gap-6">
-              {/* Sidebar */}
+
+              {/* ============ SIDEBAR ============ */}
               <div className="col-span-12 lg:col-span-3">
                 <div className="bg-[#024b8a]/40 rounded overflow-hidden">
                   <button
                     onClick={() => setActiveTab('data-profil')}
-                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${activeTab === 'data-profil'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'text-white hover:bg-[#035a9e]'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${
+                      activeTab === 'data-profil' ? 'bg-[#ffd22f] text-[#013064]' : 'text-white hover:bg-[#035a9e]'
+                    }`}
                   >
                     <User className="w-5 h-5" />
                     <span className="font-semibold">Data Profil</span>
                   </button>
-
                   <button
                     onClick={() => setActiveTab('jadwal-booking')}
-                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${activeTab === 'jadwal-booking'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'text-white hover:bg-[#035a9e]'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${
+                      activeTab === 'jadwal-booking' ? 'bg-[#ffd22f] text-[#013064]' : 'text-white hover:bg-[#035a9e]'
+                    }`}
                   >
                     <Calendar className="w-5 h-5" />
                     <span className="font-semibold">Jadwal Booking</span>
                   </button>
-
                   <button
                     onClick={() => setActiveTab('history')}
-                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${activeTab === 'history'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'text-white hover:bg-[#035a9e]'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${
+                      activeTab === 'history' ? 'bg-[#ffd22f] text-[#013064]' : 'text-white hover:bg-[#035a9e]'
+                    }`}
                   >
                     <Video className="w-5 h-5" />
                     <span className="font-semibold">History</span>
                   </button>
                   <button
                     onClick={() => setActiveTab('history-ulasan')}
-                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${activeTab === 'history-ulasan'
-                      ? 'bg-[#ffd22f] text-[#013064]'
-                      : 'text-white hover:bg-[#035a9e]'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-6 py-4 text-left transition ${
+                      activeTab === 'history-ulasan' ? 'bg-[#ffd22f] text-[#013064]' : 'text-white hover:bg-[#035a9e]'
+                    }`}
                   >
                     <Star className="w-5 h-5" />
                     <span className="font-semibold">History Ulasan</span>
                   </button>
-
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-6 py-4 text-left text-white hover:bg-[#035a9e] transition"
@@ -452,13 +408,12 @@ export default function Profile() {
                 </div>
               </div>
 
-
-              {/* Main Content */}
-
+              {/* ============ MAIN CONTENT ============ */}
               <div className="col-span-12 lg:col-span-9">
+
+                {/* ---- TAB: DATA PROFIL ---- */}
                 {activeTab === 'data-profil' && (
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Profile Image Section */}
                     <div className="flex items-start gap-6 mb-8">
                       <div className="flex-shrink-0">
                         <img
@@ -471,39 +426,25 @@ export default function Profile() {
                         <p className="text-gray-300 text-sm mb-3">{imageFileName}</p>
                         <label className="inline-block bg-[#ffd22f] text-[#013064] px-8 py-3 font-bold cursor-pointer hover:bg-[#ffe066] transition">
                           Ubah Gambar Profil
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                          />
+                          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                         </label>
                       </div>
                     </div>
 
-                    {/* Form Fields */}
                     <div className="space-y-5">
-                      {/* NAMA */}
                       <div>
-                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                          Nama
-                        </label>
+                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">Nama</label>
                         <input
                           type="text"
                           value={data.name}
                           onChange={(e) => setData('name', e.target.value)}
                           className="w-full px-4 py-3 bg-white/95 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#ffd22f]"
                         />
-                        {errors.name && (
-                          <p className="text-red-400 text-xs mt-1">{errors.name}</p>
-                        )}
+                        {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                       </div>
 
-                      {/* EMAIL */}
                       <div>
-                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                          Email
-                        </label>
+                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">Email</label>
                         <input
                           type="email"
                           value={data.email}
@@ -511,17 +452,12 @@ export default function Profile() {
                           className="w-full px-4 py-3 bg-white/95 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#ffd22f]"
                           placeholder="email@example.com"
                         />
-                        {errors.email && (
-                          <p className="text-red-400 text-xs mt-1">{errors.email}</p>
-                        )}
+                        {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                       </div>
 
-                      {/* PROVINSI & KOTA */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                            Provinsi
-                          </label>
+                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">Provinsi</label>
                           <select
                             value={data.province}
                             onChange={(e) => setData('province', e.target.value)}
@@ -535,9 +471,7 @@ export default function Profile() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                            Kota
-                          </label>
+                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">Kota</label>
                           <select
                             value={data.city}
                             onChange={(e) => setData('city', e.target.value)}
@@ -551,11 +485,8 @@ export default function Profile() {
                         </div>
                       </div>
 
-                      {/* ALAMAT */}
                       <div>
-                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                          Alamat
-                        </label>
+                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">Alamat</label>
                         <textarea
                           value={data.address}
                           onChange={(e) => setData('address', e.target.value)}
@@ -565,12 +496,9 @@ export default function Profile() {
                         />
                       </div>
 
-                      {/* TELEPON & JENIS KELAMIN */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                            Telepon
-                          </label>
+                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">Telepon</label>
                           <input
                             type="tel"
                             value={data.phone}
@@ -580,9 +508,7 @@ export default function Profile() {
                           />
                         </div>
                         <div>
-                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                            Jenis Kelamin
-                          </label>
+                          <label className="block text-[#ffd22f] text-sm font-medium mb-2">Jenis Kelamin</label>
                           <select
                             value={data.gender}
                             onChange={(e) => setData('gender', e.target.value)}
@@ -595,11 +521,8 @@ export default function Profile() {
                         </div>
                       </div>
 
-                      {/* TANGGAL LAHIR */}
                       <div className="max-w-md">
-                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">
-                          Tanggal Lahir
-                        </label>
+                        <label className="block text-[#ffd22f] text-sm font-medium mb-2">Tanggal Lahir</label>
                         <div className="relative">
                           <input
                             type="date"
@@ -623,8 +546,7 @@ export default function Profile() {
                   </form>
                 )}
 
-
-
+                {/* ---- TAB: JADWAL BOOKING ---- */}
                 {activeTab === 'jadwal-booking' && (
                   <div>
                     <div className="mb-6">
@@ -636,20 +558,16 @@ export default function Profile() {
                       <div className="space-y-4">
                         {upcomingBookings.map((booking, index) => {
                           const isExpired = expiredBookings.has(booking.id);
-
                           return (
                             <div key={booking.id} className={`bg-white rounded-lg p-6 ${isExpired ? 'opacity-50' : ''}`}>
                               <div className="flex justify-between items-start mb-4">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                    <span className="text-2xl font-bold text-[#013064]">
-                                      {index + 1}.
-                                    </span>
+                                    <span className="text-2xl font-bold text-[#013064]">{index + 1}.</span>
                                     <span className={`px-4 py-1.5 rounded text-white text-xs font-black tracking-wider ${getStatusBadge(booking.status_color)}`}>
                                       {isExpired ? 'EXPIRED' : booking.status_label}
                                     </span>
 
-                                    {/* Payment Status Badge */}
                                     {!isExpired && (
                                       <>
                                         {booking.is_paid ? (
@@ -663,7 +581,6 @@ export default function Profile() {
                                               <AlertCircle className="w-3 h-3" />
                                               Belum Bayar
                                             </span>
-                                            {/* ✅ Payment Timer */}
                                             <PaymentTimer
                                               createdAt={booking.created_at}
                                               onExpired={() => handleBookingExpired(booking.id)}
@@ -676,15 +593,10 @@ export default function Profile() {
                                   </div>
                                 </div>
 
-                                {/* Action Buttons */}
                                 {!isExpired && (
                                   <div className="flex gap-2">
                                     {booking.can_pay && (
-                                      <form
-                                        action={`/payment/process/${booking.id}`}
-                                        method="POST"
-                                        className="flex-1 md:flex-none"
-                                      >
+                                      <form action={`/payment/process/${booking.id}`} method="POST" className="flex-1 md:flex-none">
                                         <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')} />
                                         <button
                                           type="submit"
@@ -716,7 +628,6 @@ export default function Profile() {
                                     <p className="font-bold text-lg text-[#013064]">{booking.time_slot}</p>
                                   </div>
                                 </div>
-
                                 <div className="flex items-start gap-3">
                                   <Calendar className="w-5 h-5 text-[#ffd22f] flex-shrink-0 mt-0.5" />
                                   <div className="flex-1">
@@ -724,7 +635,6 @@ export default function Profile() {
                                     <p className="font-bold text-lg text-[#013064]">{booking.booking_date}</p>
                                   </div>
                                 </div>
-
                                 <div className="flex items-start gap-3">
                                   <MapPin className="w-5 h-5 text-[#ffd22f] flex-shrink-0 mt-0.5" />
                                   <div className="flex-1">
@@ -732,7 +642,6 @@ export default function Profile() {
                                     <p className="font-bold text-lg text-[#013064]">{booking.venue_type}</p>
                                   </div>
                                 </div>
-
                                 {booking.bill_no && (
                                   <div className="flex items-start gap-3">
                                     <CreditCard className="w-5 h-5 text-[#ffd22f] flex-shrink-0 mt-0.5" />
@@ -755,9 +664,7 @@ export default function Profile() {
 
                               <div className="mt-4 pt-4 border-t flex justify-between items-center">
                                 <span className="text-gray-600 font-medium">Total Pembayaran</span>
-                                <span className="text-2xl font-bold text-[#013064]">
-                                  Rp. {booking.total_price}
-                                </span>
+                                <span className="text-2xl font-bold text-[#013064]">Rp. {booking.total_price}</span>
                               </div>
                             </div>
                           );
@@ -778,6 +685,7 @@ export default function Profile() {
                   </div>
                 )}
 
+                {/* ---- TAB: HISTORY ---- */}
                 {activeTab === 'history' && (
                   <div>
                     <div className="mb-6">
@@ -787,7 +695,6 @@ export default function Profile() {
 
                     {historyBookings.data && historyBookings.data.length > 0 ? (
                       <div className="space-y-4">
-                        {/* Table View */}
                         <div className="bg-white rounded-lg overflow-hidden">
                           <table className="w-full">
                             <thead>
@@ -800,19 +707,10 @@ export default function Profile() {
                             </thead>
                             <tbody>
                               {historyBookings.data.map((booking, index) => (
-                                <tr
-                                  key={booking.id}
-                                  className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}
-                                >
-                                  <td className="px-6 py-4 text-[#013064] font-medium">
-                                    {index + 1}.
-                                  </td>
-                                  <td className="px-6 py-4 text-[#013064] font-medium">
-                                    {booking.time_slot}
-                                  </td>
-                                  <td className="px-6 py-4 text-[#013064] font-medium">
-                                    {booking.booking_date}
-                                  </td>
+                                <tr key={booking.id} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                  <td className="px-6 py-4 text-[#013064] font-medium">{index + 1}.</td>
+                                  <td className="px-6 py-4 text-[#013064] font-medium">{booking.time_slot}</td>
+                                  <td className="px-6 py-4 text-[#013064] font-medium">{booking.booking_date}</td>
                                   <td className="px-6 py-4">
                                     <span className={`inline-block px-4 py-1.5 rounded text-white text-xs font-black tracking-wider ${getStatusBadge(booking.status_color)}`}>
                                       {booking.status_label}
@@ -824,17 +722,17 @@ export default function Profile() {
                           </table>
                         </div>
 
-                        {/* Pagination */}
                         {historyBookings.last_page > 1 && (
                           <div className="flex justify-center gap-2 mt-6">
                             {Array.from({ length: historyBookings.last_page }, (_, i) => i + 1).map(page => (
                               <Link
                                 key={page}
                                 href={`/profile?page=${page}`}
-                                className={`px-4 py-2 rounded font-semibold transition ${page === historyBookings.current_page
-                                  ? 'bg-[#ffd22f] text-[#013064]'
-                                  : 'bg-white/10 text-white hover:bg-white/20'
-                                  }`}
+                                className={`px-4 py-2 rounded font-semibold transition ${
+                                  page === historyBookings.current_page
+                                    ? 'bg-[#ffd22f] text-[#013064]'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                }`}
                               >
                                 {page}
                               </Link>
@@ -850,6 +748,8 @@ export default function Profile() {
                     )}
                   </div>
                 )}
+
+                {/* ---- TAB: HISTORY ULASAN ---- */}
                 {activeTab === 'history-ulasan' && (
                   <div>
                     <div className="mb-6">
@@ -864,17 +764,16 @@ export default function Profile() {
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-2xl font-bold text-[#013064]">
-                                    {index + 1}.
-                                  </span>
+                                  <span className="text-2xl font-bold text-[#013064]">{index + 1}.</span>
                                   <div className="flex items-center gap-2">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                       <Star
                                         key={star}
-                                        className={`w-5 h-5 ${star <= review.average_rating
-                                          ? 'fill-[#ffd22f] text-[#ffd22f]'
-                                          : 'text-gray-300'
-                                          }`}
+                                        className={`w-5 h-5 ${
+                                          star <= review.average_rating
+                                            ? 'fill-[#ffd22f] text-[#ffd22f]'
+                                            : 'text-gray-300'
+                                        }`}
                                       />
                                     ))}
                                     <span className="text-lg font-bold text-[#013064] ml-2">
@@ -882,9 +781,7 @@ export default function Profile() {
                                     </span>
                                   </div>
                                 </div>
-                                <p className="text-sm text-gray-500">
-                                  {review.created_at}
-                                </p>
+                                <p className="text-sm text-gray-500">{review.created_at}</p>
                               </div>
 
                               {review.is_approved ? (
@@ -906,27 +803,21 @@ export default function Profile() {
                                   <p className="text-xs text-gray-600 mb-1">Fasilitas</p>
                                   <div className="flex items-center justify-center gap-1">
                                     <Star className="w-4 h-4 fill-[#ffd22f] text-[#ffd22f]" />
-                                    <span className="font-bold text-[#013064]">
-                                      {review.rating_facilities}
-                                    </span>
+                                    <span className="font-bold text-[#013064]">{review.rating_facilities}</span>
                                   </div>
                                 </div>
                                 <div className="text-center p-3 bg-gray-50 rounded">
                                   <p className="text-xs text-gray-600 mb-1">Keramahan</p>
                                   <div className="flex items-center justify-center gap-1">
                                     <Star className="w-4 h-4 fill-[#ffd22f] text-[#ffd22f]" />
-                                    <span className="font-bold text-[#013064]">
-                                      {review.rating_hospitality}
-                                    </span>
+                                    <span className="font-bold text-[#013064]">{review.rating_hospitality}</span>
                                   </div>
                                 </div>
                                 <div className="text-center p-3 bg-gray-50 rounded">
                                   <p className="text-xs text-gray-600 mb-1">Kebersihan</p>
                                   <div className="flex items-center justify-center gap-1">
                                     <Star className="w-4 h-4 fill-[#ffd22f] text-[#ffd22f]" />
-                                    <span className="font-bold text-[#013064]">
-                                      {review.rating_cleanliness}
-                                    </span>
+                                    <span className="font-bold text-[#013064]">{review.rating_cleanliness}</span>
                                   </div>
                                 </div>
                               </div>
@@ -978,38 +869,88 @@ export default function Profile() {
         </main>
 
         <Footer />
+
+        {/* ============ FLOATING WA BUTTON ============ */}
         <a
-  href="https://wa.me/6281222977985"
-  target="_blank"
-  rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-50 group"
-  aria-label="Chat WhatsApp"
->
-  {/* Pulse Ring Effect */}
-  <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
-  
-  {/* Main Button */}
-  <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
-    <img
-      src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
-      alt="WhatsApp"
-      className="w-8 h-8 md:w-9 md:h-9"
-    />
-  </div>
-  
-  {/* Tooltip */}
-  <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-    <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
-      Chat dengan Kami
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
-        <div className="border-8 border-transparent border-l-gray-900"></div>
-      </div>
-    </div>
-  </div>
-</a>
+          href="https://wa.me/6281222977985"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 group"
+          aria-label="Chat WhatsApp"
+        >
+          <div className="absolute inset-0 bg-[#25D366] rounded-full animate-pulse-ring"></div>
+          <div className="relative bg-[#25D366] hover:bg-[#20BA5A] w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 animate-float">
+            <img
+              src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
+              alt="WhatsApp"
+              className="w-8 h-8 md:w-9 md:h-9"
+            />
+          </div>
+          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow-xl">
+              Chat dengan Kami
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
+                <div className="border-8 border-transparent border-l-gray-900"></div>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        {/* ============ ✅ NOTIF BUKTI PEMBAYARAN WA ============ */}
+        {whatsappUrl && (
+          <div
+            className="fixed bottom-24 right-4 z-50 animate-slide-up"
+            style={{ maxWidth: '320px', width: 'calc(100% - 2rem)' }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+              {/* Header */}
+              <div className="bg-[#013064] px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" />
+                  <span className="text-white font-bold text-sm">Pembayaran Berhasil! 🎉</span>
+                </div>
+                <button
+                  onClick={() => setWhatsappUrl(null)}
+                  className="text-white/60 hover:text-white transition ml-2 flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-4 py-4">
+                <p className="text-gray-600 text-xs mb-4 leading-relaxed">
+                  Booking Anda sudah dikonfirmasi. Kirim bukti pembayaran ke WhatsApp admin kami ya!
+                </p>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setTimeout(() => setWhatsappUrl(null), 1000)}
+                  className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20BA5A] text-white py-3 rounded-xl font-bold text-sm transition shadow-md"
+                >
+                  <img
+                    src="/images/whatsapp-symbol-logo-svgrepo-com.svg"
+                    alt="WA"
+                    className="w-5 h-5"
+                  />
+                  Kirim Bukti ke WhatsApp
+                </a>
+              </div>
+
+              {/* Progress bar 15 detik */}
+              <div className="h-1 bg-gray-100">
+                <div
+                  className="h-full bg-[#25D366]"
+                  style={{ animation: 'progress 15s linear forwards' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Logout Confirmation Modal */}
+      {/* ============ MODAL: LOGOUT ============ */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -1033,7 +974,7 @@ export default function Profile() {
         </div>
       )}
 
-      {/* 2️⃣ ✅ TAMBAHKAN MODAL INI DI SINI - Payment Checking Modal */}
+      {/* ============ MODAL: PAYMENT CHECK ============ */}
       {showPaymentCheckModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-8 text-center">
@@ -1041,18 +982,13 @@ export default function Profile() {
               <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[#ffd22f] mx-auto"></div>
             </div>
             <h3 className="text-xl font-bold text-[#013064] mb-2">Mengecek Status Pembayaran</h3>
-            <p className="text-gray-600 mb-4">
-              Sedang memverifikasi pembayaran Anda...
-            </p>
-            <p className="text-sm text-gray-500">
-              Bill No: {checkingBillNo}
-            </p>
+            <p className="text-gray-600 mb-4">Sedang memverifikasi pembayaran Anda...</p>
+            <p className="text-sm text-gray-500">Bill No: {checkingBillNo}</p>
           </div>
         </div>
       )}
 
-
-      {/* Cancel Booking Modal */}
+      {/* ============ MODAL: CANCEL BOOKING ============ */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">

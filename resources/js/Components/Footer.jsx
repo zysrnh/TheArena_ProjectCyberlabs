@@ -61,7 +61,7 @@ export default function Footer() {
                     FAQ
                   </button>
                 </li>
-                <li><Link href="/jadwal-hasil" className="hover:underline">Jadwal</Link></li>
+                <li><Link href="/jadwal-hasil" className="hover:underline">Pertandingan</Link></li>
                 <li><Link href="/siaran-langsung" className="hover:underline">Siaran Langsung</Link></li>
                 <li><Link href="/" className="hover:underline">Partner dan Sponsor</Link></li>
               </ul>

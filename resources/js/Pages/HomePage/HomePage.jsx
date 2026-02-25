@@ -1028,13 +1028,13 @@ export default function HomePage() {
                             }}
                           />
                           <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                            {match.team1.name}
-                          </p>
-                          {match.team1.category && (
-                            <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
-                              {match.team1.category.name}
-                            </p>
-                          )}
+    {match.team1.name}{match.team1.division ? ` ${match.team1.division}` : ''}
+</p>
+{match.team1.category && (
+    <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
+        {match.team1.category.name}
+    </p>
+)}
                         </div>
 
                         {/* Match Info */}
@@ -1043,6 +1043,7 @@ export default function HomePage() {
                           <p className="text-sm md:text-base font-bold text-gray-800 mb-2 text-center">
                             {match.league}
                           </p>
+                          
 
                           {/* Status Badge */}
                           <div className="mb-1.5">
@@ -1090,8 +1091,8 @@ export default function HomePage() {
                             }}
                           />
                           <p className="text-xs md:text-sm font-bold text-[#013064] text-center px-2">
-                            {match.team2.name}
-                          </p>
+    {match.team2.name}{match.team2.division ? ` ${match.team2.division}` : ''}
+</p>
                           {match.team2.category && (
                             <p className="text-[10px] md:text-xs text-gray-600 text-center mt-1">
                               {match.team2.category.name}
@@ -1600,7 +1601,7 @@ export default function HomePage() {
                      hover:bg-[#014a8f] transition-colors duration-300 mt-auto
                      font-medium sm:font-normal"
         >
-          Register Now
+          Tonton Sekarang
         </button>
       </div>
     </div>

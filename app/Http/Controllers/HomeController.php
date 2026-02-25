@@ -57,7 +57,8 @@ class HomeController extends Controller
                 });
 
             $filter = $request->get('filter', 'all');
-            $query = Game::with(['team1', 'team2', 'team1Category', 'team2Category']);
+           $query = Game::with(['team1', 'team2', 'category']);
+
 
             if ($filter === 'live') {
                 $query->where('status', 'live');
@@ -87,21 +88,23 @@ class HomeController extends Controller
                     return [
                         'id' => $game->id,
                         'team1' => [
-                            'name' => $game->team1->name ?? 'Team 1',
-                            'logo' => $team1Logo,
-                            'category' => $game->team1Category ? [
-                                'name' => $game->team1Category->category_name,
-                                'age_group' => $game->team1Category->age_group
-                            ] : null
-                        ],
-                        'team2' => [
-                            'name' => $game->team2->name ?? 'Team 2',
-                            'logo' => $team2Logo,
-                            'category' => $game->team2Category ? [
-                                'name' => $game->team2Category->category_name,
-                                'age_group' => $game->team2Category->age_group
-                            ] : null
-                        ],
+    'name'     => $game->team1->name ?? 'Team 1',
+    'division' => $game->team1_division,
+    'logo'     => $team1Logo,
+    'category' => $game->category ? [
+        'name'      => $game->category->category_name,
+        'age_group' => $game->category->age_group
+    ] : null
+],
+'team2' => [
+    'name'     => $game->team2->name ?? 'Team 2',
+    'division' => $game->team2_division,
+    'logo'     => $team2Logo,
+    'category' => $game->category ? [
+        'name'      => $game->category->category_name,
+        'age_group' => $game->category->age_group
+    ] : null
+],
                         'type' => $type,
                         'league' => $game->league ?? 'League',
                         'day' => $game->date->locale('id')->isoFormat('dddd'),

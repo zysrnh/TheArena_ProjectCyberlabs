@@ -109,7 +109,7 @@ class MatchController extends Controller
                 $todayInDates = collect($dates)->firstWhere('is_today', true);
                 $selectedDate = $todayInDates ? $todayInDates['full_date'] : $dates[0]['full_date'];
             } else {
-                $firstDateWithMatch = collect($dates)->firstWhere(function($date) {
+                $firstDateWithMatch = collect($dates)->firstWhere(function ($date) {
                     return $date['matches'] > 0;
                 });
                 $selectedDate = $firstDateWithMatch ? $firstDateWithMatch['full_date'] : $dates[0]['full_date'];
@@ -127,7 +127,8 @@ class MatchController extends Controller
         ];
 
         // ✅ Query matches dengan filter yang SAMA
-        $matchesQuery = Game::with(['team1', 'team2', 'team1Category', 'team2Category']);
+        $matchesQuery = Game::with(['team1', 'team2', 'category']);
+
 
         if ($selectedYear !== '' && $selectedYear !== null) {
             $matchesQuery->whereYear('date', $selectedYear);
@@ -176,21 +177,23 @@ class MatchController extends Controller
                     'time' => $match->formatted_time,
                     'venue' => $match->venue,
                     'team1' => [
-                        'name' => $match->team1->name,
-                        'logo' => $team1Logo,
-                        'category' => $match->team1Category ? [
-                            'name' => $match->team1Category->category_name,
-                            'age_group' => $match->team1Category->age_group
-                        ] : null
-                    ],
-                    'team2' => [
-                        'name' => $match->team2->name,
-                        'logo' => $team2Logo,
-                        'category' => $match->team2Category ? [
-                            'name' => $match->team2Category->category_name,
-                            'age_group' => $match->team2Category->age_group
-                        ] : null
-                    ],
+    'name' => $match->team1->name,
+    'division' => $match->team1_division,
+    'logo' => $team1Logo,
+    'category' => $match->category ? [
+        'name' => $match->category->category_name,
+        'age_group' => $match->category->age_group
+    ] : null
+],
+'team2' => [
+    'name' => $match->team2->name,
+    'division' => $match->team2_division,
+    'logo' => $team2Logo,
+    'category' => $match->category ? [
+        'name' => $match->category->category_name,
+        'age_group' => $match->category->age_group
+    ] : null
+],
                     'score' => $match->score
                 ];
             });
@@ -280,13 +283,8 @@ class MatchController extends Controller
     {
         Carbon::setLocale('id');
 
-        $match = Game::with([
-            'team1',
-            'team2',
-            'team1Category',
-            'team2Category',
-            'playerStats.player'
-        ])->findOrFail($id);
+        $match = Game::with(['team1', 'team2', 'category', 'playerStats.player'])
+            ->findOrFail($id);
 
         $quartersRaw = $match->quarters;
 
@@ -406,30 +404,32 @@ class MatchController extends Controller
             'venue' => $match->venue,
             'status' => $match->status,
             'team1' => [
-                'id' => $match->team1->id,
-                'name' => $match->team1->name,
-                'logo' => $this->normalizeLogoPath($match->team1->logo, $match->team1->name),
-                'category' => $match->team1Category ? [
-                    'name' => $match->team1Category->category_name,
-                    'age_group' => $match->team1Category->age_group
-                ] : null
-            ],
-            'team2' => [
-                'id' => $match->team2->id,
-                'name' => $match->team2->name,
-                'logo' => $this->normalizeLogoPath($match->team2->logo, $match->team2->name),
-                'category' => $match->team2Category ? [
-                    'name' => $match->team2Category->category_name,
-                    'age_group' => $match->team2Category->age_group
-                ] : null
-            ],
+    'id' => $match->team1->id,
+    'name' => $match->team1->name,
+    'division' => $match->team1_division,
+    'logo' => $this->normalizeLogoPath($match->team1->logo, $match->team1->name),
+    'category' => $match->category ? [
+        'name' => $match->category->category_name,
+        'age_group' => $match->category->age_group
+    ] : null
+],
+'team2' => [
+    'id' => $match->team2->id,
+    'name' => $match->team2->name,
+    'division' => $match->team2_division,
+    'logo' => $this->normalizeLogoPath($match->team2->logo, $match->team2->name),
+    'category' => $match->category ? [
+        'name' => $match->category->category_name,
+        'age_group' => $match->category->age_group
+    ] : null
+],
             'score' => $calculatedScore ?? $match->score,
             'quarters' => $quarters,
             'stats' => $stats,
-            'boxScoreTeam1' => $match->boxScoreTeam1(),
-            'boxScoreTeam2' => $match->boxScoreTeam2(),
+            'boxScoreTeam1' => $match->boxScoreTeam1()->values()->toArray(),
+            'boxScoreTeam2' => $match->boxScoreTeam2()->values()->toArray(),
         ];
-        
+
         return Inertia::render('MatchPage/MatchDetail', [
             'auth' => [
                 'client' => auth('client')->user()
