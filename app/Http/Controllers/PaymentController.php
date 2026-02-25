@@ -347,7 +347,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅ Return URL (user kembali dari Faspay) - WITH WHATSAPP REDIRECT
+     * ✅✅✅ Return URL (user kembali dari Faspay) - FIXED WITH WHATSAPP NOTIFICATION
      */
     public function return(Request $request)
     {
@@ -426,7 +426,7 @@ class PaymentController extends Controller
             ]);
 
             if ($isPaid) {
-                // ✅ BUILD WHATSAPP MESSAGE
+                // ✅✅✅ BUILD WHATSAPP MESSAGE
                 $client      = $booking->client;
                 $bookingDate = $booking->booking_date->format('d/m/Y');
 
@@ -453,9 +453,20 @@ class PaymentController extends Controller
 
                 $whatsappUrl = "https://wa.me/6281222977985?text=" . urlencode($message);
 
-                return redirect()->route('profile', ['tab' => 'jadwal-booking'])
-                    ->with('success', '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.')
-                    ->with('whatsapp_url', $whatsappUrl);
+                Log::info('✅✅✅ PAYMENT SUCCESS - Redirecting with WhatsApp URL', [
+                    'bill_no' => $booking->bill_no,
+                    'whatsapp_url' => $whatsappUrl,
+                ]);
+
+                // ✅✅✅ PERBAIKAN: Set session dengan benar & tambah flag
+                return redirect()
+                    ->route('profile', ['tab' => 'jadwal-booking'])
+                    ->with([
+                        'success' => '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.',
+                        'whatsapp_url' => $whatsappUrl,
+                        'show_whatsapp' => true,  // ✅ Flag tambahan
+                        'bill_no' => $booking->bill_no, // ✅ Untuk debugging
+                    ]);
             }
 
             return redirect()->route('profile', ['tab' => 'jadwal-booking'])
