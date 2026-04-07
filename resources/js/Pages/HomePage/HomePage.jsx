@@ -6,6 +6,44 @@ import Navigation from "../../Components/Navigation";
 import Footer from "../../Components/Footer";
 import Contact from '../../Components/Contact';
 
+const lapanganImages = [
+  "/images/HomePage/Lapangan/1CibadakA.jpg",
+  "/images/HomePage/Lapangan/1CibadakB.jpg",
+  "/images/HomePage/Lapangan/1PvjA.jpg",
+  "/images/HomePage/Lapangan/1Urban.jpg",
+  "/images/HomePage/Lapangan/2CibadakA.jpg",
+  "/images/HomePage/Lapangan/2CibadakB.jpg",
+  "/images/HomePage/Lapangan/2PvjB.jpg",
+  "/images/HomePage/Lapangan/2Urban.jpg",
+  "/images/HomePage/Lapangan/3CibadakA.jpg",
+  "/images/HomePage/Lapangan/3CibadakB.jpg",
+  "/images/HomePage/Lapangan/3PVjB.jpg",
+  "/images/HomePage/Lapangan/3Urban.jpg"
+];
+
+const alatImages = [
+  "/images/HomePage/Alat/Bola1.jpg",
+  "/images/HomePage/Alat/Bola2.jpg",
+  "/images/HomePage/Alat/Bola3.jpg",
+  "/images/HomePage/Alat/Ring1.jpg",
+  "/images/HomePage/Alat/Ring2.jpg",
+  "/images/HomePage/Alat/Ring3.jpg",
+  "/images/HomePage/Alat/Scoreboard1.jpg",
+  "/images/HomePage/Alat/Scoreboard2.jpg",
+  "/images/HomePage/Alat/Scoreboard3.jpg",
+  "/images/HomePage/Alat/Shotclock.jpg",
+  "/images/HomePage/Alat/Shotclock2.jpg",
+  "/images/HomePage/Alat/Shotclock4.jpg"
+];
+
+const eventImages = [
+  "/images/HomePage/Event/1223.jpg",
+  "/images/HomePage/Event/DSC_0004-2.jpg",
+  "/images/HomePage/Event/DSC_0083.jpg",
+  "/images/HomePage/Event/ILK_0312.jpg",
+  "/images/HomePage/Event/JRP_3002.JPG"
+];
+
 export default function HomePage() {
   // Destructure props dengan default values
   const {
@@ -39,8 +77,51 @@ export default function HomePage() {
   const [notification, setNotification] = useState(null);
   const [currentReviewPage, setCurrentReviewPage] = useState(0);
   const [showEventNotifPopup, setShowEventNotifPopup] = useState(false);
+  const [currentLapanganImgIndex, setCurrentLapanganImgIndex] = useState(0);
+  const [currentAlatImgIndex, setCurrentAlatImgIndex] = useState(0);
+  const [currentEventImgIndex, setCurrentEventImgIndex] = useState(0);
 
+  // ✅ USEEFFECT AUTO-RANDOM EVENT IMAGE
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentEventImgIndex((prev) => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * eventImages.length);
+        } while (newIndex === prev);
+        return newIndex;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
+  // ✅ USEEFFECT AUTO-RANDOM ALAT IMAGE
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentAlatImgIndex((prev) => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * alatImages.length);
+        } while (newIndex === prev);
+        return newIndex;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ✅ USEEFFECT AUTO-RANDOM LAPANGAN IMAGE
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentLapanganImgIndex((prev) => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * lapanganImages.length);
+        } while (newIndex === prev);
+        return newIndex;
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // ✅ USEEFFECT AUTO-SLIDE REVIEW CAROUSEL
   useEffect(() => {
@@ -276,6 +357,15 @@ export default function HomePage() {
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
+
+  // ✅ USEEFFECT AUTO-SLIDE HERO CAROUSEL
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [currentSlide, slides.length]);
 
   const handleLogout = () => {
     if (confirm('Apakah Anda yakin ingin keluar?')) {
@@ -587,9 +677,10 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2">
             <div className="relative h-full min-h-[300px] md:min-h-[400px]">
               <img
-                src="/images/Lapangan/THE.jpg" // ✅ GANTI JADI INI
+                key={lapanganImages[currentLapanganImgIndex]}
+                src={lapanganImages[currentLapanganImgIndex]}
                 alt="Basketball Court"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover animate-fade-in"
               />
             </div>
 
@@ -633,9 +724,10 @@ export default function HomePage() {
 
             <div className="relative h-full min-h-[300px] md:min-h-[400px] order-1 md:order-2">
               <img
-                src="/images/PenyewaanBola.jpg" // ✅ GANTI JADI INI
-                alt="Basketball Court"
-                className="w-full h-full object-cover"
+                key={alatImages[currentAlatImgIndex]}
+                src={alatImages[currentAlatImgIndex]}
+                alt="Alat Basket"
+                className="w-full h-full object-cover animate-fade-in"
               />
             </div>
           </div>
@@ -644,9 +736,10 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2">
             <div className="relative h-full min-h-[300px] md:min-h-[400px]">
               <img
-                src="/images/Lapangan/CROWD.jpg" // ✅ GANTI JADI INI
-                alt="Basketball Court"
-                className="w-full h-full object-cover"
+                key={eventImages[currentEventImgIndex]}
+                src={eventImages[currentEventImgIndex]}
+                alt="Event Basketball"
+                className="w-full h-full object-cover animate-fade-in"
               />
             </div>
 

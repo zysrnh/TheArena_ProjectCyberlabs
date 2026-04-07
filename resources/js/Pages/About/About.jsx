@@ -211,8 +211,12 @@ const handleRegisterEvent = () => {
         <Navigation activePage="tentang" />
 
         {/* Hero Title Section - DYNAMIC */}
-        <div className="bg-[#013064] py-12 md:py-16 lg:py-20 px-4 md:px-8 lg:px-16">
-          <div className="max-w-7xl mx-auto">
+        <div className="relative py-12 md:py-16 lg:py-20 px-4 md:px-8 lg:px-16 bg-[#013064] overflow-hidden">
+          <div 
+            className="absolute inset-0 z-0 opacity-20 bg-cover bg-center"
+            style={{ backgroundImage: `url('/images/klara-kulikova-uJ8EkPM6mDQ-unsplash.jpg')` }}
+          />
+          <div className="max-w-7xl mx-auto relative z-10">
             <p className="text-[#ffd22f] text-lg md:text-xl lg:text-2xl font-semibold mb-3 md:mb-4">
               {aboutData?.hero?.subtitle || 'Tentang'}
             </p>
