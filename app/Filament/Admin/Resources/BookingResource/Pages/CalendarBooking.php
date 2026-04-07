@@ -34,6 +34,7 @@ class CalendarBooking extends Page
 
     public function mount(): void
     {
+        // ✅ Cancel hanya sekali saat halaman pertama dibuka
         $this->cancelExpiredPendingBookings();
         if (!$this->startDate) $this->startDate = Carbon::today()->format('Y-m-d');
         if (!$this->endDate) $this->endDate = Carbon::today()->addDays(6)->format('Y-m-d');
@@ -43,7 +44,8 @@ class CalendarBooking extends Page
     private function cancelExpiredPendingBookings()
     {
         try {
-            $expirationTime = Carbon::now()->subMinutes(10);
+            // ✅ Naikin dari 10 menit ke 60 menit
+            $expirationTime = Carbon::now()->subMinutes(60);
             $expiredBookings = Booking::where('payment_status', 'pending')
                 ->where('status', 'pending')
                 ->where('booking_type', '!=', 'manual')
@@ -66,13 +68,8 @@ class CalendarBooking extends Page
         }
     }
 
-    /**
-     * ✅ EXPORT TO EXCEL - Format Matrix dengan Border & Warna
-     */
     public function exportToCSV()
     {
-        $this->cancelExpiredPendingBookings();
-        
         $fileName = 'laporan-matrix-booking-' . Carbon::parse($this->startDate)->format('d-M-Y') . 
                     '-sd-' . Carbon::parse($this->endDate)->format('d-M-Y') . '.xlsx';
 
@@ -85,15 +82,12 @@ class CalendarBooking extends Page
         
         $currentRow = 1;
         
-        // Jika filter per venue
         if ($this->selectedVenue !== 'all') {
             $currentRow = $this->exportSingleVenueToSheet($sheet, $startDate, $endDate, $timeSlots, $currentRow);
         } else {
-            // Export semua venue
             $currentRow = $this->exportAllVenuesToSheet($sheet, $startDate, $endDate, $timeSlots, $currentRow);
         }
 
-        // Auto-size columns
         $highestColumn = $sheet->getHighestColumn();
         $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
         for ($i = 1; $i <= $highestColumnIndex; $i++) {
@@ -108,9 +102,6 @@ class CalendarBooking extends Page
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
-    /**
-     * Export single venue dalam format matrix dengan styling
-     */
     private function exportSingleVenueToSheet($sheet, $startDate, $endDate, $timeSlots, $startRow)
     {
         $venueName = match($this->selectedVenue) {
@@ -122,19 +113,10 @@ class CalendarBooking extends Page
         };
 
         $currentRow = $startRow;
-        
-        // Hitung jumlah kolom (1 untuk WAKTU + jumlah hari)
         $totalDays = $endDate->diffInDays($startDate) + 1;
-        $totalColumns = $totalDays + 1; // +1 for WAKTU column
-        
-        // Validate minimum columns
-        if ($totalColumns < 2) {
-            $totalColumns = 2; // Minimum 2 columns (WAKTU + at least 1 date)
-        }
-        
+        $totalColumns = max($totalDays + 1, 2);
         $lastColumn = $this->getColumnLetter($totalColumns);
         
-        // Header venue dengan styling
         $sheet->setCellValue('A' . $currentRow, $venueName);
         $sheet->mergeCells('A' . $currentRow . ':' . $lastColumn . $currentRow);
         $sheet->getStyle('A' . $currentRow)->applyFromArray([
@@ -145,7 +127,6 @@ class CalendarBooking extends Page
         $sheet->getRowDimension($currentRow)->setRowHeight(30);
         $currentRow += 2;
         
-        // Header tanggal
         $col = 1;
         $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, 'WAKTU', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
         
@@ -155,7 +136,6 @@ class CalendarBooking extends Page
             $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $dateStr, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
         }
         
-        // Styling header tanggal
         $headerRange = 'A' . $currentRow . ':' . $this->getColumnLetter($col) . $currentRow;
         $sheet->getStyle($headerRange)->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -166,53 +146,27 @@ class CalendarBooking extends Page
         $sheet->getRowDimension($currentRow)->setRowHeight(25);
         $currentRow++;
         
-        // Isi data per time slot
         foreach ($timeSlots as $slot) {
             $col = 1;
             $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $slot, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
                 $col++;
-                $bookings = $this->getBookingsForDateTimeVenue(
-                    $date->format('Y-m-d'), 
-                    $slot, 
-                    $this->selectedVenue
-                );
+                $bookings = $this->getBookingsForDateTimeVenue($date->format('Y-m-d'), $slot, $this->selectedVenue);
                 
                 $cellValue = '';
                 $cellColor = null;
-                $textColor = '000000'; // Default black text
+                $textColor = '000000';
                 
                 if ($bookings->isNotEmpty()) {
-                    $names = $bookings->map(function($booking) {
-                        return $this->extractCustomerName($booking);
-                    })->join(', ');
-                    $cellValue = $names;
-                    
-                    // Determine color based on first booking type
-                    $firstBooking = $bookings->first();
-                    $bookingType = $this->determineBookingType($firstBooking);
-                    
-                    // Set colors based on booking type
-                    if ($bookingType === 'recurring' || $bookingType === 'member_manual') {
-                        $cellColor = 'ea580c'; // Orange for Member
-                        $textColor = 'FFFFFF'; // White text
-                    } elseif ($bookingType === 'pending') {
-                        $cellColor = 'ec4899'; // Pink for Pending
-                        $textColor = 'FFFFFF'; // White text
-                    } elseif ($bookingType === 'manual') {
-                        $cellColor = 'FFD22F'; // Yellow for Manual
-                        $textColor = '1e293b'; // Dark text
-                    } else {
-                        $cellColor = '059669'; // Green for Paid/Lunas
-                        $textColor = 'FFFFFF'; // White text
-                    }
+                    $cellValue = $bookings->map(fn($b) => $this->extractCustomerName($b))->join(', ');
+                    $bookingType = $this->determineBookingType($bookings->first());
+                    [$cellColor, $textColor] = $this->getColorByType($bookingType);
                 }
                 
                 $cellAddress = $this->getColumnLetter($col) . $currentRow;
                 $sheet->setCellValueExplicit($cellAddress, $cellValue, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 
-                // Apply color if booking exists
                 if ($cellColor) {
                     $sheet->getStyle($cellAddress)->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cellColor]],
@@ -221,14 +175,11 @@ class CalendarBooking extends Page
                 }
             }
             
-            // Styling data row
             $dataRange = 'A' . $currentRow . ':' . $this->getColumnLetter($col) . $currentRow;
             $sheet->getStyle($dataRange)->applyFromArray([
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
                 'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
             ]);
-            
-            // Bold untuk kolom waktu
             $sheet->getStyle('A' . $currentRow)->applyFromArray([
                 'font' => ['bold' => true],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
@@ -240,9 +191,6 @@ class CalendarBooking extends Page
         return $currentRow + 2;
     }
 
-    /**
-     * Export semua venue dalam format matrix terpisah dengan styling
-     */
     private function exportAllVenuesToSheet($sheet, $startDate, $endDate, $timeSlots, $startRow)
     {
         $venues = [
@@ -253,20 +201,11 @@ class CalendarBooking extends Page
         ];
 
         $currentRow = $startRow;
-        
-        // Hitung jumlah kolom (1 untuk WAKTU + jumlah hari)
         $totalDays = $endDate->diffInDays($startDate) + 1;
-        $totalColumns = $totalDays + 1; // +1 for WAKTU column
-        
-        // Validate minimum columns
-        if ($totalColumns < 2) {
-            $totalColumns = 2; // Minimum 2 columns
-        }
-        
+        $totalColumns = max($totalDays + 1, 2);
         $lastColumn = $this->getColumnLetter($totalColumns);
 
         foreach ($venues as $venueKey => $venueName) {
-            // Header venue
             $sheet->setCellValueExplicit('A' . $currentRow, $venueName, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $sheet->mergeCells('A' . $currentRow . ':' . $lastColumn . $currentRow);
             $sheet->getStyle('A' . $currentRow)->applyFromArray([
@@ -277,7 +216,6 @@ class CalendarBooking extends Page
             $sheet->getRowDimension($currentRow)->setRowHeight(30);
             $currentRow += 2;
             
-            // Header tanggal
             $col = 1;
             $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, 'WAKTU', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             
@@ -287,7 +225,6 @@ class CalendarBooking extends Page
                 $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $dateStr, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             }
             
-            // Styling header tanggal
             $headerRange = 'A' . $currentRow . ':' . $this->getColumnLetter($col) . $currentRow;
             $sheet->getStyle($headerRange)->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -298,53 +235,27 @@ class CalendarBooking extends Page
             $sheet->getRowDimension($currentRow)->setRowHeight(25);
             $currentRow++;
             
-            // Isi data per time slot
             foreach ($timeSlots as $slot) {
                 $col = 1;
                 $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $slot, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 
                 for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
                     $col++;
-                    $bookings = $this->getBookingsForDateTimeVenue(
-                        $date->format('Y-m-d'), 
-                        $slot, 
-                        $venueKey
-                    );
+                    $bookings = $this->getBookingsForDateTimeVenue($date->format('Y-m-d'), $slot, $venueKey);
                     
                     $cellValue = '';
                     $cellColor = null;
-                    $textColor = '000000'; // Default black text
+                    $textColor = '000000';
                     
                     if ($bookings->isNotEmpty()) {
-                        $names = $bookings->map(function($booking) {
-                            return $this->extractCustomerName($booking);
-                        })->join(', ');
-                        $cellValue = $names;
-                        
-                        // Determine color based on first booking type
-                        $firstBooking = $bookings->first();
-                        $bookingType = $this->determineBookingType($firstBooking);
-                        
-                        // Set colors based on booking type
-                        if ($bookingType === 'recurring' || $bookingType === 'member_manual') {
-                            $cellColor = 'ea580c'; // Orange for Member
-                            $textColor = 'FFFFFF'; // White text
-                        } elseif ($bookingType === 'pending') {
-                            $cellColor = 'ec4899'; // Pink for Pending
-                            $textColor = 'FFFFFF'; // White text
-                        } elseif ($bookingType === 'manual') {
-                            $cellColor = 'FFD22F'; // Yellow for Manual
-                            $textColor = '1e293b'; // Dark text
-                        } else {
-                            $cellColor = '059669'; // Green for Paid/Lunas
-                            $textColor = 'FFFFFF'; // White text
-                        }
+                        $cellValue = $bookings->map(fn($b) => $this->extractCustomerName($b))->join(', ');
+                        $bookingType = $this->determineBookingType($bookings->first());
+                        [$cellColor, $textColor] = $this->getColorByType($bookingType);
                     }
                     
                     $cellAddress = $this->getColumnLetter($col) . $currentRow;
                     $sheet->setCellValueExplicit($cellAddress, $cellValue, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     
-                    // Apply color if booking exists
                     if ($cellColor) {
                         $sheet->getStyle($cellAddress)->applyFromArray([
                             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $cellColor]],
@@ -353,14 +264,11 @@ class CalendarBooking extends Page
                     }
                 }
                 
-                // Styling data row
                 $dataRange = 'A' . $currentRow . ':' . $this->getColumnLetter($col) . $currentRow;
                 $sheet->getStyle($dataRange)->applyFromArray([
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
                     'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
                 ]);
-                
-                // Bold untuk kolom waktu
                 $sheet->getStyle('A' . $currentRow)->applyFromArray([
                     'font' => ['bold' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
@@ -369,71 +277,14 @@ class CalendarBooking extends Page
                 $currentRow++;
             }
             
-            // Spacing antar venue
             $currentRow += 2;
         }
         
         return $currentRow;
     }
 
-    /**
-     * Helper function untuk convert nomor kolom ke huruf
-     */
-    private function getColumnLetter($columnNumber)
-    {
-        $letter = '';
-        while ($columnNumber > 0) {
-            $columnNumber--;
-            $letter = chr($columnNumber % 26 + 65) . $letter;
-            $columnNumber = intdiv($columnNumber, 26);
-        }
-        return $letter;
-    }
-
-    /**
-     * Get bookings untuk tanggal, waktu, dan venue tertentu
-     */
-    private function getBookingsForDateTimeVenue($date, $timeSlot, $venue)
-    {
-        $bookings = DB::table('bookings')
-            ->leftJoin('clients', 'bookings.client_id', '=', 'clients.id')
-            ->where('bookings.booking_date', $date)
-            ->where('bookings.venue_type', $venue)
-            ->whereNotIn('bookings.status', ['cancelled'])
-            ->select(
-                'bookings.id',
-                'bookings.time_slots',
-                'bookings.venue_type',
-                'bookings.total_price',
-                'bookings.payment_status',
-                'bookings.status',
-                'bookings.is_paid',
-                'bookings.notes',
-                'bookings.booking_type',
-                'clients.name as client_name'
-            )
-            ->get();
-
-        return $bookings->filter(function($booking) use ($timeSlot) {
-            $timeSlots = json_decode($booking->time_slots, true);
-            if (is_array($timeSlots)) {
-                foreach ($timeSlots as $slot) {
-                    if (($slot['time'] ?? null) === $timeSlot) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        });
-    }
-
-    /**
-     * ✅ EXPORT TO EXCEL DENGAN PEMISAHAN WARNA (Alternative - Detailed Report)
-     */
     public function exportToCSVByColor()
     {
-        $this->cancelExpiredPendingBookings();
-        
         $fileName = 'laporan-booking-by-color-' . Carbon::parse($this->startDate)->format('d-M-Y') . 
                     '-sd-' . Carbon::parse($this->endDate)->format('d-M-Y') . '.xlsx';
 
@@ -443,11 +294,10 @@ class CalendarBooking extends Page
         $startDate = Carbon::parse($this->startDate);
         $endDate = Carbon::parse($this->endDate);
 
-        // Group by category
         $categories = [
-            'paid' => ['label' => 'LUNAS (Hijau)', 'color' => '059669', 'data' => []],
-            'pending' => ['label' => 'PENDING (Pink)', 'color' => 'ec4899', 'data' => []],
-            'manual' => ['label' => 'MANUAL (Kuning)', 'color' => 'FFD22F', 'data' => []],
+            'paid'      => ['label' => 'LUNAS (Hijau)',   'color' => '059669', 'data' => []],
+            'pending'   => ['label' => 'PENDING (Pink)',  'color' => 'ec4899', 'data' => []],
+            'manual'    => ['label' => 'MANUAL (Kuning)', 'color' => 'FFD22F', 'data' => []],
             'recurring' => ['label' => 'MEMBER (Oranye)', 'color' => 'ea580c', 'data' => []],
         ];
 
@@ -499,8 +349,7 @@ class CalendarBooking extends Page
                                 'pending' => 'Pending',
                                 'paid' => 'Lunas',
                                 'manual' => 'Manual',
-                                'recurring' => 'Member',
-                                'member_manual' => 'Member',
+                                'recurring', 'member_manual' => 'Member',
                                 default => 'Lunas'
                             };
                             
@@ -512,37 +361,35 @@ class CalendarBooking extends Page
                                 default => 'Booking Biasa'
                             };
 
-                            // Normalize booking type for grouping
                             $categoryKey = match($bookingType) {
                                 'member_manual' => 'recurring',
                                 default => $bookingType
                             };
 
-                            $categories[$categoryKey]['data'][] = [
-                                Carbon::parse($booking->booking_date)->format('d/m/Y'),
-                                Carbon::parse($booking->booking_date)->isoFormat('dddd'),
-                                $time,
-                                $venueName,
-                                $clientName,
-                                $paymentStatus,
-                                $typeLabel,
-                                'Rp ' . number_format($booking->total_price ?? 0, 0, ',', '.'),
-                            ];
+                            if (isset($categories[$categoryKey])) {
+                                $categories[$categoryKey]['data'][] = [
+                                    Carbon::parse($booking->booking_date)->format('d/m/Y'),
+                                    Carbon::parse($booking->booking_date)->isoFormat('dddd'),
+                                    $time,
+                                    $venueName,
+                                    $clientName,
+                                    $paymentStatus,
+                                    $typeLabel,
+                                    'Rp ' . number_format($booking->total_price ?? 0, 0, ',', '.'),
+                                ];
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Output grouped by category
         $currentRow = 1;
         
         foreach ($categories as $key => $category) {
             if (!empty($category['data'])) {
-                // Spacing
                 $currentRow++;
                 
-                // Category header
                 $sheet->setCellValueExplicit('A' . $currentRow, '=== ' . $category['label'] . ' ===', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 $sheet->mergeCells('A' . $currentRow . ':H' . $currentRow);
                 $sheet->getStyle('A' . $currentRow)->applyFromArray([
@@ -553,7 +400,6 @@ class CalendarBooking extends Page
                 $sheet->getRowDimension($currentRow)->setRowHeight(30);
                 $currentRow += 2;
                 
-                // Column headers
                 $headers = ['Tanggal', 'Hari', 'Jam', 'Venue', 'Nama Customer', 'Status', 'Tipe', 'Total Harga'];
                 $col = 0;
                 foreach ($headers as $header) {
@@ -561,9 +407,7 @@ class CalendarBooking extends Page
                     $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $header, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 }
                 
-                // Styling header columns
-                $headerRange = 'A' . $currentRow . ':H' . $currentRow;
-                $sheet->getStyle($headerRange)->applyFromArray([
+                $sheet->getStyle('A' . $currentRow . ':H' . $currentRow)->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1e293b']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
@@ -572,7 +416,6 @@ class CalendarBooking extends Page
                 $sheet->getRowDimension($currentRow)->setRowHeight(25);
                 $currentRow++;
                 
-                // Data rows
                 foreach ($category['data'] as $rowData) {
                     $col = 0;
                     foreach ($rowData as $cellData) {
@@ -580,14 +423,12 @@ class CalendarBooking extends Page
                         $sheet->setCellValueExplicit($this->getColumnLetter($col) . $currentRow, $cellData, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     }
                     
-                    // Styling data row
                     $dataRange = 'A' . $currentRow . ':H' . $currentRow;
                     $sheet->getStyle($dataRange)->applyFromArray([
                         'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
                         'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
                     ]);
                     
-                    // Zebra striping
                     if ($currentRow % 2 == 0) {
                         $sheet->getStyle($dataRange)->applyFromArray([
                             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F9FAFB']]
@@ -599,8 +440,7 @@ class CalendarBooking extends Page
             }
         }
 
-        // Auto-size columns
-        for ($i = 1; $i <= 8; $i++) { // We have 8 columns (A to H)
+        for ($i = 1; $i <= 8; $i++) {
             $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
@@ -612,15 +452,66 @@ class CalendarBooking extends Page
         return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
-    /**
-     * ✅ SET CURRENT MONTH DATE RANGE
-     */
+    private function getColorByType(string $bookingType): array
+    {
+        return match($bookingType) {
+            'recurring', 'member_manual' => ['ea580c', 'FFFFFF'],
+            'pending'                    => ['ec4899', 'FFFFFF'],
+            'manual'                     => ['FFD22F', '1e293b'],
+            default                      => ['059669', 'FFFFFF'], // paid
+        };
+    }
+
+    private function getColumnLetter($columnNumber)
+    {
+        $letter = '';
+        while ($columnNumber > 0) {
+            $columnNumber--;
+            $letter = chr($columnNumber % 26 + 65) . $letter;
+            $columnNumber = intdiv($columnNumber, 26);
+        }
+        return $letter;
+    }
+
+    private function getBookingsForDateTimeVenue($date, $timeSlot, $venue)
+    {
+        $bookings = DB::table('bookings')
+            ->leftJoin('clients', 'bookings.client_id', '=', 'clients.id')
+            ->where('bookings.booking_date', $date)
+            ->where('bookings.venue_type', $venue)
+            ->whereNotIn('bookings.status', ['cancelled'])
+            ->select(
+                'bookings.id',
+                'bookings.time_slots',
+                'bookings.venue_type',
+                'bookings.total_price',
+                'bookings.payment_status',
+                'bookings.status',
+                'bookings.is_paid',
+                'bookings.notes',
+                'bookings.booking_type',
+                'clients.name as client_name'
+            )
+            ->get();
+
+        return $bookings->filter(function($booking) use ($timeSlot) {
+            $timeSlots = json_decode($booking->time_slots, true);
+            if (is_array($timeSlots)) {
+                foreach ($timeSlots as $slot) {
+                    if (($slot['time'] ?? null) === $timeSlot) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    }
+
     public function setCurrentMonth()
     {
         $this->startDate = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->endDate = Carbon::now()->endOfMonth()->format('Y-m-d');
         $this->updateDateRangeText();
-        $this->cancelExpiredPendingBookings();
     }
 
     public function openBookingTypeModal($date, $timeSlot, $venue = null)
@@ -633,7 +524,6 @@ class CalendarBooking extends Page
 
     public function createRegularBooking()
     {
-        $this->cancelExpiredPendingBookings();
         session(['calendar_prefill' => [
             'booking_date' => $this->selectedDate,
             'time_slot' => $this->selectedTimeSlot,
@@ -645,7 +535,6 @@ class CalendarBooking extends Page
 
     public function createRecurringBooking()
     {
-        $this->cancelExpiredPendingBookings();
         session(['recurring_prefill' => [
             'booking_date' => $this->selectedDate,
             'time_slot' => $this->selectedTimeSlot,
@@ -665,7 +554,6 @@ class CalendarBooking extends Page
 
     public function applyDateRange()
     {
-        $this->cancelExpiredPendingBookings();
         $this->updateDateRangeText();
         $this->dispatch('close-modal', id: 'date-range-modal');
     }
@@ -675,7 +563,6 @@ class CalendarBooking extends Page
         $this->startDate = Carbon::today()->format('Y-m-d');
         $this->endDate = Carbon::today()->addDays(6)->format('Y-m-d');
         $this->dateRangeText = null;
-        $this->cancelExpiredPendingBookings();
     }
 
     protected function updateDateRangeText()
@@ -687,9 +574,6 @@ class CalendarBooking extends Page
         }
     }
 
-    /**
-     * ✅ Helper function to extract customer name
-     */
     private function extractCustomerName($booking): string
     {
         $clientName = $booking->client_name ?? null;
@@ -705,7 +589,7 @@ class CalendarBooking extends Page
 
     public function getScheduleData()
     {
-        $this->cancelExpiredPendingBookings();
+        // ✅ DIHAPUS: $this->cancelExpiredPendingBookings();
         $startDate = Carbon::parse($this->startDate);
         $endDate = Carbon::parse($this->endDate);
         $schedules = [];
@@ -777,14 +661,9 @@ class CalendarBooking extends Page
         return $schedules;
     }
 
-   private function determineBookingType($booking): string
+private function determineBookingType($booking): string
 {
-    // ✅ Cek booking_type field dulu
-    if (isset($booking->booking_type) && !empty($booking->booking_type)) {
-        return $booking->booking_type;
-    }
-
-    // ✅ Cek pending SEBELUM cek paid
+    // ✅ Cek status pending PERTAMA, override booking_type apapun
     if (isset($booking->status) && $booking->status === 'pending') {
         return 'pending';
     }
@@ -793,29 +672,31 @@ class CalendarBooking extends Page
         return 'pending';
     }
 
-    // ✅ Cek notes untuk recurring
+    // Baru percaya booking_type
+    if (isset($booking->booking_type) && !empty($booking->booking_type)) {
+        return $booking->booking_type;
+    }
+
+    // Cek notes recurring
     if (isset($booking->notes) && $booking->notes && (
         stripos($booking->notes, 'rutin') !== false ||
         stripos($booking->notes, 'recurring') !== false ||
         stripos($booking->notes, 'bulanan') !== false ||
-        stripos($booking->notes, 'member') !== false ||
-        stripos($booking->notes, 'Booking Member') !== false
+        stripos($booking->notes, 'member') !== false
     )) {
         return 'recurring';
     }
 
-    // ✅ Baru cek paid
     if ((isset($booking->is_paid) && $booking->is_paid) || 
         (isset($booking->payment_status) && $booking->payment_status === 'paid')) {
         return 'paid';
     }
 
-    return 'pending'; // ✅ Default pending, bukan paid
+    return 'pending';
 }
-
     public function getScheduleDataPerVenue()
     {
-        $this->cancelExpiredPendingBookings();
+        // ✅ DIHAPUS: $this->cancelExpiredPendingBookings();
 
         $venues = [
             'cibadak_a' => 'Cibadak A',
@@ -909,6 +790,11 @@ class CalendarBooking extends Page
         ];
     }
 
-    public function hydrate() { $this->cancelExpiredPendingBookings(); }
-    public function refreshCalendar() { $this->cancelExpiredPendingBookings(); $this->dispatch('calendar-refreshed'); }
+    // ✅ hydrate tidak cancel booking lagi
+    public function hydrate() {}
+
+    public function refreshCalendar()
+    {
+        $this->dispatch('calendar-refreshed');
+    }
 }

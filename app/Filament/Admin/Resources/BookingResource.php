@@ -37,7 +37,7 @@ class BookingResource extends Resource
                 ->sort(2)
                 ->url(static::getUrl('calendar'))
                 ->isActiveWhen(fn () => request()->routeIs(static::getRouteBaseName() . '.calendar')),
-            
+
             NavigationItem::make(static::getNavigationLabel())
                 ->group(static::getNavigationGroup())
                 ->icon(static::getNavigationIcon())
@@ -49,19 +49,45 @@ class BookingResource extends Resource
 
     public static function form(Form $form): Form
     {
-        static::autoCompleteExpiredBookings();
-
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Booking')
+                Forms\Components\Section::make('Informasi Customer')
                     ->schema([
+                        Forms\Components\Radio::make('customer_type')
+                            ->label('Tipe Customer')
+                            ->options([
+                                'existing' => 'Customer Terdaftar',
+                                'manual'   => 'Input Manual (Guest/Walk-in)',
+                            ])
+                            ->default('existing')
+                            ->live()
+                            ->required(),
+
                         Forms\Components\Select::make('client_id')
-                            ->label('Client')
+                            ->label('Pilih Customer')
                             ->relationship('client', 'name')
                             ->searchable()
+                            ->preload()
                             ->required()
-                            ->preload(),
+                            ->visible(fn (Forms\Get $get): bool => $get('customer_type') === 'existing'),
 
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('customer_name_manual')
+                                    ->label('Nama Customer')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('customer_phone_manual')
+                                    ->label('No. Telepon')
+                                    ->tel()
+                                    ->maxLength(20),
+                            ])
+                            ->visible(fn (Forms\Get $get): bool => $get('customer_type') === 'manual'),
+                    ])->columns(1),
+
+                Forms\Components\Section::make('Informasi Booking')
+                    ->schema([
                         Forms\Components\DatePicker::make('booking_date')
                             ->label('Tanggal Booking')
                             ->required()
@@ -73,12 +99,12 @@ class BookingResource extends Resource
                             ->options([
                                 'cibadak_a' => 'Cibadak A',
                                 'cibadak_b' => 'Cibadak B',
-                                'pvj' => 'PVJ Mall',
-                                'urban' => 'Urban',
+                                'pvj'       => 'PVJ Mall',
+                                'urban'     => 'Urban',
                             ])
                             ->required()
                             ->live(),
-                    ])->columns(3),
+                    ])->columns(2),
 
                 Forms\Components\Section::make('Detail Booking')
                     ->description('⚠️ Harga akan otomatis disesuaikan berdasarkan venue, hari (weekday/weekend), dan waktu')
@@ -108,7 +134,6 @@ class BookingResource extends Resource
                                         if ($state && $venueType && $bookingDate) {
                                             $price = static::calculatePrice($venueType, $bookingDate, $state);
                                             $set('price', $price);
-                                            
                                             static::updateTotalPrice($set, $get);
                                         }
                                     }),
@@ -153,26 +178,20 @@ class BookingResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label('Status')
                             ->options([
-                                'pending' => 'Pending',
+                                'pending'   => 'Pending',
                                 'confirmed' => 'Confirmed',
                                 'cancelled' => 'Cancelled',
                                 'completed' => 'Completed',
                             ])
                             ->required()
-                            ->default('confirmed') // ✅ Default confirmed untuk booking manual
+                            ->default('confirmed')
                             ->live(),
 
-                        // ✅ UPDATED: Toggle untuk menandai booking sudah dibayar
                         Forms\Components\Toggle::make('is_paid')
                             ->label('Sudah Dibayar')
-                            ->default(true) // ✅ Default true untuk booking manual
+                            ->default(true)
                             ->inline(false)
-                            ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                if ($state === true && $get('status') === 'pending') {
-                                    $set('status', 'confirmed');
-                                }
-                            }),
+                            ->live(),
 
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan')
@@ -185,18 +204,16 @@ class BookingResource extends Resource
 
     protected static function updateTotalPrice(Forms\Set $set, Forms\Get $get): void
     {
-        $timeSlots = $get('../../time_slots') ?? [];
-        
+        $timeSlots = $get('time_slots') ?? [];
+
         $total = collect($timeSlots)
             ->sum(fn ($slot) => $slot['price'] ?? 0);
-        
-        $set('../../total_price', $total);
+
+        $set('total_price', $total);
     }
 
     public static function table(Table $table): Table
     {
-        static::autoCompleteExpiredBookings();
-
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('client.name')
@@ -215,89 +232,57 @@ class BookingResource extends Resource
                     ->color(fn(string $state): string => match ($state) {
                         'cibadak_a' => 'success',
                         'cibadak_b' => 'info',
-                        'pvj' => 'warning',
-                        'urban' => 'danger',
-                        default => 'gray',
+                        'pvj'       => 'warning',
+                        'urban'     => 'danger',
+                        default     => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'cibadak_a' => 'Cibadak A',
                         'cibadak_b' => 'Cibadak B',
-                        'pvj' => 'PVJ',
-                        'urban' => 'Urban',
-                        default => ucfirst($state),
+                        'pvj'       => 'PVJ',
+                        'urban'     => 'Urban',
+                        default     => ucfirst($state),
                     }),
 
                 Tables\Columns\TextColumn::make('time_slots')
                     ->label('Waktu')
                     ->formatStateUsing(function ($record) {
                         $slots = $record->time_slots;
-
-                        if (!is_array($slots) || empty($slots)) {
-                            return '-';
-                        }
-
-                        $times = [];
-                        foreach ($slots as $slot) {
-                            if (isset($slot['time'])) {
-                                $times[] = $slot['time'];
-                            }
-                        }
-
-                        if (empty($times)) {
-                            return '-';
-                        }
-
-                        if (count($times) > 1) {
-                            return $times[0] . ' (+' . (count($times) - 1) . ')';
-                        }
-
+                        if (!is_array($slots) || empty($slots)) return '-';
+                        $times = array_column($slots, 'time');
+                        if (empty($times)) return '-';
+                        if (count($times) > 1) return $times[0] . ' (+' . (count($times) - 1) . ')';
                         return $times[0];
                     })
                     ->tooltip(function ($record) {
                         $slots = $record->time_slots;
-
-                        if (!is_array($slots) || empty($slots)) {
-                            return null;
-                        }
-
-                        $times = [];
-                        foreach ($slots as $slot) {
-                            if (isset($slot['time'])) {
-                                $times[] = $slot['time'];
-                            }
-                        }
-
-                        if (count($times) > 1) {
-                            return 'Semua slot: ' . implode(', ', $times);
-                        }
-
+                        if (!is_array($slots) || empty($slots)) return null;
+                        $times = array_column($slots, 'time');
+                        if (count($times) > 1) return 'Semua slot: ' . implode(', ', $times);
                         return null;
-                    })
-                    ->searchable(false)
-                    ->sortable(false),
+                    }),
 
                 Tables\Columns\TextColumn::make('total_price')
                     ->label('Total')
                     ->money('IDR')
                     ->sortable(),
 
-                // ✅ NEW: Kolom untuk tipe booking
                 Tables\Columns\TextColumn::make('booking_type')
                     ->label('Tipe')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'manual' => 'warning',
+                        'manual'    => 'warning',
                         'recurring' => 'danger',
-                        'paid' => 'success',
-                        'pending' => 'gray',
-                        default => 'info',
+                        'paid'      => 'success',
+                        'pending'   => 'gray',
+                        default     => 'info',
                     })
                     ->formatStateUsing(fn(?string $state): string => match ($state) {
-                        'manual' => 'Manual',
+                        'manual'    => 'Manual',
                         'recurring' => 'Member',
-                        'paid' => 'Lunas',
-                        'pending' => 'Pending',
-                        default => 'Reguler',
+                        'paid'      => 'Lunas',
+                        'pending'   => 'Pending',
+                        default     => 'Reguler',
                     }),
 
                 Tables\Columns\IconColumn::make('is_paid')
@@ -313,7 +298,7 @@ class BookingResource extends Resource
                     ->label('Status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'pending' => 'warning',
+                        'pending'   => 'warning',
                         'confirmed' => 'success',
                         'cancelled' => 'danger',
                         'completed' => 'info',
@@ -330,21 +315,20 @@ class BookingResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
+                        'pending'   => 'Pending',
                         'confirmed' => 'Confirmed',
                         'cancelled' => 'Cancelled',
                         'completed' => 'Completed',
                     ])
                     ->multiple(),
 
-                // ✅ NEW: Filter berdasarkan booking type
                 Tables\Filters\SelectFilter::make('booking_type')
                     ->label('Tipe Booking')
                     ->options([
-                        'manual' => 'Manual (Admin)',
+                        'manual'    => 'Manual (Admin)',
                         'recurring' => 'Member',
-                        'paid' => 'Lunas',
-                        'pending' => 'Pending',
+                        'paid'      => 'Lunas',
+                        'pending'   => 'Pending',
                     ])
                     ->multiple(),
 
@@ -353,8 +337,8 @@ class BookingResource extends Resource
                     ->options([
                         'cibadak_a' => 'Cibadak A',
                         'cibadak_b' => 'Cibadak B',
-                        'pvj' => 'PVJ',
-                        'urban' => 'Urban',
+                        'pvj'       => 'PVJ',
+                        'urban'     => 'Urban',
                     ])
                     ->multiple(),
 
@@ -376,14 +360,8 @@ class BookingResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when(
-                                $data['from'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('booking_date', '>=', $date),
-                            )
-                            ->when(
-                                $data['until'],
-                                fn(Builder $query, $date): Builder => $query->whereDate('booking_date', '<=', $date),
-                            );
+                            ->when($data['from'], fn(Builder $query, $date): Builder => $query->whereDate('booking_date', '>=', $date))
+                            ->when($data['until'], fn(Builder $query, $date): Builder => $query->whereDate('booking_date', '<=', $date));
                     }),
             ])
             ->actions([
@@ -411,10 +389,10 @@ class BookingResource extends Resource
                     ->modalSubmitActionLabel('Ya, Konfirmasi')
                     ->action(function (Booking $record) {
                         $record->update([
-                            'is_paid' => true,
+                            'is_paid'        => true,
                             'payment_status' => 'paid',
-                            'paid_at' => now(),
-                            'status' => 'confirmed',
+                            'paid_at'        => now(),
+                            'status'         => 'confirmed',
                         ]);
 
                         Notification::make()
@@ -432,11 +410,10 @@ class BookingResource extends Resource
                     ->requiresConfirmation()
                     ->action(function (Booking $record) {
                         $isPaid = !$record->is_paid;
-
                         $record->update([
-                            'is_paid' => $isPaid,
+                            'is_paid'        => $isPaid,
                             'payment_status' => $isPaid ? 'paid' : 'pending',
-                            'paid_at' => $isPaid ? now() : null,
+                            'paid_at'        => $isPaid ? now() : null,
                         ]);
 
                         Notification::make()
@@ -446,7 +423,6 @@ class BookingResource extends Resource
                     }),
 
                 Tables\Actions\EditAction::make(),
-
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -459,10 +435,10 @@ class BookingResource extends Resource
                         ->action(function ($records) {
                             $records->each(function ($record) {
                                 $record->update([
-                                    'is_paid' => true,
+                                    'is_paid'        => true,
                                     'payment_status' => 'paid',
-                                    'paid_at' => now(),
-                                    'status' => 'confirmed',
+                                    'paid_at'        => now(),
+                                    'status'         => 'confirmed',
                                 ]);
                             });
 
@@ -481,7 +457,7 @@ class BookingResource extends Resource
                             Forms\Components\Select::make('status')
                                 ->label('Status Baru')
                                 ->options([
-                                    'pending' => 'Pending',
+                                    'pending'   => 'Pending',
                                     'confirmed' => 'Confirmed',
                                     'cancelled' => 'Cancelled',
                                     'completed' => 'Completed',
@@ -515,74 +491,49 @@ class BookingResource extends Resource
 
         if ($venueType === 'pvj') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 700000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 700000;
+                elseif ($startHour >= 16 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 350000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 350000;
+                elseif ($startHour >= 16 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             }
         }
 
         if ($venueType === 'cibadak_a') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) {
-                    return 700000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 500000;
-                }
+                if ($startHour >= 6 && $startHour < 20) return 700000;
+                elseif ($startHour >= 20 && $startHour < 24) return 500000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 350000;
-                } elseif ($startHour >= 16 && $startHour < 24) {
-                    return 700000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 350000;
+                elseif ($startHour >= 16 && $startHour < 24) return 700000;
             }
         }
 
         if ($venueType === 'cibadak_b') {
             if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) {
-                    return 550000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 450000;
-                }
+                if ($startHour >= 6 && $startHour < 20) return 550000;
+                elseif ($startHour >= 20 && $startHour < 24) return 450000;
             } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 300000;
-                } elseif ($startHour >= 16 && $startHour < 20) {
-                    return 550000;
-                } elseif ($startHour >= 20 && $startHour < 24) {
-                    return 450000;
-                }
+                if ($startHour >= 6 && $startHour < 16) return 300000;
+                elseif ($startHour >= 16 && $startHour < 20) return 550000;
+                elseif ($startHour >= 20 && $startHour < 24) return 450000;
             }
         }
 
         if ($venueType === 'urban') {
-            if ($isWeekend) {
-                return 550000;
-            } else {
-                if ($startHour >= 6 && $startHour < 16) {
-                    return 300000;
-                } elseif ($startHour >= 16 && $startHour < 24) {
-                    return 550000;
-                }
+            if ($isWeekend) return 550000;
+            else {
+                if ($startHour >= 6 && $startHour < 16) return 300000;
+                elseif ($startHour >= 16 && $startHour < 24) return 550000;
             }
         }
 
         return 350000;
     }
 
-    protected static function autoCompleteExpiredBookings(): void
+    public static function autoCompleteExpiredBookings(): void
     {
         try {
             $bookings = static::getModel()::where('status', 'confirmed')
@@ -590,28 +541,14 @@ class BookingResource extends Resource
                 ->where('payment_status', 'paid')
                 ->where('booking_date', '<', Carbon::today())
                 ->get();
-                
+
             $completedCount = 0;
 
             foreach ($bookings as $booking) {
                 if (static::isBookingExpired($booking)) {
                     $booking->update(['status' => 'completed']);
                     $completedCount++;
-
-                    \Log::info("Booking #{$booking->id} auto-completed", [
-                        'client' => $booking->client->name,
-                        'date' => $booking->booking_date,
-                        'venue' => $booking->venue_type,
-                    ]);
                 }
-            }
-
-            if ($completedCount > 0) {
-                Notification::make()
-                    ->title('Auto-Complete Booking')
-                    ->success()
-                    ->body("{$completedCount} booking telah otomatis diselesaikan.")
-                    ->send();
             }
         } catch (\Exception $e) {
             \Log::error('Error auto-completing bookings: ' . $e->getMessage());
@@ -622,17 +559,13 @@ class BookingResource extends Resource
     {
         $bookingDate = Carbon::parse($booking->booking_date);
 
-        if ($bookingDate->lt(Carbon::today())) {
-            return true;
-        }
+        if ($bookingDate->lt(Carbon::today())) return true;
 
         if ($bookingDate->isToday() && !empty($booking->time_slots)) {
             $lastSlot = end($booking->time_slots);
-
             if (isset($lastSlot['time'])) {
                 $timeRange = explode(' - ', $lastSlot['time']);
                 $endTime = trim(end($timeRange));
-
                 try {
                     $endDateTime = Carbon::parse($booking->booking_date . ' ' . $endTime);
                     return Carbon::now()->gt($endDateTime);
@@ -653,9 +586,9 @@ class BookingResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListBookings::route('/'),
-            'create' => Pages\CreateBooking::route('/create'),
-            'edit' => Pages\EditBooking::route('/{record}/edit'),
+            'index'    => Pages\ListBookings::route('/'),
+            'create'   => Pages\CreateBooking::route('/create'),
+            'edit'     => Pages\EditBooking::route('/{record}/edit'),
             'calendar' => Pages\CalendarBooking::route('/calendar'),
         ];
     }

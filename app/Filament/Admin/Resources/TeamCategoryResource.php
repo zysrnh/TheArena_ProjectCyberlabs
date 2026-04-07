@@ -16,8 +16,8 @@ class TeamCategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationLabel = 'Categories';
-    protected static ?string $navigationGroup = 'Content Management';
+    protected static ?string $navigationLabel = 'Age Categories';
+    protected static ?string $navigationGroup = 'Match & Team Management';
 
     protected static ?int $navigationSort = 2;
 

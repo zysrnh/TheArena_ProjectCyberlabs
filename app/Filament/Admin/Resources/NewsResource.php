@@ -73,7 +73,7 @@ class NewsResource extends Resource
                             ->label('Gambar Berita')
                             ->image()
                             ->directory('news-images')
-                            ->maxSize(2048)
+                            ->maxSize(5120)
                             ->helperText('Upload gambar berita (Max: 2MB)')
                             ->imageEditor()
                             ->imageEditorAspectRatios([

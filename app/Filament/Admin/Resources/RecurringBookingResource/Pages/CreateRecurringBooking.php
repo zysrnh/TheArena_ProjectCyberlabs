@@ -50,7 +50,7 @@ class CreateRecurringBooking extends CreateRecord
                 
                 $conflictDates = implode(', ', array_map(function($date) {
                     return Carbon::parse($date)->format('d M');
-                }, array_slice($conflicts, 0, 5))); // Show first 5
+                }, array_slice($conflicts, 0, 5)));
                 
                 $totalConflicts = count($conflicts);
                 $message = $totalConflicts > 5 
@@ -68,15 +68,17 @@ class CreateRecurringBooking extends CreateRecord
                 throw new \RuntimeException('Booking conflict detected');
             }
 
-            // ✅ Handle manual customer dengan membuat dummy client
+            // ✅ FIX: Handle manual customer dengan cari by nama+phone, bukan email tetap
             $clientId = null;
             
             if ($data['customer_type'] === 'manual') {
                 $guestClient = Client::firstOrCreate(
-                    ['email' => 'guest_manual@thearena.local'],
                     [
                         'name' => $data['customer_name_manual'],
                         'phone' => $data['customer_phone_manual'] ?? null,
+                    ],
+                    [
+                        'email' => 'manual_' . time() . '_' . rand(100, 999) . '@thearena.local',
                         'password' => bcrypt('dummy_password_' . time()),
                     ]
                 );
@@ -136,7 +138,7 @@ class CreateRecurringBooking extends CreateRecord
 
             DB::commit();
 
-            // ✅ Success notification dengan info pattern
+            // ✅ Success notification
             $firstDate = Carbon::parse($selectedDates[0])->format('d M Y');
             $lastDate = Carbon::parse(end($selectedDates))->format('d M Y');
             
@@ -174,9 +176,6 @@ class CreateRecurringBooking extends CreateRecord
         }
     }
 
-    /**
-     * ✅ Generate dates based on recurring pattern
-     */
     protected function generateRecurringDates(array $data): array
     {
         $mode = $data['recurring_mode'] ?? 'custom';
@@ -184,78 +183,56 @@ class CreateRecurringBooking extends CreateRecord
         switch ($mode) {
             case 'weekly':
                 return $this->generateWeeklyDates($data);
-            
             case 'monthly_date':
                 return $this->generateMonthlyDates($data);
-            
             case 'custom':
             default:
                 return $this->generateCustomDates($data);
         }
     }
 
-    /**
-     * ✅ Generate dates for WEEKLY pattern
-     * Example: Every Monday & Wednesday for 12 weeks
-     */
     protected function generateWeeklyDates(array $data): array
     {
         $dates = [];
         $selectedDays = $data['weekly_days'] ?? [];
         $startDate = Carbon::parse($data['weekly_start_date'] ?? now());
-        $duration = (int)($data['weekly_duration'] ?? 4); // weeks
+        $duration = (int)($data['weekly_duration'] ?? 4);
         
-        if (empty($selectedDays)) {
-            return [];
-        }
+        if (empty($selectedDays)) return [];
 
-        // Start from the beginning of the week
         $currentDate = $startDate->copy()->startOfWeek();
         $endDate = $startDate->copy()->addWeeks($duration);
 
         while ($currentDate->lt($endDate)) {
             $dayOfWeek = $currentDate->dayOfWeek;
-            
-            // Check if this day is selected AND date is >= start date
             if (in_array($dayOfWeek, $selectedDays) && $currentDate->gte($startDate)) {
                 $dates[] = $currentDate->format('Y-m-d');
             }
-            
             $currentDate->addDay();
         }
 
         return $dates;
     }
 
-    /**
-     * ✅ Generate dates for MONTHLY DATE pattern
-     * Example: Every 10th and 25th for 6 months
-     */
     protected function generateMonthlyDates(array $data): array
     {
         $dates = [];
         $selectedDates = $data['monthly_dates'] ?? [];
         $startDate = Carbon::parse($data['monthly_start_date'] ?? now())->startOfMonth();
-        $duration = (int)($data['monthly_duration'] ?? 3); // months
+        $duration = (int)($data['monthly_duration'] ?? 3);
         
-        if (empty($selectedDates)) {
-            return [];
-        }
+        if (empty($selectedDates)) return [];
 
         for ($i = 0; $i < $duration; $i++) {
             $currentMonth = $startDate->copy()->addMonths($i);
             
             foreach ($selectedDates as $day) {
                 try {
-                    // Create date for this day in current month
                     $date = $currentMonth->copy()->day((int)$day);
-                    
-                    // Only add if date is in the future or today
                     if ($date->gte(now()->startOfDay())) {
                         $dates[] = $date->format('Y-m-d');
                     }
                 } catch (\Exception $e) {
-                    // Skip invalid dates (e.g., Feb 30)
                     continue;
                 }
             }
@@ -265,9 +242,6 @@ class CreateRecurringBooking extends CreateRecord
         return $dates;
     }
 
-    /**
-     * ✅ Generate dates for CUSTOM pattern (manual selection)
-     */
     protected function generateCustomDates(array $data): array
     {
         return collect($data['selected_dates'] ?? [])
@@ -280,14 +254,10 @@ class CreateRecurringBooking extends CreateRecord
             ->toArray();
     }
 
-    /**
-     * ✅ Build notes with pattern information
-     */
     protected function buildNotesWithPattern(array $data): string
     {
         $notes = $data['notes'] ?? '';
         
-        // Add customer info if manual
         if ($data['customer_type'] === 'manual') {
             $customerInfo = "Customer Manual: {$data['customer_name_manual']}";
             if (!empty($data['customer_phone_manual'])) {
@@ -296,7 +266,6 @@ class CreateRecurringBooking extends CreateRecord
             $notes = $customerInfo . ($notes ? " | " . $notes : '');
         }
 
-        // Add pattern info
         $patternInfo = $this->getPatternDescription($data);
         $notes .= " | Booking Member ({$patternInfo})";
         $notes .= " | Generated: " . Carbon::now()->format('d M Y H:i');
@@ -304,9 +273,6 @@ class CreateRecurringBooking extends CreateRecord
         return $notes;
     }
 
-    /**
-     * ✅ Get human-readable pattern description
-     */
     protected function getPatternDescription(array $data): string
     {
         $mode = $data['recurring_mode'] ?? 'custom';
@@ -333,9 +299,6 @@ class CreateRecurringBooking extends CreateRecord
         }
     }
 
-    /**
-     * ✅ Calculate price based on venue, date, and time
-     */
     protected function calculatePrice($venueType, $date, $timeSlot): int
     {
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;
@@ -388,9 +351,6 @@ class CreateRecurringBooking extends CreateRecord
         return 350000;
     }
 
-    /**
-     * ✅ Check conflicts untuk tanggal-tanggal yang dipilih
-     */
     protected function checkConflicts(array $dates, string $venueType, array $timeSlots): array
     {
         $conflicts = [];
@@ -416,9 +376,6 @@ class CreateRecurringBooking extends CreateRecord
         return $conflicts;
     }
 
-    /**
-     * ✅ Format time slots with DYNAMIC pricing per date
-     */
     protected function formatTimeSlots(array $selectedSlots, string $venueType, string $date): array
     {
         return array_map(function ($time) use ($venueType, $date) {
@@ -430,9 +387,6 @@ class CreateRecurringBooking extends CreateRecord
         }, $selectedSlots);
     }
 
-    /**
-     * ✅ Get venue ID from venue type
-     */
     protected function getVenueId(string $venueType): int
     {
         $venueMap = [

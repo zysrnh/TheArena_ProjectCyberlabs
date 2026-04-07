@@ -21,7 +21,7 @@ class GameResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
     protected static ?string $navigationLabel = 'Matches';
-    protected static ?string $navigationGroup = 'Content Management';
+    protected static ?string $navigationGroup = 'Match & Team Management';
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form

@@ -17,7 +17,6 @@ class EditBooking extends EditRecord
         return [
             Actions\DeleteAction::make()
                 ->after(function ($record) {
-                    // ✅ Hapus booked slots saat booking dihapus
                     BookedTimeSlot::where('booking_id', $record->id)->delete();
                 }),
         ];
@@ -30,6 +29,7 @@ class EditBooking extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // ✅ AUTO UPDATE STATUS SAMA KAYAK CREATE
         if (isset($data['is_paid']) && $data['is_paid'] === true) {
             $data['status'] = 'confirmed';
             $data['payment_status'] = 'paid';
@@ -37,6 +37,7 @@ class EditBooking extends EditRecord
                 $data['paid_at'] = now();
             }
         } else {
+            $data['status'] = 'pending'; // ✅ TAMBAHAN INI (SAMA KAYAK CREATE)
             $data['payment_status'] = 'pending';
             $data['paid_at'] = null;
         }
@@ -44,9 +45,6 @@ class EditBooking extends EditRecord
         return $data;
     }
 
-    /**
-     * ✅ VALIDASI: Cek slot baru tidak bentrok dengan booking lain
-     */
     protected function beforeSave(): void
     {
         $data = $this->form->getState();
@@ -59,7 +57,6 @@ class EditBooking extends EditRecord
         $currentBookingId = $this->record->id;
 
         foreach ($data['time_slots'] as $slot) {
-            // Cek slot yang sudah dibooking oleh booking LAIN (bukan booking ini)
             $exists = BookedTimeSlot::where('date', $data['booking_date'])
                 ->where('venue_type', $data['venue_type'])
                 ->where('time_slot', $slot['time'])
@@ -83,17 +80,12 @@ class EditBooking extends EditRecord
         }
     }
 
-    /**
-     * ✅ UPDATE booked_time_slots setelah save
-     */
     protected function afterSave(): void
     {
         $booking = $this->record;
         
-        // ✅ Hapus semua slot lama
         BookedTimeSlot::where('booking_id', $booking->id)->delete();
         
-        // ✅ Insert slot baru
         if ($booking->time_slots && is_array($booking->time_slots)) {
             foreach ($booking->time_slots as $slot) {
                 try {

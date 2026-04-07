@@ -18,9 +18,9 @@ class TeamResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     
-    protected static ?string $navigationLabel = 'Teams';
+    protected static ?string $navigationLabel = 'Team Management';
 
-    protected static ?string $navigationGroup = 'Teams Management';
+    protected static ?string $navigationGroup = 'Match & Team Management';
     
     protected static ?int $navigationSort = 1;
 

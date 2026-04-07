@@ -16,8 +16,8 @@ class LeagueResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?string $navigationLabel = 'Leagues';
-    protected static ?string $navigationGroup = 'Content Management';
+    protected static ?string $navigationLabel = 'League Or Competition';
+    protected static ?string $navigationGroup = 'Match & Team Management';
 
     protected static ?int $navigationSort = 1;
 

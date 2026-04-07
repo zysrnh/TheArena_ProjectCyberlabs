@@ -139,76 +139,27 @@ export default function Profile() {
     profile_image: null,
   });
 
-  
-// ✅✅✅ PERBAIKAN USEEFFECT FLASH - FIXED VERSION
-useEffect(() => {
-  console.log('🔍 ===== FLASH DEBUG START =====');
-  console.log('📦 Full flash object:', JSON.stringify(flash, null, 2));
-  console.log('✅ flash.success:', flash?.success);
-  console.log('❌ flash.error:', flash?.error);
-  console.log('💬 flash.whatsapp_url:', flash?.whatsapp_url);
-  console.log('🚩 flash.show_whatsapp:', flash?.show_whatsapp);
-  console.log('🔍 ===== FLASH DEBUG END =====');
-
-  // Handle success/error notifications
-  if (flash?.success) {
-    setNotificationMessage(flash.success);
-    setNotificationType('success');
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  } else if (flash?.error) {
-    setNotificationMessage(flash.error);
-    setNotificationType('error');
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  }
-
-  // ✅✅✅ PERBAIKAN WHATSAPP HANDLER
-  // Menggunakan multiple conditions untuk ensure trigger
-  if (flash?.whatsapp_url || flash?.show_whatsapp) {
-    const waUrl = flash.whatsapp_url;
-    
-    console.log('🎉 WhatsApp notification triggered!');
-    console.log('📱 URL:', waUrl);
-    
-    if (waUrl && waUrl.includes('wa.me')) {
-      setWhatsappUrl(waUrl);
-      
-      // Show success notification juga kalau belum ada
-      if (!flash?.success) {
-        setNotificationMessage('✅ Pembayaran berhasil! Silakan kirim bukti ke WhatsApp.');
-        setNotificationType('success');
-        setShowNotification(true);
-        setTimeout(() => setShowNotification(false), 3000);
-      }
-      
-      // Auto dismiss WhatsApp bubble setelah 20 detik
-      setTimeout(() => {
-        console.log('⏱️ Auto dismissing WhatsApp notification');
-        setWhatsappUrl(null);
-      }, 20000);
-    } else {
-      console.warn('⚠️ Invalid WhatsApp URL:', waUrl);
+  // ✅ useEffect flash - UPDATED dengan whatsapp_url handler
+  useEffect(() => {
+    if (flash?.success) {
+      setNotificationMessage(flash.success);
+      setNotificationType('success');
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
+    } else if (flash?.error) {
+      setNotificationMessage(flash.error);
+      setNotificationType('error');
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
     }
-  }
-}, [flash]);
 
-// ✅✅✅ TAMBAHKAN useEffect BARU INI (fallback mechanism)
-// Taruh setelah useEffect di atas
-useEffect(() => {
-  // Check URL params juga (fallback)
-  const urlParams = new URLSearchParams(window.location.search);
-  const tab = urlParams.get('tab');
-  
-  if (tab === 'jadwal-booking' && flash?.whatsapp_url) {
-    console.log('🔄 Alternative trigger: URL param + flash detected');
-    setWhatsappUrl(flash.whatsapp_url);
-    
-    // Clean URL
-    window.history.replaceState({}, '', '/profile?tab=jadwal-booking');
-  }
-}, [flash?.whatsapp_url]);
-
+    // ✅ Munculkan notif bubble WA setelah pembayaran berhasil
+    if (flash?.whatsapp_url) {
+      setWhatsappUrl(flash.whatsapp_url);
+      // Auto dismiss setelah 15 detik
+      setTimeout(() => setWhatsappUrl(null), 15000);
+    }
+  }, [flash]);
 
   useEffect(() => {
     if (shouldShowReviewReminder && completedBookingCount > 0) {
