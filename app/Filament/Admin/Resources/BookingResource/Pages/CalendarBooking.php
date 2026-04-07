@@ -777,34 +777,41 @@ class CalendarBooking extends Page
         return $schedules;
     }
 
-    private function determineBookingType($booking): string
-    {
-        if (isset($booking->booking_type) && !empty($booking->booking_type)) {
-            return $booking->booking_type;
-        }
+   private function determineBookingType($booking): string
+{
+    // ✅ Cek booking_type field dulu
+    if (isset($booking->booking_type) && !empty($booking->booking_type)) {
+        return $booking->booking_type;
+    }
 
-        if (isset($booking->notes) && $booking->notes && (
-            stripos($booking->notes, 'rutin') !== false ||
-            stripos($booking->notes, 'recurring') !== false ||
-            stripos($booking->notes, 'bulanan') !== false ||
-            stripos($booking->notes, 'member') !== false ||
-            stripos($booking->notes, 'Booking Member') !== false
-        )) {
-            return 'recurring';
-        }
+    // ✅ Cek pending SEBELUM cek paid
+    if (isset($booking->status) && $booking->status === 'pending') {
+        return 'pending';
+    }
 
-        if (isset($booking->payment_status) && isset($booking->status) && 
-            $booking->payment_status === 'pending' && $booking->status === 'pending') {
-            return 'pending';
-        }
+    if (isset($booking->payment_status) && $booking->payment_status === 'pending') {
+        return 'pending';
+    }
 
-        if ((isset($booking->is_paid) && $booking->is_paid) || 
-            (isset($booking->payment_status) && $booking->payment_status === 'paid')) {
-            return 'paid';
-        }
+    // ✅ Cek notes untuk recurring
+    if (isset($booking->notes) && $booking->notes && (
+        stripos($booking->notes, 'rutin') !== false ||
+        stripos($booking->notes, 'recurring') !== false ||
+        stripos($booking->notes, 'bulanan') !== false ||
+        stripos($booking->notes, 'member') !== false ||
+        stripos($booking->notes, 'Booking Member') !== false
+    )) {
+        return 'recurring';
+    }
 
+    // ✅ Baru cek paid
+    if ((isset($booking->is_paid) && $booking->is_paid) || 
+        (isset($booking->payment_status) && $booking->payment_status === 'paid')) {
         return 'paid';
     }
+
+    return 'pending'; // ✅ Default pending, bukan paid
+}
 
     public function getScheduleDataPerVenue()
     {

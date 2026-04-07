@@ -475,7 +475,7 @@ const confirmBooking = async () => {
     
     setNotification({
       type: 'error',
-      message: "Pembayaran gagal diproses. Silakan refresh halaman dan coba lagi."
+      message: "User Lain Sedang Memproses Booking Ini. Silakan Tunggu Beberapa Menit"
     });
     
     setTimeout(() => setNotification(null), 5000);

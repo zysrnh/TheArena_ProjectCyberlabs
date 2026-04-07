@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BookingPaymentNotification;
 use App\Models\Booking;
 use App\Services\FaspayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
@@ -18,7 +20,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅ Process payment untuk booking - FIXED
+     * ✅ Process payment untuk booking
      */
     public function process(Request $request, $bookingId)
     {
@@ -32,24 +34,21 @@ class PaymentController extends Controller
 
         try {
             $booking = Booking::with('client')->findOrFail($bookingId);
-            
+
             Log::info('✅ Booking found', [
                 'booking_id' => $booking->id,
                 'client_id' => $booking->client_id,
-                'client_id_type' => gettype($booking->client_id),
                 'auth_id' => auth('client')->id(),
-                'auth_id_type' => gettype(auth('client')->id()),
                 'total_price' => $booking->total_price,
                 'payment_status' => $booking->payment_status,
                 'is_paid' => $booking->is_paid,
             ]);
 
-            // 🔒 AUTHORIZATION CHECK - FIXED dengan type casting
+            // 🔒 AUTHORIZATION CHECK
             if ((int)$booking->client_id !== (int)auth('client')->id()) {
                 Log::warning('🚫 Authorization failed', [
                     'booking_client_id' => $booking->client_id,
                     'auth_client_id' => auth('client')->id(),
-                    'after_casting_match' => ((int)$booking->client_id === (int)auth('client')->id()),
                 ]);
                 return redirect()->route('profile')->with('error', 'Unauthorized access to this booking');
             }
@@ -57,17 +56,14 @@ class PaymentController extends Controller
 
             // ✅ CHECK IF ALREADY PAID
             if ($booking->isPaid()) {
-                Log::info('ℹ️ Booking already paid', [
-                    'payment_status' => $booking->payment_status,
-                    'is_paid' => $booking->is_paid,
-                ]);
+                Log::info('ℹ️ Booking already paid');
                 return redirect()->route('profile')->with('info', 'Booking ini sudah dibayar');
             }
             Log::info('✅ Payment status check passed');
 
             // 📝 PREPARE PAYMENT DATA
             $orderId = (string) $booking->id;
-            $amount = (int) $booking->total_price;
+            $amount  = (int) $booking->total_price;
 
             $customerData = [
                 'name'  => $booking->client->name ?? 'Customer',
@@ -78,10 +74,10 @@ class PaymentController extends Controller
             $venueType = match ($booking->venue_type) {
                 'full_court' => 'Full Court',
                 'half_court' => 'Half Court',
-                default => 'Lapangan Basket',
+                default      => 'Lapangan Basket',
             };
 
-            $quantity = count($booking->time_slots ?? []);
+            $quantity     = count($booking->time_slots ?? []);
             $pricePerItem = $quantity > 0 ? (int)($amount / $quantity) : $amount;
 
             $items = [
@@ -92,57 +88,34 @@ class PaymentController extends Controller
                 ],
             ];
 
-            Log::info('🏀 Creating Faspay Payment', [
-                'booking_id'   => $bookingId,
-                'order_id'     => $orderId,
-                'amount'       => $amount,
-                'customer'     => $customerData['name'],
-                'customer_email' => $customerData['email'],
-                'venue_type'   => $booking->venue_type,
-                'booking_date' => $booking->booking_date->format('Y-m-d'),
-            ]);
-
             Log::info('📞 Calling Faspay service...');
             $result = $this->faspay->createPayment($orderId, $amount, $customerData, $items);
 
             Log::info('📬 Faspay service response', [
-                'success' => $result['success'] ?? false,
+                'success'         => $result['success'] ?? false,
                 'has_redirect_url' => isset($result['redirect_url']),
-                'has_bill_no' => isset($result['bill_no']),
-                'has_trx_id' => isset($result['trx_id']),
-                'redirect_url' => $result['redirect_url'] ?? 'not_set',
+                'redirect_url'    => $result['redirect_url'] ?? 'not_set',
             ]);
 
-            // ✅ CHECK SUCCESS AND REDIRECT URL
             if ($result['success'] && isset($result['redirect_url'])) {
-                
-                Log::info('💾 Updating booking with payment info...');
+
                 $booking->update([
                     'bill_no'        => $result['bill_no'],
                     'trx_id'         => $result['trx_id'] ?? null,
                     'payment_status' => 'pending',
                 ]);
 
-                Log::info('✅✅✅ BOOKING UPDATED SUCCESSFULLY', [
-                    'booking_id' => $bookingId,
-                    'bill_no'    => $result['bill_no'],
-                    'trx_id'     => $result['trx_id'] ?? null,
-                    'payment_status' => 'pending',
-                    'redirect_url'   => $result['redirect_url'],
-                ]);
-
-                Log::info('🚀 Redirecting to Faspay payment gateway...');
+                Log::info('✅ Booking updated, redirecting to Faspay...');
                 Log::info('🎯 ===== PAYMENT PROCESS END (SUCCESS) =====');
 
                 return redirect()->away($result['redirect_url']);
             }
 
-            // ❌ PAYMENT CREATION FAILED
             $errorMessage = $result['error'] ?? $result['technical_error'] ?? 'Unknown error';
 
             Log::error('❌ Faspay Payment Creation Failed', [
-                'booking_id' => $bookingId,
-                'error'      => $errorMessage,
+                'booking_id'  => $bookingId,
+                'error'       => $errorMessage,
                 'full_result' => $result,
             ]);
 
@@ -155,7 +128,6 @@ class PaymentController extends Controller
                 'message'    => $e->getMessage(),
                 'file'       => $e->getFile(),
                 'line'       => $e->getLine(),
-                'trace'      => $e->getTraceAsString(),
             ]);
 
             Log::info('🎯 ===== PAYMENT PROCESS END (EXCEPTION) =====');
@@ -171,26 +143,22 @@ class PaymentController extends Controller
         Log::info('🔔 ===== FASPAY CALLBACK START =====');
         Log::info('📡 Request Details', [
             'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'ip' => $request->ip(),
-        ]);
-        Log::info('📦 Raw Input', [
-            'headers' => $request->headers->all(),
-            'body' => $request->all(),
+            'url'    => $request->fullUrl(),
+            'ip'     => $request->ip(),
         ]);
 
         try {
             $validated = $request->validate([
-                'bill_no' => 'required|string|max:100',
-                'bill_total' => 'required|numeric',
-                'trx_id' => 'required|string|max:100',
-                'payment_status_code' => 'required|string|max:10',
-                'payment_channel' => 'nullable|string|max:50',
-                'payment_channel_uid' => 'nullable|string|max:50',
-                'payment_reff' => 'nullable|string|max:100',
-                'payment_date' => 'nullable|date_format:Y-m-d H:i:s',
-                'payment_status_desc' => 'nullable|string|max:255',
-                'signature' => 'required|string|max:255',
+                'bill_no'              => 'required|string|max:100',
+                'bill_total'           => 'required|numeric',
+                'trx_id'               => 'required|string|max:100',
+                'payment_status_code'  => 'required|string|max:10',
+                'payment_channel'      => 'nullable|string|max:50',
+                'payment_channel_uid'  => 'nullable|string|max:50',
+                'payment_reff'         => 'nullable|string|max:100',
+                'payment_date'         => 'nullable|date_format:Y-m-d H:i:s',
+                'payment_status_desc'  => 'nullable|string|max:255',
+                'signature'            => 'required|string|max:255',
             ]);
 
             $billNo            = $validated['bill_no'];
@@ -205,11 +173,11 @@ class PaymentController extends Controller
             $signature         = $validated['signature'];
 
             Log::info('📋 Callback Data', [
-                'bill_no'              => $billNo,
-                'bill_total'           => $billTotal,
-                'payment_status_code'  => $paymentStatusCode,
-                'payment_channel'      => $paymentChannel,
-                'trx_id'               => $trxId,
+                'bill_no'             => $billNo,
+                'bill_total'          => $billTotal,
+                'payment_status_code' => $paymentStatusCode,
+                'payment_channel'     => $paymentChannel,
+                'trx_id'              => $trxId,
             ]);
 
             $signatureValid = $this->faspay->verifySignature($request->all());
@@ -218,9 +186,9 @@ class PaymentController extends Controller
 
             if (!$signatureValid) {
                 Log::error('❌ INVALID SIGNATURE', ['bill_no' => $billNo]);
-                
+
                 return response()->json([
-                    'response' => 'Payment Notification',
+                    'response'      => 'Payment Notification',
                     'response_code' => '05',
                     'response_desc' => 'Invalid signature',
                     'response_date' => now()->format('Y-m-d H:i:s'),
@@ -239,29 +207,30 @@ class PaymentController extends Controller
                 if (!$booking) {
                     DB::rollBack();
                     Log::error('❌ BOOKING NOT FOUND', ['bill_no' => $billNo]);
-                    
+
                     return response()->json([
-                        'response' => 'Payment Notification',
+                        'response'      => 'Payment Notification',
                         'response_code' => '14',
                         'response_desc' => 'Booking not found',
                         'response_date' => now()->format('Y-m-d H:i:s'),
                     ], 404);
                 }
 
+                // Cek duplicate callback
                 if ($booking->payment_status === 'paid' && $booking->trx_id === $trxId) {
                     DB::rollBack();
-                    
+
                     Log::info('⚠️ DUPLICATE CALLBACK - Already processed', [
                         'bill_no' => $billNo,
-                        'trx_id' => $trxId,
+                        'trx_id'  => $trxId,
                     ]);
-                    
+
                     return response()->json([
-                        'response' => 'Payment Notification',
-                        'trx_id' => $trxId,
-                        'merchant_id' => config('faspay.merchant_id'),
-                        'merchant' => 'The Arena',
-                        'bill_no' => $billNo,
+                        'response'      => 'Payment Notification',
+                        'trx_id'        => $trxId,
+                        'merchant_id'   => config('faspay.merchant_id'),
+                        'merchant'      => 'The Arena',
+                        'bill_no'       => $billNo,
                         'response_code' => '00',
                         'response_desc' => 'Already processed',
                         'response_date' => now()->format('Y-m-d H:i:s'),
@@ -275,39 +244,60 @@ class PaymentController extends Controller
                     ]);
                 }
 
-                $booking->trx_id = $trxId;
-                $booking->payment_method = $paymentChannel ?? 'Unknown';
-                $booking->payment_status = $paymentStatus;
-                $booking->is_paid = ($paymentStatus === 'paid') ? 1 : 0;
-                $booking->paid_at = ($paymentStatus === 'paid') ? now() : null;
-                $booking->status = ($paymentStatus === 'paid') ? 'confirmed' : $booking->status;
-                $booking->payment_reff = $paymentReff;
-                $booking->payment_date = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
-                $booking->payment_status_code = $paymentStatusCode;
-                $booking->payment_status_desc = $paymentStatusDesc;
-                $booking->payment_channel_uid = $paymentChannelUid;
-                $booking->payment_channel = $paymentChannel;
-                
+                $booking->trx_id               = $trxId;
+                $booking->payment_method        = $paymentChannel ?? 'Unknown';
+                $booking->payment_status        = $paymentStatus;
+                $booking->is_paid               = ($paymentStatus === 'paid') ? 1 : 0;
+                $booking->paid_at               = ($paymentStatus === 'paid') ? now() : null;
+                $booking->status                = ($paymentStatus === 'paid') ? 'confirmed' : $booking->status;
+                $booking->payment_reff          = $paymentReff;
+                $booking->payment_date          = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
+                $booking->payment_status_code   = $paymentStatusCode;
+                $booking->payment_status_desc   = $paymentStatusDesc;
+                $booking->payment_channel_uid   = $paymentChannelUid;
+                $booking->payment_channel       = $paymentChannel;
+
                 $booking->save();
 
                 DB::commit();
 
+                // ✅ KIRIM EMAIL NOTIFIKASI KE ADMIN JIKA PAYMENT SUKSES
+                if ($paymentStatus === 'paid') {
+                    try {
+                        $adminEmails = array_filter(
+                            explode(',', env('ADMIN_EMAIL', 'admin@thearena.id'))
+                        );
+
+                        Mail::to($adminEmails)
+                            ->send(new BookingPaymentNotification($booking->fresh(['client'])));
+
+                        Log::info('📧 Admin notification email sent', [
+                            'to'      => $adminEmails,
+                            'bill_no' => $billNo,
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('❌ Admin email failed (callback)', [
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+
                 $booking = $booking->fresh();
 
                 Log::info('✅✅✅ CALLBACK UPDATE SUCCESS', [
-                    'booking_id' => $booking->id,
+                    'booking_id'     => $booking->id,
                     'payment_status' => $booking->payment_status,
-                    'is_paid' => $booking->is_paid,
+                    'is_paid'        => $booking->is_paid,
                 ]);
 
                 Log::info('🔔 ===== FASPAY CALLBACK END (SUCCESS) =====');
 
                 return response()->json([
-                    'response' => 'Payment Notification',
-                    'trx_id' => $trxId,
-                    'merchant_id' => config('faspay.merchant_id'),
-                    'merchant' => 'The Arena',
-                    'bill_no' => $billNo,
+                    'response'      => 'Payment Notification',
+                    'trx_id'        => $trxId,
+                    'merchant_id'   => config('faspay.merchant_id'),
+                    'merchant'      => 'The Arena',
+                    'bill_no'       => $billNo,
                     'response_code' => '00',
                     'response_desc' => 'Success',
                     'response_date' => now()->format('Y-m-d H:i:s'),
@@ -322,7 +312,7 @@ class PaymentController extends Controller
             Log::error('❌ VALIDATION FAILED', ['errors' => $e->errors()]);
 
             return response()->json([
-                'response' => 'Payment Notification',
+                'response'      => 'Payment Notification',
                 'response_code' => '96',
                 'response_desc' => 'Invalid request data',
                 'response_date' => now()->format('Y-m-d H:i:s'),
@@ -333,12 +323,12 @@ class PaymentController extends Controller
 
             Log::error('💥 CALLBACK ERROR', [
                 'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
             ]);
 
             return response()->json([
-                'response' => 'Payment Notification',
+                'response'      => 'Payment Notification',
                 'response_code' => '96',
                 'response_desc' => 'System error',
                 'response_date' => now()->format('Y-m-d H:i:s'),
@@ -347,7 +337,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * ✅✅✅ Return URL (user kembali dari Faspay) - FIXED WITH WHATSAPP NOTIFICATION
+     * ✅ Return URL (user kembali dari Faspay)
      */
     public function return(Request $request)
     {
@@ -363,9 +353,9 @@ class PaymentController extends Controller
             $paymentChannelUid = $request->query('payment_channel_uid');
 
             Log::info('📍 User Returned from Faspay', [
-                'bill_no' => $billNo,
-                'status' => $status,
-                'trx_id' => $trxId,
+                'bill_no'         => $billNo,
+                'status'          => $status,
+                'trx_id'          => $trxId,
                 'payment_channel' => $paymentChannel,
             ]);
 
@@ -379,7 +369,7 @@ class PaymentController extends Controller
                 return redirect()->route('profile')->with('error', 'Booking tidak ditemukan');
             }
 
-            // Fix: Type casting untuk authorization
+            // Authorization check
             if ((int)$booking->client_id !== (int)auth('client')->id()) {
                 return redirect()->route('profile')->with('error', 'Unauthorized');
             }
@@ -387,29 +377,49 @@ class PaymentController extends Controller
             // FALLBACK: Update dari return URL jika callback belum masuk
             if ($status === '2' && $booking->payment_status !== 'paid') {
                 Log::warning('⚠️ FALLBACK: Updating from return URL');
-                
+
                 $signatureValid = $this->faspay->verifySignature($request->query());
-                
+
                 if ($signatureValid) {
                     DB::beginTransaction();
                     try {
-                        $booking->payment_status    = 'paid';
-                        $booking->is_paid           = true;
-                        $booking->paid_at           = now();
-                        $booking->status            = 'confirmed';
-                        $booking->trx_id            = $trxId;
-                        $booking->payment_reff      = $paymentReff;
-                        $booking->payment_date      = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
+                        $booking->payment_status      = 'paid';
+                        $booking->is_paid             = true;
+                        $booking->paid_at             = now();
+                        $booking->status              = 'confirmed';
+                        $booking->trx_id              = $trxId;
+                        $booking->payment_reff        = $paymentReff;
+                        $booking->payment_date        = $paymentDate ? \Carbon\Carbon::parse($paymentDate) : null;
                         $booking->payment_status_code = '2';
                         $booking->payment_status_desc = 'Payment Sukses';
-                        $booking->payment_channel   = $paymentChannel ?? 'Faspay Xpress';
+                        $booking->payment_channel     = $paymentChannel ?? 'Faspay Xpress';
                         $booking->payment_channel_uid = $paymentChannelUid ?? $bankUserName ?? $trxId;
-                        $booking->payment_method    = $paymentChannel ?? 'Faspay';
-                        
+                        $booking->payment_method      = $paymentChannel ?? 'Faspay';
+
                         $booking->save();
                         DB::commit();
-                        
+
                         Log::info('✅ FALLBACK: Payment updated from return URL');
+
+                        // ✅ KIRIM EMAIL NOTIFIKASI KE ADMIN (FALLBACK)
+                        try {
+                            $adminEmails = array_filter(
+                                explode(',', env('ADMIN_EMAIL', 'admin@thearena.id'))
+                            );
+
+                            Mail::to($adminEmails)
+                                ->send(new BookingPaymentNotification($booking->fresh(['client'])));
+
+                            Log::info('📧 Admin fallback email sent', [
+                                'to'      => $adminEmails,
+                                'bill_no' => $billNo,
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('❌ Admin email failed (fallback)', [
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+
                     } catch (\Exception $e) {
                         DB::rollBack();
                         Log::error('❌ FALLBACK failed', ['error' => $e->getMessage()]);
@@ -421,16 +431,15 @@ class PaymentController extends Controller
             $isPaid  = $booking->isPaid();
 
             Log::info('📊 Return Status', [
-                'is_paid' => $isPaid,
+                'is_paid'        => $isPaid,
                 'payment_status' => $booking->payment_status,
             ]);
 
             if ($isPaid) {
-                // ✅✅✅ BUILD WHATSAPP MESSAGE
                 $client      = $booking->client;
                 $bookingDate = $booking->booking_date->format('d/m/Y');
 
-                $venueName = match($booking->venue_type) {
+                $venueName = match ($booking->venue_type) {
                     'cibadak_a' => 'The Arena Cibadak A',
                     'cibadak_b' => 'The Arena Cibadak B',
                     'pvj'       => 'The Arena PVJ',
@@ -453,25 +462,21 @@ class PaymentController extends Controller
 
                 $whatsappUrl = "https://wa.me/6281222977985?text=" . urlencode($message);
 
-                Log::info('✅✅✅ PAYMENT SUCCESS - Redirecting with WhatsApp URL', [
-                    'bill_no' => $booking->bill_no,
-                    'whatsapp_url' => $whatsappUrl,
-                ]);
+                Log::info('✅✅✅ PAYMENT SUCCESS - Redirecting with WhatsApp URL');
 
-                // ✅✅✅ PERBAIKAN: Set session dengan benar & tambah flag
                 return redirect()
                     ->route('profile', ['tab' => 'jadwal-booking'])
                     ->with([
-                        'success' => '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.',
-                        'whatsapp_url' => $whatsappUrl,
-                        'show_whatsapp' => true,  // ✅ Flag tambahan
-                        'bill_no' => $booking->bill_no, // ✅ Untuk debugging
+                        'success'       => '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.',
+                        'whatsapp_url'  => $whatsappUrl,
+                        'show_whatsapp' => true,
+                        'bill_no'       => $booking->bill_no,
                     ]);
             }
 
             return redirect()->route('profile', ['tab' => 'jadwal-booking'])
                 ->with('info', '⏳ Pembayaran sedang diproses. Refresh halaman dalam beberapa saat.');
-                
+
         } catch (\Exception $e) {
             Log::error('💥 Payment Return Error', [
                 'message' => $e->getMessage(),
@@ -514,7 +519,7 @@ class PaymentController extends Controller
             if (!$booking) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Transaction not found'
+                    'error'   => 'Transaction not found',
                 ], 404);
             }
 
@@ -531,10 +536,10 @@ class PaymentController extends Controller
 
         } catch (\Exception $e) {
             Log::error('💥 Check status error', ['message' => $e->getMessage()]);
-            
+
             return response()->json([
                 'success' => false,
-                'error'   => 'Internal server error'
+                'error'   => 'Internal server error',
             ], 500);
         }
     }
