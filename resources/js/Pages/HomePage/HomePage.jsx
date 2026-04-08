@@ -37,7 +37,6 @@ const alatImages = [
 ];
 
 const eventImages = [
-  "/images/HomePage/Event/1223.jpg",
   "/images/HomePage/Event/DSC_0004-2.jpg",
   "/images/HomePage/Event/DSC_0083.jpg",
   "/images/HomePage/Event/ILK_0312.jpg",
