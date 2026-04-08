@@ -91,7 +91,7 @@ export default function HomePage() {
         } while (newIndex === prev);
         return newIndex;
       });
-    }, 3000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -105,7 +105,7 @@ export default function HomePage() {
         } while (newIndex === prev);
         return newIndex;
       });
-    }, 3000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -119,7 +119,7 @@ export default function HomePage() {
         } while (newIndex === prev);
         return newIndex;
       });
-    }, 3000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -362,7 +362,7 @@ export default function HomePage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [currentSlide, slides.length]);
@@ -450,7 +450,22 @@ export default function HomePage() {
         }
         
         .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+          animation: fade-in 0.5s ease-out;
+        }
+
+        @keyframes slide-fade-in {
+          from {
+            opacity: 0;
+            transform: translateX(6%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-slide-fade-in {
+          animation: slide-fade-in 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         
         .animate-modal-appear {
@@ -675,12 +690,12 @@ export default function HomePage() {
         <div className="bg-white">
           {/* Section 1: Penyewaan Lapangan Basket */}
           <div className="grid md:grid-cols-2">
-            <div className="relative h-full min-h-[300px] md:min-h-[400px]">
+            <div className="relative h-full min-h-[300px] md:min-h-[400px] overflow-hidden">
               <img
                 key={lapanganImages[currentLapanganImgIndex]}
                 src={lapanganImages[currentLapanganImgIndex]}
                 alt="Basketball Court"
-                className="w-full h-full object-cover animate-fade-in"
+                className="absolute inset-0 w-full h-full object-cover animate-slide-fade-in"
               />
             </div>
 
@@ -722,24 +737,24 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="relative h-full min-h-[300px] md:min-h-[400px] order-1 md:order-2">
+            <div className="relative h-full min-h-[300px] md:min-h-[400px] order-1 md:order-2 overflow-hidden">
               <img
                 key={alatImages[currentAlatImgIndex]}
                 src={alatImages[currentAlatImgIndex]}
                 alt="Alat Basket"
-                className="w-full h-full object-cover animate-fade-in"
+                className="absolute inset-0 w-full h-full object-cover animate-slide-fade-in"
               />
             </div>
           </div>
 
           {/* Section 3: Event Organizer */}
           <div className="grid md:grid-cols-2">
-            <div className="relative h-full min-h-[300px] md:min-h-[400px]">
+            <div className="relative h-full min-h-[300px] md:min-h-[400px] overflow-hidden">
               <img
                 key={eventImages[currentEventImgIndex]}
                 src={eventImages[currentEventImgIndex]}
                 alt="Event Basketball"
-                className="w-full h-full object-cover animate-fade-in"
+                className="absolute inset-0 w-full h-full object-cover animate-slide-fade-in"
               />
             </div>
 
