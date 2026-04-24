@@ -18,14 +18,14 @@ class BookingPaymentNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '💰 Pembayaran Masuk - ' . $this->booking->client->name . ' #' . $this->booking->bill_no,
+            subject: '[The Arena] Pembayaran Masuk - ' . $this->booking->client->name . ' | ' . $this->booking->bill_no,
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            markdown: 'emails.booking.payment-notification',
+            view: 'emails.booking.payment-notification',
         );
     }
 }

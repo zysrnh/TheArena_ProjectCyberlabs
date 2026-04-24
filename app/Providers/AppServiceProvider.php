@@ -1,11 +1,12 @@
 <?php
-
 namespace App\Providers;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Filament\Support\Facades\FilamentView;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
             || $this->app->environment('production')) {
             URL::forceScheme('https');
         }
-
+        
         // ✅ Atau kalau request dari proxy (ngrok, cloudflare, dll)
         if (request()->header('X-Forwarded-Proto') === 'https') {
             URL::forceScheme('https');
@@ -39,5 +40,31 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
         });
+
+        // ✅ FIX: Input text color untuk light mode
+        FilamentView::registerRenderHook(
+            'panels::styles.after',
+            fn (): string => Blade::render('<style>
+                input[type="text"],
+                input[type="number"],
+                input[type="email"],
+                input[type="tel"],
+                input[type="date"],
+                textarea,
+                select {
+                    color: rgb(17 24 39) !important;
+                }
+                
+                .dark input[type="text"],
+                .dark input[type="number"],
+                .dark input[type="email"],
+                .dark input[type="tel"],
+                .dark input[type="date"],
+                .dark textarea,
+                .dark select {
+                    color: rgb(255 255 255) !important;
+                }
+            </style>')
+        );
     }
 }
