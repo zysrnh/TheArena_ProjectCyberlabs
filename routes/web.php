@@ -81,7 +81,7 @@ Route::middleware('guest:client')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
     
-    // ✅ Forgot Password & Reset Password Routes (NEW)
+    // âœ… Forgot Password & Reset Password Routes (NEW)
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showForgotForm'])
         ->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'verify'])
@@ -117,6 +117,34 @@ Route::middleware('auth:client')->group(function () {
     // Return URL (user comes back from Faspay)
     Route::get('/payment/faspay/return', [PaymentController::class, 'return'])
         ->name('payment.faspay.return');
+
+    // ✅ Booking Confirmation Page (after successful payment)
+    Route::get('/booking/confirmation/{booking}', [PaymentController::class, 'confirmation'])
+        ->name('booking.confirmation');
+});
+
+// ============================================
+// CLEAR CACHE ROUTE (UNTUK CPANEL/SHARED HOSTING)
+// ============================================
+Route::get('/clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+    return 'Web Cache Cleared! Silakan test booking lagi.';
+});
+
+// ============================================
+// CHEAT LUNAS (HANYA UNTUK TESTING)
+// ============================================
+Route::get('/cheat-lunas/{booking_id}', function($booking_id) {
+    $booking = \App\Models\Booking::findOrFail($booking_id);
+    
+    // Ubah status jadi lunas
+    $booking->update([
+        'payment_status' => 'paid',
+        'status' => 'confirmed'
+    ]);
+
+    // Langsung arahkan ke halaman struk konfirmasi
+    return redirect()->route('booking.confirmation', ['booking' => $booking->id]);
 });
 
 // ============================================
@@ -164,7 +192,7 @@ if (config('app.env') !== 'production') {
     });
 
     Route::post('/test-manual-callback', function (Illuminate\Http\Request $request) {
-        \Log::info('🧪 TEST MANUAL CALLBACK', [
+        \Log::info('ðŸ§ª TEST MANUAL CALLBACK', [
             'data' => $request->all(),
             'headers' => $request->headers->all(),
         ]);

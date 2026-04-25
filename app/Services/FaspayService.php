@@ -70,124 +70,97 @@ class FaspayService
             'return_url'   => $this->config['return_url'],
         ]);
 
-       try {
-    $resp = Http::timeout(60)
-        ->retry(3, 2000)
-        ->connectTimeout(30)
-        ->withOptions([
-            'verify' => !$this->config['is_production'], // Disable SSL verify di sandbox
-            // ✅ HAPUS/COMMENT LINE INI - Ini penyebab error!
-            // 'debug' => config('app.debug'),
-            'http_errors' => false,
-        ])
-        ->asJson()
-        ->post($this->config['base_url'], $payload);
+        try {
+            $resp = Http::timeout(60)
+                ->retry(3, 2000)
+                ->connectTimeout(30)
+                ->withOptions([
+                    'verify'      => false, // Disable SSL verify (sandbox & production aman)
+                    'http_errors' => false,
+                ])
+                ->asJson()
+                ->post($this->config['base_url'], $payload);
 
-    Log::info('📥 FASPAY RAW RESPONSE', [
-        'status' => $resp->status(),
-        'successful' => $resp->successful(),
-        'body'   => $resp->body(),
-    ]);
+            Log::info('📥 FASPAY RAW RESPONSE', [
+                'status'     => $resp->status(),
+                'successful' => $resp->successful(),
+                'body'       => $resp->body(),
+            ]);
 
-    if ($resp->failed()) {
-        $errorBody = $resp->body();
-        Log::error('❌ FASPAY HTTP ERROR', [
-            'status' => $resp->status(),
-            'body'   => $errorBody,
-        ]);
-        
-        throw new \Exception("Faspay HTTP Error {$resp->status()}: {$errorBody}");
-    }
+            if ($resp->failed()) {
+                $errorBody = $resp->body();
+                Log::error('❌ FASPAY HTTP ERROR', [
+                    'status' => $resp->status(),
+                    'body'   => $errorBody,
+                ]);
+                throw new \Exception("Faspay HTTP Error {$resp->status()}: {$errorBody}");
+            }
 
-    $result = $resp->json() ?? [];
-    
-    if (empty($result)) {
-        throw new \Exception('Faspay returned empty response');
-    }
+            $result = $resp->json() ?? [];
 
-    $responseCode = $result['response_code'] ?? '';
-    $responseDesc = $result['response_desc'] ?? 'Unknown error';
+            if (empty($result)) {
+                throw new \Exception('Faspay returned empty response');
+            }
 
-    if ($responseCode !== '00') {
-        throw new \Exception("Faspay Error [{$responseCode}]: {$responseDesc}");
-    }
+            $responseCode = $result['response_code'] ?? '';
+            $responseDesc = $result['response_desc'] ?? 'Unknown error';
 
-    $trxId = $result['trx_id'] ?? null;
-    
-    if (empty($trxId)) {
-        $trxId = 'TEMP_' . $billNo;
-        Log::warning('⚠️ Faspay tidak return trx_id, menggunakan temporary ID', [
-            'bill_no'     => $billNo,
-            'temp_trx_id' => $trxId,
-        ]);
-    }
+            if ($responseCode !== '00') {
+                throw new \Exception("Faspay Error [{$responseCode}]: {$responseDesc}");
+            }
 
-    Log::info('✅ FASPAY PAYMENT CREATED SUCCESSFULLY', [
-        'trx_id'       => $trxId,
-        'bill_no'      => $billNo,
-        'redirect_url' => $result['redirect_url'] ?? null,
-    ]);
+            $trxId = $result['trx_id'] ?? null;
 
-    return [
-        'success'          => true,
-        'trx_id'           => $trxId,
-        'bill_no'          => $billNo,
-        'order_id'         => $orderId,
-        'amount'           => $billTotal,
-        'expired_at'       => $billExpired,
-        'redirect_url'     => $result['redirect_url'] ?? null,
-        'payment_channels' => [[
-            'channel_code' => 'XPRS',
-            'channel_name' => $this->config['is_production']
-                ? 'Faspay Xpress (Production)'
-                : 'Faspay Xpress (Sandbox)',
-            'payment_url'  => $result['redirect_url'] ?? null,
-        ]],
-        'is_development'   => !$this->config['is_production'],
-        'raw_response'     => $result,
-    ];
+            if (empty($trxId)) {
+                $trxId = 'TEMP_' . $billNo;
+                Log::warning('⚠️ Faspay tidak return trx_id, menggunakan temporary ID', [
+                    'bill_no'     => $billNo,
+                    'temp_trx_id' => $trxId,
+                ]);
+            }
 
-} catch (\Illuminate\Http\Client\ConnectionException $e) {
-    Log::error('💥 FASPAY CONNECTION ERROR', [
-        'message' => $e->getMessage(),
-        'url'     => $this->config['base_url'],
-    ]);
-    
-    return [
-        'success'         => false,
-        'error'           => 'Tidak dapat terhubung ke server Faspay. Silakan coba lagi.',
-        'technical_error' => $e->getMessage(),
-    ];
-    
-} catch (\Throwable $e) {
-    Log::error('💥 FASPAY EXCEPTION', [
-        'message' => $e->getMessage(),
-        'file'    => $e->getFile(),
-        'line'    => $e->getLine(),
-    ]);
-    
-    return [
-        'success' => false,
-        'error'   => $e->getMessage(),
-    ];
-} catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::info('✅ FASPAY PAYMENT CREATED SUCCESSFULLY', [
+                'trx_id'       => $trxId,
+                'bill_no'      => $billNo,
+                'redirect_url' => $result['redirect_url'] ?? null,
+            ]);
+
+            return [
+                'success'          => true,
+                'trx_id'           => $trxId,
+                'bill_no'          => $billNo,
+                'order_id'         => $orderId,
+                'amount'           => $billTotal,
+                'expired_at'       => $billExpired,
+                'redirect_url'     => $result['redirect_url'] ?? null,
+                'payment_channels' => [[
+                    'channel_code' => 'XPRS',
+                    'channel_name' => $this->config['is_production']
+                        ? 'Faspay Xpress (Production)'
+                        : 'Faspay Xpress (Sandbox)',
+                    'payment_url'  => $result['redirect_url'] ?? null,
+                ]],
+                'is_development' => !$this->config['is_production'],
+                'raw_response'   => $result,
+            ];
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('💥 FASPAY CONNECTION ERROR', [
                 'message' => $e->getMessage(),
                 'url'     => $this->config['base_url'],
             ]);
-            
             return [
                 'success'         => false,
                 'error'           => 'Tidak dapat terhubung ke server Faspay. Silakan coba lagi.',
                 'technical_error' => $e->getMessage(),
             ];
-            
+
         } catch (\Throwable $e) {
             Log::error('💥 FASPAY EXCEPTION', [
                 'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
             ]);
-            
             return [
                 'success' => false,
                 'error'   => $e->getMessage(),

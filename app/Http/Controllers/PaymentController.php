@@ -439,39 +439,84 @@ class PaymentController extends Controller
                 $client      = $booking->client;
                 $bookingDate = $booking->booking_date->format('d/m/Y');
 
+                $dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                $dayName = $dayNames[$booking->booking_date->dayOfWeek];
+
+                $monthNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                $bookingDateFormatted = $dayName . ', ' . $booking->booking_date->format('d') . ' ' . $monthNames[(int)$booking->booking_date->format('n')] . ' ' . $booking->booking_date->format('Y');
+
                 $venueName = match ($booking->venue_type) {
                     'cibadak_a' => 'The Arena Cibadak A',
                     'cibadak_b' => 'The Arena Cibadak B',
-                    'pvj'       => 'The Arena PVJ',
+                    'pvj'       => 'The Arena PVJ (Paris Van Java)',
                     'urban'     => 'The Arena Urban',
                     default     => 'The Arena',
                 };
 
-                $timeSlots  = collect($booking->time_slots)->pluck('time')->join(', ');
+                $venueAddress = match ($booking->venue_type) {
+                    'cibadak_a', 'cibadak_b' => 'Gg. Nyi Empok No.8, Cibadak, Bandung',
+                    'pvj'                    => 'Paris Van Java Mall, Lantai P13, Bandung',
+                    'urban'                  => 'Jl. Kelenteng No.41, Bandung',
+                    default                  => 'Bandung',
+                };
+
+                $timeSlotsList = collect($booking->time_slots);
+                $timeSlotsText = $timeSlotsList->pluck('time')->join("\n⏱️ ");
+
+                $originalPrice = $booking->original_price ?? $booking->total_price;
+                $discountAmount = $booking->discount_amount ?? 0;
                 $totalPrice = 'Rp ' . number_format($booking->total_price, 0, ',', '.');
+                $originalPriceText = 'Rp ' . number_format($originalPrice, 0, ',', '.');
 
-                $message  = "Halo Admin The Arena! 👋\n\n";
-                $message .= "Berikut bukti pembayaran saya:\n\n";
-                $message .= "👤 *Nama:* {$client->name}\n";
-                $message .= "🏟️ *Lapangan:* {$venueName}\n";
-                $message .= "📅 *Tanggal:* {$bookingDate}\n";
-                $message .= "⏰ *Jam:* {$timeSlots}\n";
-                $message .= "🧾 *No. Tagihan:* {$booking->bill_no}\n";
-                $message .= "💰 *Total:* {$totalPrice}\n\n";
-                $message .= "Mohon konfirmasinya. Terima kasih! 🙏";
+                $separator = str_repeat('─', 30);
 
-                $whatsappUrl = "https://wa.me/6281222977985?text=" . urlencode($message);
+                // === PESAN KE ADMIN ===
+                $messageAdmin  = "🏀 *KONFIRMASI BOOKING THE ARENA* 🏀\n";
+                $messageAdmin .= $separator . "\n\n";
+                $messageAdmin .= "👤 *INFORMASI PELANGGAN*\n";
+                $messageAdmin .= "Nama     : *{$client->name}*\n";
+                $messageAdmin .= "No. HP   : " . ($client->phone ?? '-') . "\n";
+                $messageAdmin .= "Email    : " . ($client->email ?? '-') . "\n\n";
+                $messageAdmin .= "🏟️ *DETAIL BOOKING*\n";
+                $messageAdmin .= "Lapangan : *{$venueName}*\n";
+                $messageAdmin .= "Alamat   : {$venueAddress}\n";
+                $messageAdmin .= "Tanggal  : *{$bookingDateFormatted}*\n";
+                $messageAdmin .= "Jam      :\n⏱️ {$timeSlotsText}\n\n";
+                $messageAdmin .= "💳 *PEMBAYARAN*\n";
+                $messageAdmin .= "No. Bill : `{$booking->bill_no}`\n";
+                if ($discountAmount > 0) {
+                    $messageAdmin .= "Harga    : ~~{$originalPriceText}~~\n";
+                    $messageAdmin .= "Diskon   : -Rp " . number_format($discountAmount, 0, ',', '.') . "\n";
+                }
+                $messageAdmin .= "Total    : *{$totalPrice}*\n";
+                $messageAdmin .= "Status   : ✅ *LUNAS*\n\n";
+                $messageAdmin .= $separator . "\n";
+                $messageAdmin .= "_Booking dikonfirmasi otomatis oleh sistem The Arena._";
+
+                $adminWaNumber = env('ADMIN_WA_NUMBER', '6281222977985');
+                $whatsappUrlAdmin = "https://wa.me/{$adminWaNumber}?text=" . urlencode($messageAdmin);
+
+                // === STRUK UNTUK USER (SELF REMINDER) ===
+                $messageUser  = "🏀 *STRUK BOOKING THE ARENA* 🏀\n";
+                $messageUser .= $separator . "\n\n";
+                $messageUser .= "Terima kasih, *{$client->name}*! 🎉\n";
+                $messageUser .= "Booking Anda telah *DIKONFIRMASI*.\n\n";
+                $messageUser .= "🏟️ *{$venueName}*\n";
+                $messageUser .= "📍 {$venueAddress}\n\n";
+                $messageUser .= "📅 *{$bookingDateFormatted}*\n";
+                $messageUser .= "⏰ Jam:\n⏱️ {$timeSlotsText}\n\n";
+                $messageUser .= "🧾 No. Bill: `{$booking->bill_no}`\n";
+                $messageUser .= "💰 Total: *{$totalPrice}* ✅ Lunas\n\n";
+                $messageUser .= $separator . "\n";
+                $messageUser .= "📌 *Informasi Penting:*\n";
+                $messageUser .= "• Harap datang 10 menit sebelum jam booking\n";
+                $messageUser .= "• Gunakan sepatu olahraga/basket\n";
+                $messageUser .= "• Tunjukkan bukti ini kepada petugas\n\n";
+                $messageUser .= "Sampai jumpa di lapangan! 🏀🔥";
 
                 Log::info('✅✅✅ PAYMENT SUCCESS - Redirecting with WhatsApp URL');
 
-                return redirect()
-                    ->route('profile', ['tab' => 'jadwal-booking'])
-                    ->with([
-                        'success'       => '✅ Pembayaran berhasil! Booking Anda telah dikonfirmasi.',
-                        'whatsapp_url'  => $whatsappUrl,
-                        'show_whatsapp' => true,
-                        'bill_no'       => $booking->bill_no,
-                    ]);
+                return redirect()->route('booking.confirmation', ['booking' => $booking->id]);
             }
 
             return redirect()->route('profile', ['tab' => 'jadwal-booking'])
@@ -485,6 +530,119 @@ class PaymentController extends Controller
 
             return redirect()->route('profile')->with('error', 'Terjadi kesalahan');
         }
+    }
+
+    /**
+     * ✅ Halaman konfirmasi booking setelah payment sukses
+     */
+    public function confirmation(Request $request, $bookingId)
+    {
+        $booking = Booking::with('client')->findOrFail($bookingId);
+
+        // Authorization - only the booking owner can see confirmation
+        if ((int)$booking->client_id !== (int)auth('client')->id()) {
+            return redirect()->route('profile')->with('error', 'Unauthorized');
+        }
+
+        if (!$booking->isPaid()) {
+            return redirect()->route('profile')->with('info', 'Pembayaran belum dikonfirmasi.');
+        }
+
+        $client = $booking->client;
+
+        $dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+        $monthNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        $dayName = $dayNames[$booking->booking_date->dayOfWeek];
+        $bookingDateFormatted = $dayName . ', ' . $booking->booking_date->format('d') . ' ' . $monthNames[(int)$booking->booking_date->format('n')] . ' ' . $booking->booking_date->format('Y');
+
+        $venueName = match ($booking->venue_type) {
+            'cibadak_a' => 'The Arena Cibadak A',
+            'cibadak_b' => 'The Arena Cibadak B',
+            'pvj'       => 'The Arena PVJ (Paris Van Java)',
+            'urban'     => 'The Arena Urban',
+            default     => 'The Arena',
+        };
+
+        $venueAddress = match ($booking->venue_type) {
+            'cibadak_a', 'cibadak_b' => 'Gg. Nyi Empok No.8, Cibadak, Bandung',
+            'pvj'                    => 'Paris Van Java Mall, Lantai P13, Bandung',
+            'urban'                  => 'Jl. Kelenteng No.41, Bandung',
+            default                  => 'Bandung',
+        };
+
+        $timeSlotsCollection = collect($booking->time_slots);
+        $timeSlotsText = $timeSlotsCollection->pluck('time')->join("\n⏱️ ");
+        $timeSlotsDisplay = $timeSlotsCollection->pluck('time')->toArray();
+
+        $originalPrice = $booking->original_price ?? $booking->total_price;
+        $discountAmount = $booking->discount_amount ?? 0;
+        $separator = str_repeat('─', 30);
+        $totalPriceText = 'Rp ' . number_format($booking->total_price, 0, ',', '.');
+        $originalPriceText = 'Rp ' . number_format($originalPrice, 0, ',', '.');
+
+        // === PESAN KE ADMIN ===
+        $messageAdmin  = "🏀 *KONFIRMASI BOOKING THE ARENA* 🏀\n";
+        $messageAdmin .= $separator . "\n\n";
+        $messageAdmin .= "👤 *INFORMASI PELANGGAN*\n";
+        $messageAdmin .= "Nama     : *{$client->name}*\n";
+        $messageAdmin .= "No. HP   : " . ($client->phone ?? '-') . "\n";
+        $messageAdmin .= "Email    : " . ($client->email ?? '-') . "\n\n";
+        $messageAdmin .= "🏟️ *DETAIL BOOKING*\n";
+        $messageAdmin .= "Lapangan : *{$venueName}*\n";
+        $messageAdmin .= "Alamat   : {$venueAddress}\n";
+        $messageAdmin .= "Tanggal  : *{$bookingDateFormatted}*\n";
+        $messageAdmin .= "Jam      :\n⏱️ {$timeSlotsText}\n\n";
+        $messageAdmin .= "💳 *PEMBAYARAN*\n";
+        $messageAdmin .= "No. Bill : `{$booking->bill_no}`\n";
+        if ($discountAmount > 0) {
+            $messageAdmin .= "Harga    : ~~{$originalPriceText}~~\n";
+            $messageAdmin .= "Diskon   : -Rp " . number_format($discountAmount, 0, ',', '.') . "\n";
+        }
+        $messageAdmin .= "Total    : *{$totalPriceText}*\n";
+        $messageAdmin .= "Status   : ✅ *LUNAS*\n\n";
+        $messageAdmin .= $separator . "\n";
+        $messageAdmin .= "_Booking dikonfirmasi otomatis oleh sistem The Arena._";
+
+        // === STRUK UNTUK USER (simpan ke no sendiri) ===
+        $messageUser  = "🏀 *STRUK BOOKING THE ARENA* 🏀\n";
+        $messageUser .= $separator . "\n\n";
+        $messageUser .= "Terima kasih, *{$client->name}*! 🎉\n";
+        $messageUser .= "Booking Anda telah *DIKONFIRMASI*.\n\n";
+        $messageUser .= "🏟️ *{$venueName}*\n";
+        $messageUser .= "📍 {$venueAddress}\n\n";
+        $messageUser .= "📅 *{$bookingDateFormatted}*\n";
+        $messageUser .= "⏰ Jam:\n⏱️ {$timeSlotsText}\n\n";
+        $messageUser .= "🧾 No. Bill: `{$booking->bill_no}`\n";
+        $messageUser .= "💰 Total: *{$totalPriceText}* ✅ Lunas\n\n";
+        $messageUser .= $separator . "\n";
+        $messageUser .= "📌 *Informasi Penting:*\n";
+        $messageUser .= "• Harap datang 10 menit sebelum jam booking\n";
+        $messageUser .= "• Gunakan sepatu olahraga/basket\n";
+        $messageUser .= "• Tunjukkan bukti ini kepada petugas\n\n";
+        $messageUser .= "Sampai jumpa di lapangan! 🏀🔥";
+
+        $adminWaNumber = env('ADMIN_WA_NUMBER', '6281222977985');
+        $userPhone = preg_replace('/[^0-9]/', '', $client->phone ?? '');
+        if (str_starts_with($userPhone, '0')) {
+            $userPhone = '62' . substr($userPhone, 1);
+        }
+
+        $whatsappUrlAdmin = "https://wa.me/{$adminWaNumber}?text=" . urlencode($messageAdmin);
+        $whatsappUrlUser  = $userPhone ? "https://wa.me/{$userPhone}?text=" . urlencode($messageUser) : null;
+
+        return view('booking.confirmation', [
+            'booking'           => $booking,
+            'client'            => $client,
+            'venueName'         => $venueName,
+            'venueAddress'      => $venueAddress,
+            'bookingDateFormatted' => $bookingDateFormatted,
+            'timeSlotsDisplay'  => $timeSlotsDisplay,
+            'originalPrice'     => $originalPrice,
+            'discountAmount'    => $discountAmount,
+            'totalPrice'        => $booking->total_price,
+            'whatsappUrlAdmin'  => $whatsappUrlAdmin,
+            'whatsappUrlUser'   => $whatsappUrlUser,
+        ]);
     }
 
     /**

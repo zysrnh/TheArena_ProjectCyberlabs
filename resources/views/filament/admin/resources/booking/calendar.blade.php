@@ -394,6 +394,97 @@
             box-shadow: 0 4px 12px rgba(1, 48, 100, 0.12);
         }
 
+        /* ✅ Custom Dropdown - replaces native <select> */
+        .custom-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .custom-dropdown-trigger {
+            background: white;
+            color: #013064;
+            padding: 0.875rem 2.75rem 0.875rem 1.25rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.625rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            min-height: 48px;
+            min-width: 160px;
+            white-space: nowrap;
+            user-select: none;
+            position: relative;
+        }
+
+        .custom-dropdown-trigger:hover {
+            background: #f8fafc;
+            border-color: #013064;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(1, 48, 100, 0.12);
+        }
+
+        .custom-dropdown-trigger .dropdown-arrow {
+            position: absolute;
+            right: 0.875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        .custom-dropdown-trigger.open .dropdown-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .custom-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 200px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            overflow: hidden;
+            padding: 6px;
+        }
+
+        .custom-dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.625rem 1rem;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .custom-dropdown-item:hover {
+            background: #eff6ff;
+            color: #013064;
+        }
+
+        .custom-dropdown-item.selected {
+            background: #013064;
+            color: white;
+        }
+
+        .custom-dropdown-item.selected:hover {
+            background: #024a8f;
+        }
+
         /* ✅ Export Button Styling */
         .export-button {
             background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
@@ -783,24 +874,94 @@
             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-5">
                 <div>
                     <p class="page-subtitle">
-                        {{ now()->isoFormat('DD MMMM YYYY') }}
+                        @php
+                            $bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                            $namaHari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                        @endphp
+                        {{ $namaHari[now()->dayOfWeek] }}, {{ now()->format('d') }} {{ $bulan[now()->month - 1] }} {{ now()->format('Y') }}
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full lg:w-auto">
-                    <select 
-                        wire:model.live="selectedVenue"
-                        class="filter-button"
-                        style="min-width: 200px;"
-                    >
-                        <option value="all">Semua Venue</option>
-                        <option value="cibadak_a">Cibadak A</option>
-                        <option value="cibadak_b">Cibadak B</option>
-                        <option value="pvj">PVJ Mall</option>
-                        <option value="urban">Urban</option>
-                    </select>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full lg:w-auto flex-wrap">
 
-                    <button 
+                    {{-- ✅ Venue Filter - Custom Alpine Dropdown --}}
+                    <div class="custom-dropdown" x-data="{
+                        open: false,
+                        venues: {
+                            'all': 'Semua Venue',
+                            'cibadak_a': 'Cibadak A',
+                            'cibadak_b': 'Cibadak B',
+                            'pvj': 'PVJ Mall',
+                            'urban': 'Urban'
+                        }
+                    }" x-on:click.outside="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            :class="{'open': open}"
+                            class="custom-dropdown-trigger"
+                        >
+                            <svg class="w-4 h-4 flex-shrink-0 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span x-text="venues['{{ $selectedVenue }}'] ?? 'Semua Venue'"></span>
+                            <svg class="dropdown-arrow w-4 h-4 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" x-transition.opacity class="custom-dropdown-menu">
+                            <button wire:click="$set('selectedVenue','all')" @click="open=false" class="custom-dropdown-item {{ $selectedVenue === 'all' ? 'selected' : '' }}">Semua Venue</button>
+                            <button wire:click="$set('selectedVenue','cibadak_a')" @click="open=false" class="custom-dropdown-item {{ $selectedVenue === 'cibadak_a' ? 'selected' : '' }}">Cibadak A</button>
+                            <button wire:click="$set('selectedVenue','cibadak_b')" @click="open=false" class="custom-dropdown-item {{ $selectedVenue === 'cibadak_b' ? 'selected' : '' }}">Cibadak B</button>
+                            <button wire:click="$set('selectedVenue','pvj')" @click="open=false" class="custom-dropdown-item {{ $selectedVenue === 'pvj' ? 'selected' : '' }}">PVJ Mall</button>
+                            <button wire:click="$set('selectedVenue','urban')" @click="open=false" class="custom-dropdown-item {{ $selectedVenue === 'urban' ? 'selected' : '' }}">Urban</button>
+                        </div>
+                    </div>
+
+                    {{-- ✅ Time Slot Filter - Custom Alpine Dropdown --}}
+                    <div class="custom-dropdown" x-data="{ open: false }" x-on:click.outside="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            :class="{'open': open}"
+                            class="custom-dropdown-trigger"
+                        >
+                            <svg class="w-4 h-4 flex-shrink-0 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>{{ $selectedTimeSlot === 'all' ? 'Semua Jam' : $selectedTimeSlot }}</span>
+                            <svg class="dropdown-arrow w-4 h-4 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div x-show="open" x-transition.opacity class="custom-dropdown-menu">
+                            @foreach(['all' => 'Semua Jam', '06.00 - 08.00' => '06.00 – 08.00', '08.00 - 10.00' => '08.00 – 10.00', '10.00 - 12.00' => '10.00 – 12.00', '12.00 - 14.00' => '12.00 – 14.00', '14.00 - 16.00' => '14.00 – 16.00', '16.00 - 18.00' => '16.00 – 18.00', '18.00 - 20.00' => '18.00 – 20.00', '20.00 - 22.00' => '20.00 – 22.00', '22.00 - 00.00' => '22.00 – 00.00'] as $val => $label)
+                                <button
+                                    wire:click="$set('selectedTimeSlot','{{ $val }}')"
+                                    @click="open=false"
+                                    class="custom-dropdown-item {{ $selectedTimeSlot === $val ? 'selected' : '' }}"
+                                >{{ $label }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Quick Nav Buttons --}}
+                    <div class="flex gap-1.5">
+                        <button wire:click="setPrevWeek" class="filter-button whitespace-nowrap" title="Minggu Lalu" style="min-width:auto; padding: 0.875rem 1rem;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button wire:click="setCurrentDay" class="filter-button whitespace-nowrap" title="Hari Ini" style="min-width:auto; padding: 0.875rem 1rem;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                        </button>
+                        <button wire:click="setCurrentWeek" class="filter-button whitespace-nowrap" style="min-width:auto;">
+                            <span>Minggu Ini</span>
+                        </button>
+                        <button wire:click="setNextWeek" class="filter-button whitespace-nowrap" title="Minggu Depan" style="min-width:auto; padding: 0.875rem 1rem;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+
+                    <button
                         x-data
                         x-on:click="$dispatch('open-modal', { id: 'date-range-modal' })"
                         class="filter-button whitespace-nowrap"
@@ -811,7 +972,7 @@
                         <span>Pilih Tanggal</span>
                     </button>
 
-                    <button 
+                    <button
                         wire:click="setCurrentMonth"
                         class="filter-button whitespace-nowrap"
                     >
@@ -822,7 +983,7 @@
                     </button>
 
                     {{-- Export Matrix Button --}}
-                    <button 
+                    <button
                         wire:click="exportToCSV"
                         class="export-button whitespace-nowrap"
                         title="Export format matrix seperti kalender"
@@ -834,7 +995,7 @@
                     </button>
 
                     {{-- Export By Color Button --}}
-                    <button 
+                    <button
                         wire:click="exportToCSVByColor"
                         class="export-color-button whitespace-nowrap"
                         title="Export dengan pemisahan berdasarkan warna/kategori"
@@ -869,7 +1030,7 @@
                 </div>
             </div>
 
-            @if($selectedVenue !== 'all' || $dateRangeText)
+            @if($selectedVenue !== 'all' || $dateRangeText || ($selectedTimeSlot && $selectedTimeSlot !== 'all'))
                 <div class="mt-4 flex flex-wrap gap-2.5">
                     @if($selectedVenue !== 'all')
                         <span class="active-filter-tag">
@@ -884,6 +1045,20 @@
                                 default => ucfirst(str_replace('_', ' ', $selectedVenue))
                             } }}
                             <button wire:click="$set('selectedVenue', 'all')" class="remove-filter-btn">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </span>
+                    @endif
+
+                    @if($selectedTimeSlot && $selectedTimeSlot !== 'all')
+                        <span class="active-filter-tag">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Jam: {{ $selectedTimeSlot }}
+                            <button wire:click="$set('selectedTimeSlot', 'all')" class="remove-filter-btn">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -1210,9 +1385,13 @@
                     <div class="space-y-2">
                         <button @click="quickSelect('today')" class="quick-sidebar-btn w-full">Hari Ini</button>
                         <button @click="quickSelect('yesterday')" class="quick-sidebar-btn w-full">Kemarin</button>
+                        <button @click="quickSelect('thisweek')" class="quick-sidebar-btn w-full">Minggu Ini</button>
+                        <button @click="quickSelect('nextweek')" class="quick-sidebar-btn w-full">Minggu Depan</button>
                         <button @click="quickSelect('last7days')" class="quick-sidebar-btn w-full">7 Hari Terakhir</button>
+                        <button @click="quickSelect('last14days')" class="quick-sidebar-btn w-full">14 Hari Terakhir</button>
                         <button @click="quickSelect('thismonth')" class="quick-sidebar-btn w-full">Bulan Ini</button>
                         <button @click="quickSelect('lastmonth')" class="quick-sidebar-btn w-full">Bulan Lalu</button>
+                        <button @click="quickSelect('next30days')" class="quick-sidebar-btn w-full">30 Hari ke Depan</button>
                     </div>
                 </div>
 
@@ -1369,7 +1548,13 @@
                 quickSelect(type) {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    
+
+                    const getMonday = (d) => {
+                        const day = d.getDay();
+                        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                        return new Date(d.setDate(diff));
+                    };
+
                     switch(type) {
                         case 'today':
                             this.selectedStart = new Date(today);
@@ -1379,12 +1564,33 @@
                             const yesterday = new Date(today);
                             yesterday.setDate(yesterday.getDate() - 1);
                             this.selectedStart = yesterday;
-                            this.selectedEnd = yesterday;
+                            this.selectedEnd = new Date(yesterday);
+                            break;
+                        case 'thisweek':
+                            const mon = getMonday(new Date(today));
+                            const sun = new Date(mon);
+                            sun.setDate(sun.getDate() + 6);
+                            this.selectedStart = mon;
+                            this.selectedEnd = sun;
+                            break;
+                        case 'nextweek':
+                            const nextMon = getMonday(new Date(today));
+                            nextMon.setDate(nextMon.getDate() + 7);
+                            const nextSun = new Date(nextMon);
+                            nextSun.setDate(nextSun.getDate() + 6);
+                            this.selectedStart = nextMon;
+                            this.selectedEnd = nextSun;
                             break;
                         case 'last7days':
                             const last7 = new Date(today);
                             last7.setDate(last7.getDate() - 6);
                             this.selectedStart = last7;
+                            this.selectedEnd = new Date(today);
+                            break;
+                        case 'last14days':
+                            const last14 = new Date(today);
+                            last14.setDate(last14.getDate() - 13);
+                            this.selectedStart = last14;
                             this.selectedEnd = new Date(today);
                             break;
                         case 'thismonth':
@@ -1395,8 +1601,14 @@
                             this.selectedStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
                             this.selectedEnd = new Date(today.getFullYear(), today.getMonth(), 0);
                             break;
+                        case 'next30days':
+                            const n30end = new Date(today);
+                            n30end.setDate(n30end.getDate() + 29);
+                            this.selectedStart = new Date(today);
+                            this.selectedEnd = n30end;
+                            break;
                     }
-                    
+
                     this.currentMonth = this.selectedStart.getMonth();
                     this.currentYear = this.selectedStart.getFullYear();
                 },

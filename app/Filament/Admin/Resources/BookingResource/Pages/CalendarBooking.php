@@ -26,10 +26,11 @@ class CalendarBooking extends Page
     #[Url] public $selectedVenue = 'all';
     #[Url] public $startDate = null;
     #[Url] public $endDate = null;
+    #[Url] public $selectedTimeSlot = 'all'; // Filter jam
     public $dateRangeText = null;
     public $showBookingTypeModal = false;
     public $selectedDate = null;
-    public $selectedTimeSlot = null;
+    public $selectedTimeSlot2 = null; // untuk modal booking
     public $selectedVenueForBooking = null;
 
     public function mount(): void
@@ -38,6 +39,7 @@ class CalendarBooking extends Page
         $this->cancelExpiredPendingBookings();
         if (!$this->startDate) $this->startDate = Carbon::today()->format('Y-m-d');
         if (!$this->endDate) $this->endDate = Carbon::today()->addDays(6)->format('Y-m-d');
+        if (!$this->selectedTimeSlot) $this->selectedTimeSlot = 'all';
         $this->updateDateRangeText();
     }
 
@@ -514,10 +516,43 @@ class CalendarBooking extends Page
         $this->updateDateRangeText();
     }
 
+    public function setCurrentWeek()
+    {
+        $this->startDate = Carbon::now()->startOfWeek()->format('Y-m-d');
+        $this->endDate = Carbon::now()->endOfWeek()->format('Y-m-d');
+        $this->updateDateRangeText();
+    }
+
+    public function setNextWeek()
+    {
+        $this->startDate = Carbon::now()->addWeek()->startOfWeek()->format('Y-m-d');
+        $this->endDate = Carbon::now()->addWeek()->endOfWeek()->format('Y-m-d');
+        $this->updateDateRangeText();
+    }
+
+    public function setPrevWeek()
+    {
+        $this->startDate = Carbon::now()->subWeek()->startOfWeek()->format('Y-m-d');
+        $this->endDate = Carbon::now()->subWeek()->endOfWeek()->format('Y-m-d');
+        $this->updateDateRangeText();
+    }
+
+    public function setCurrentDay()
+    {
+        $this->startDate = Carbon::today()->format('Y-m-d');
+        $this->endDate = Carbon::today()->format('Y-m-d');
+        $this->updateDateRangeText();
+    }
+
+    public function setTimeSlotFilter(string $slot): void
+    {
+        $this->selectedTimeSlot = $slot;
+    }
+
     public function openBookingTypeModal($date, $timeSlot, $venue = null)
     {
         $this->selectedDate = $date;
-        $this->selectedTimeSlot = $timeSlot;
+        $this->selectedTimeSlot2 = $timeSlot;
         $this->selectedVenueForBooking = $venue !== 'all' ? $venue : null;
         $this->showBookingTypeModal = true;
     }
@@ -526,8 +561,8 @@ class CalendarBooking extends Page
     {
         session(['calendar_prefill' => [
             'booking_date' => $this->selectedDate,
-            'time_slot' => $this->selectedTimeSlot,
-            'venue_type' => $this->selectedVenueForBooking,
+            'time_slot'    => $this->selectedTimeSlot2,
+            'venue_type'   => $this->selectedVenueForBooking,
         ]]);
         $this->showBookingTypeModal = false;
         return redirect()->route('filament.admin.resources.bookings.create');
@@ -537,8 +572,8 @@ class CalendarBooking extends Page
     {
         session(['recurring_prefill' => [
             'booking_date' => $this->selectedDate,
-            'time_slot' => $this->selectedTimeSlot,
-            'venue_type' => $this->selectedVenueForBooking,
+            'time_slot'    => $this->selectedTimeSlot2,
+            'venue_type'   => $this->selectedVenueForBooking,
         ]]);
         $this->showBookingTypeModal = false;
         return redirect()->route('filament.admin.resources.recurring-bookings.create');
@@ -548,7 +583,7 @@ class CalendarBooking extends Page
     {
         $this->showBookingTypeModal = false;
         $this->selectedDate = null;
-        $this->selectedTimeSlot = null;
+        $this->selectedTimeSlot2 = null;
         $this->selectedVenueForBooking = null;
     }
 
@@ -587,6 +622,22 @@ class CalendarBooking extends Page
         return $clientName ?? 'Guest';
     }
 
+    private function getIndonesianDayName(Carbon $date): string
+    {
+        $days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        return $days[$date->dayOfWeek];
+    }
+
+    private function getIndonesianMonthName(Carbon $date): string
+    {
+        $months = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+        return $months[$date->month];
+    }
+
     public function getScheduleData()
     {
         // ✅ DIHAPUS: $this->cancelExpiredPendingBookings();
@@ -597,9 +648,9 @@ class CalendarBooking extends Page
         for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
             $daySchedule = [
                 'date' => $date->format('Y-m-d'),
-                'day_name' => $date->isoFormat('dddd'),
+                'day_name' => $this->getIndonesianDayName($date),
                 'date_number' => $date->format('d'),
-                'month' => $date->isoFormat('MMMM'),
+                'month' => $this->getIndonesianMonthName($date),
                 'is_today' => $date->isToday(),
                 'bookings' => []
             ];
@@ -715,9 +766,9 @@ private function determineBookingType($booking): string
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
                 $daySchedule = [
                     'date' => $date->format('Y-m-d'),
-                    'day_name' => $date->isoFormat('dddd'),
+                    'day_name' => $this->getIndonesianDayName($date),
                     'date_number' => $date->format('d'),
-                    'month' => $date->isoFormat('MMMM'),
+                    'month' => $this->getIndonesianMonthName($date),
                     'is_today' => $date->isToday(),
                     'bookings' => []
                 ];
@@ -784,10 +835,16 @@ private function determineBookingType($booking): string
 
     public function getTimeSlots()
     {
-        return [
+        $all = [
             '06.00 - 08.00', '08.00 - 10.00', '10.00 - 12.00', '12.00 - 14.00',
             '14.00 - 16.00', '16.00 - 18.00', '18.00 - 20.00', '20.00 - 22.00', '22.00 - 00.00',
         ];
+
+        if ($this->selectedTimeSlot && $this->selectedTimeSlot !== 'all') {
+            return array_filter($all, fn($s) => $s === $this->selectedTimeSlot);
+        }
+
+        return $all;
     }
 
     // ✅ hydrate tidak cancel booking lagi
