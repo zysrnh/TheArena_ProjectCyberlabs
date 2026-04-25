@@ -103,9 +103,10 @@ class RecurringBookingResource extends Resource
                         Forms\Components\Radio::make('recurring_mode')
                             ->label('Mode Pengulangan')
                             ->options([
-                                'weekly' => 'Mingguan (Pilih hari tertentu setiap minggu)',
-                                'monthly_date' => 'Bulanan (Tanggal tertentu setiap bulan)',
-                                'custom' => 'Custom (Pilih tanggal manual satu-satu)',
+                                'weekly'       => '🔁 Mingguan Rutin — Hari yang sama setiap minggu (ongoing)',
+                                'weekly_flex'  => '📆 Mingguan Fleksibel — Tiap minggu pilih hari berbeda',
+                                'monthly_day'  => '🗓️ Bulanan per Hari — Pilih hari berbeda tiap bulan',
+                                'custom'       => '✏️ Custom — Pilih tanggal satu-satu',
                             ])
                             ->default('weekly')
                             ->live()
@@ -160,91 +161,295 @@ class RecurringBookingResource extends Resource
                         Forms\Components\Placeholder::make('weekly_preview')
                             ->label('Preview Jadwal')
                             ->content(function (Forms\Get $get) {
-                                $days = $get('weekly_days') ?? [];
-                                $startDate = $get('weekly_start_date');
-                                $duration = $get('weekly_duration') ?? 4;
+                                try {
+                                    $days = $get('weekly_days') ?? [];
+                                    $startDate = $get('weekly_start_date');
+                                    $duration = (int)($get('weekly_duration') ?? 4);
 
-                                if (empty($days) || !$startDate) {
-                                    return 'Pilih hari dan tanggal mulai untuk melihat preview';
+                                    if (empty($days) || !$startDate) {
+                                        return 'Pilih hari dan tanggal mulai untuk melihat preview';
+                                    }
+
+                                    $dayNames = [0=>'Minggu',1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu'];
+                                    $selectedDays = collect($days)->map(fn($d) => $dayNames[(int)$d] ?? '?')->filter()->join(', ');
+                                    $totalBookings = count($days) * $duration;
+                                    $endDate = Carbon::parse($startDate)->addWeeks($duration)->subDay();
+
+                                    return "📅 **{$totalBookings} booking** akan dibuat\n\n" .
+                                           "🗓️ Setiap **{$selectedDays}**\n\n" .
+                                           "📆 Periode: " . Carbon::parse($startDate)->format('d M Y') . " — " . $endDate->format('d M Y');
+                                } catch (\Throwable $e) {
+                                    return 'Lengkapi data untuk melihat preview';
                                 }
-
-                                $dayNames = [
-                                    0 => 'Minggu',
-                                    1 => 'Senin',
-                                    2 => 'Selasa',
-                                    3 => 'Rabu',
-                                    4 => 'Kamis',
-                                    5 => 'Jumat',
-                                    6 => 'Sabtu',
-                                ];
-
-                                $selectedDays = collect($days)->map(fn($d) => $dayNames[$d])->join(', ');
-                                $totalBookings = count($days) * $duration;
-                                $endDate = Carbon::parse($startDate)->addWeeks($duration)->subDay();
-
-                                return "📅 **{$totalBookings} booking** akan dibuat\n\n" .
-                                       "🗓️ Setiap **{$selectedDays}**\n\n" .
-                                       "📆 Periode: " . Carbon::parse($startDate)->format('d M Y') . " - " . $endDate->format('d M Y');
                             })
                             ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'weekly'),
 
                         // ========================================
-                        // MODE 2: MONTHLY DATE PATTERN
+                        // MODE 1b: MINGGUAN FLEKSIBEL
                         // ========================================
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\CheckboxList::make('monthly_dates')
-                                    ->label('Pilih Tanggal (1-31)')
-                                    ->options(array_combine(range(1, 31), range(1, 31)))
-                                    ->columns(4)
-                                    ->required()
-                                    ->helperText('Contoh: Pilih 10 & 25 = main setiap tanggal 10 & 25 tiap bulan'),
 
+                        // Step 1: Pilih rentang tanggal
+                        Forms\Components\Fieldset::make('Rentang Tanggal')
+                            ->label('Langkah 1 — Pilih Rentang Tanggal')
+                            ->schema([
                                 Forms\Components\Grid::make(2)
                                     ->schema([
-                                        Forms\Components\DatePicker::make('monthly_start_date')
-                                            ->label('Mulai Bulan')
+                                        Forms\Components\DatePicker::make('flex_range_start')
+                                            ->label('Tanggal Mulai')
+                                            ->native(false)
+                                            ->live()
+                                            ->minDate(now())
+                                            ->displayFormat('d F Y')
+                                            ->placeholder('Misal: 1 Mei 2026'),
+
+                                        Forms\Components\DatePicker::make('flex_range_end')
+                                            ->label('Tanggal Selesai')
+                                            ->native(false)
+                                            ->live()
+                                            ->minDate(now())
+                                            ->displayFormat('d F Y')
+                                            ->placeholder('Misal: 31 Mei 2026')
+                                            ->afterOrEqual('flex_range_start'),
+                                    ]),
+
+                                Forms\Components\Actions::make([
+                                    Forms\Components\Actions\Action::make('generate_weeks')
+                                        ->label('🗓️ Buat Minggu Otomatis dari Rentang')
+                                        ->color('info')
+                                        ->icon('heroicon-o-calendar-days')
+                                        ->action(function (Forms\Set $set, Forms\Get $get) {
+                                            $start = $get('flex_range_start');
+                                            $end   = $get('flex_range_end');
+
+                                            if (!$start || !$end) {
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Lengkapi Tanggal')
+                                                    ->body('Pilih tanggal mulai dan selesai terlebih dahulu.')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            $startDate = Carbon::parse($start);
+                                            $endDate   = Carbon::parse($end);
+
+                                            if ($startDate->gt($endDate)) {
+                                                \Filament\Notifications\Notification::make()
+                                                    ->warning()
+                                                    ->title('Tanggal Tidak Valid')
+                                                    ->body('Tanggal mulai harus sebelum tanggal selesai.')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            // Generate semua minggu dalam rentang
+                                            $weeks     = [];
+                                            $weekStart = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+
+                                            while ($weekStart->lte($endDate)) {
+                                                // Hanya masukkan minggu yang ada irisan dengan rentang
+                                                $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+                                                if ($weekEnd->gte($startDate)) {
+                                                    $weeks[] = [
+                                                        'week_of'     => $weekStart->format('Y-m-d'),
+                                                        'days_of_week' => [],
+                                                    ];
+                                                }
+                                                $weekStart->addWeek();
+                                            }
+
+                                            $set('weekly_flex_schedule', $weeks);
+
+                                            \Filament\Notifications\Notification::make()
+                                                ->success()
+                                                ->title(count($weeks) . ' minggu berhasil di-generate!')
+                                                ->body('Sekarang centang hari untuk setiap minggu di bawah.')
+                                                ->send();
+                                        }),
+                                ])->fullWidth(),
+                            ])
+                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'weekly_flex'),
+
+                        // Step 2: Repeater minggu (hasil generate atau manual)
+                        Forms\Components\Repeater::make('weekly_flex_schedule')
+                            ->label('Langkah 2 — Centang Hari per Minggu')
+                            ->schema([
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\DatePicker::make('week_of')
+                                            ->label('Minggu')
+                                            ->native(false)
+                                            ->required()
+                                            ->minDate(now())
+                                            ->displayFormat('d F Y')
+                                            ->helperText('Sistem ambil seluruh minggu (Senin–Minggu)'),
+
+                                        Forms\Components\CheckboxList::make('days_of_week')
+                                            ->label('Hari Main')
+                                            ->options([
+                                                1 => 'Senin',
+                                                2 => 'Selasa',
+                                                3 => 'Rabu',
+                                                4 => 'Kamis',
+                                                5 => 'Jumat',
+                                                6 => 'Sabtu',
+                                                0 => 'Minggu',
+                                            ])
+                                            ->columns(2)
+                                            ->helperText('Centang hari yang ingin dibooking'),
+                                    ]),
+                            ])
+                            ->defaultItems(0)
+                            ->addActionLabel('+ Tambah Minggu Manual')
+                            ->reorderable(false)
+                            ->itemLabel(function (array $state): ?string {
+                                try {
+                                    if (empty($state['week_of'])) return null;
+                                    $weekStart = Carbon::parse($state['week_of'])->startOfWeek(Carbon::MONDAY);
+                                    $weekEnd   = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+                                    $dayNames  = [0=>'Min',1=>'Sen',2=>'Sel',3=>'Rab',4=>'Kam',5=>'Jum',6=>'Sab'];
+                                    $days = collect($state['days_of_week'] ?? [])
+                                        ->map(fn($d) => $dayNames[(int)$d] ?? '')
+                                        ->filter()->join(', ');
+                                    $label = $weekStart->format('d M') . ' – ' . $weekEnd->format('d M Y');
+                                    return $label . ($days ? " → {$days}" : ' (belum pilih hari)');
+                                } catch (\Throwable $e) {
+                                    return null;
+                                }
+                            })
+                            ->collapsible()
+                            ->collapsed()
+                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'weekly_flex'),
+
+                        Forms\Components\Placeholder::make('weekly_flex_preview')
+                            ->label('Preview Jadwal')
+                            ->content(function (Forms\Get $get) {
+                                try {
+                                    $schedule = $get('weekly_flex_schedule') ?? [];
+                                    $dayNames = [0=>'Minggu',1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu'];
+                                    $total = 0;
+                                    $lines = [];
+
+                                    foreach ($schedule as $item) {
+                                        if (empty($item['week_of']) || empty($item['days_of_week'])) {
+                                            if (!empty($item['week_of'])) {
+                                                $ws = Carbon::parse($item['week_of'])->startOfWeek(Carbon::MONDAY);
+                                                $we = $ws->copy()->endOfWeek(Carbon::SUNDAY);
+                                                $lines[] = '⏸️ ' . $ws->format('d M') . ' – ' . $we->format('d M Y') . ' — *belum pilih hari*';
+                                            }
+                                            continue;
+                                        }
+                                        $weekStart = Carbon::parse($item['week_of'])->startOfWeek(Carbon::MONDAY);
+                                        $weekEnd   = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+                                        $count = 0;
+                                        $cur = $weekStart->copy();
+                                        while ($cur->lte($weekEnd)) {
+                                            if (in_array((int)$cur->dayOfWeek, array_map('intval', $item['days_of_week']))
+                                                && $cur->gte(now()->startOfDay())) {
+                                                $count++;
+                                            }
+                                            $cur->addDay();
+                                        }
+                                        $total += $count;
+                                        $dayStr = collect($item['days_of_week'])->map(fn($d) => $dayNames[(int)$d] ?? '?')->join(', ');
+                                        $weekLabel = $weekStart->format('d M') . ' – ' . $weekEnd->format('d M Y');
+                                        $lines[] = "📆 **{$weekLabel}** — {$dayStr} ({$count}x)";
+                                    }
+
+                                    if (empty($lines)) return '1️⃣ Pilih rentang tanggal → 2️⃣ Klik "Buat Minggu Otomatis" → 3️⃣ Centang hari tiap minggu';
+                                    return implode("\n\n", $lines) . "\n\n✅ Total: **{$total} booking**";
+                                } catch (\Throwable $e) {
+                                    return 'Lengkapi data untuk melihat preview';
+                                }
+                            })
+                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'weekly_flex'),
+
+                        // ========================================
+                        // MODE 2: BULANAN PER HARI
+                        // ========================================
+                        Forms\Components\Repeater::make('monthly_schedule')
+                            ->label('Jadwal per Bulan')
+                            ->schema([
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\DatePicker::make('month_start')
+                                            ->label('Bulan')
                                             ->native(false)
                                             ->required()
                                             ->default(now()->startOfMonth())
-                                            ->minDate(now())
-                                            ->displayFormat('F Y'),
+                                            ->minDate(now()->startOfMonth())
+                                            ->displayFormat('F Y')
+                                            ->helperText('Pilih bulan yang akan dijadwalkan'),
 
-                                        Forms\Components\Select::make('monthly_duration')
-                                            ->label('Durasi')
+                                        Forms\Components\CheckboxList::make('days_of_week')
+                                            ->label('Hari Main di Bulan Ini')
                                             ->options([
-                                                1 => '1 Bulan',
-                                                2 => '2 Bulan',
-                                                3 => '3 Bulan',
-                                                6 => '6 Bulan',
-                                                12 => '1 Tahun',
+                                                1 => 'Senin',
+                                                2 => 'Selasa',
+                                                3 => 'Rabu',
+                                                4 => 'Kamis',
+                                                5 => 'Jumat',
+                                                6 => 'Sabtu',
+                                                0 => 'Minggu',
                                             ])
-                                            ->default(3)
-                                            ->required(),
+                                            ->columns(2)
+                                            ->required()
+                                            ->helperText('Semua hari ini dalam sebulan penuh akan dibooking'),
                                     ]),
                             ])
-                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'monthly_date'),
+                            ->defaultItems(1)
+                            ->addActionLabel('+ Tambah Bulan')
+                            ->reorderable(false)
+                            ->itemLabel(function (array $state): ?string {
+                                try {
+                                    if (empty($state['month_start'])) return null;
+                                    $dayNames = [0=>'Min',1=>'Sen',2=>'Sel',3=>'Rab',4=>'Kam',5=>'Jum',6=>'Sab'];
+                                    $days = collect($state['days_of_week'] ?? [])
+                                        ->map(fn($d) => $dayNames[(int)$d] ?? '')
+                                        ->filter()->join(', ');
+                                    $month = Carbon::parse($state['month_start'])->locale('id')->isoFormat('MMMM Y');
+                                    return $month . ($days ? " → {$days}" : '');
+                                } catch (\Throwable $e) {
+                                    return null;
+                                }
+                            })
+                            ->collapsible()
+                            ->required()
+                            ->minItems(1)
+                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'monthly_day'),
 
-                        Forms\Components\Placeholder::make('monthly_preview')
+                        Forms\Components\Placeholder::make('monthly_day_preview')
                             ->label('Preview Jadwal')
                             ->content(function (Forms\Get $get) {
-                                $dates = $get('monthly_dates') ?? [];
-                                $startDate = $get('monthly_start_date');
-                                $duration = $get('monthly_duration') ?? 3;
+                                try {
+                                    $schedule = $get('monthly_schedule') ?? [];
+                                    $dayNames = [0=>'Minggu',1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu'];
+                                    $total = 0;
+                                    $lines = [];
 
-                                if (empty($dates) || !$startDate) {
-                                    return 'Pilih tanggal dan bulan mulai untuk melihat preview';
+                                    foreach ($schedule as $item) {
+                                        if (empty($item['month_start']) || empty($item['days_of_week'])) continue;
+                                        $start = Carbon::parse($item['month_start'])->startOfMonth();
+                                        $end   = $start->copy()->endOfMonth();
+                                        $monthName = $start->locale('id')->isoFormat('MMMM Y');
+                                        $count = 0;
+                                        $cur = $start->copy();
+                                        while ($cur->lte($end)) {
+                                            if (in_array((int)$cur->dayOfWeek, array_map('intval', $item['days_of_week']))) $count++;
+                                            $cur->addDay();
+                                        }
+                                        $total += $count;
+                                        $dayStr = collect($item['days_of_week'])->map(fn($d) => $dayNames[(int)$d] ?? '?')->join(', ');
+                                        $lines[] = "📅 **{$monthName}** — {$dayStr} ({$count}x)";
+                                    }
+
+                                    if (empty($lines)) return 'Tambahkan minimal 1 bulan dengan hari yang dipilih';
+                                    return implode("\n\n", $lines) . "\n\n✅ Total: **{$total} booking**";
+                                } catch (\Throwable $e) {
+                                    return 'Lengkapi data bulan untuk melihat preview';
                                 }
-
-                                $selectedDates = collect($dates)->sort()->join(', ');
-                                $totalBookings = count($dates) * $duration;
-                                $endDate = Carbon::parse($startDate)->addMonths($duration)->subDay();
-
-                                return "📅 **{$totalBookings} booking** akan dibuat\n\n" .
-                                       "🗓️ Setiap tanggal **{$selectedDates}**\n\n" .
-                                       "📆 Periode: " . Carbon::parse($startDate)->format('F Y') . " - " . $endDate->format('F Y');
                             })
-                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'monthly_date'),
+                            ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'monthly_day'),
 
                         // ========================================
                         // MODE 3: CUSTOM MANUAL DATES
@@ -264,9 +469,9 @@ class RecurringBookingResource extends Resource
                             ->addActionLabel('+ Tambah Tanggal')
                             ->reorderable()
                             ->collapsible()
-                            ->itemLabel(fn (array $state): ?string => 
-                                !empty($state['date']) 
-                                    ? Carbon::parse($state['date'])->format('d F Y') 
+                            ->itemLabel(fn (array $state): ?string =>
+                                !empty($state['date'])
+                                    ? Carbon::parse($state['date'])->locale('id')->isoFormat('dddd, D MMMM Y')
                                     : null
                             )
                             ->columns(1)
@@ -277,23 +482,23 @@ class RecurringBookingResource extends Resource
                         Forms\Components\Placeholder::make('custom_preview')
                             ->label('Ringkasan Booking')
                             ->content(function (Forms\Get $get) {
-                                $dates = $get('selected_dates') ?? [];
-                                $validDates = array_filter($dates, fn($d) => !empty($d['date']));
-                                
-                                if (empty($validDates)) {
-                                    return 'Belum ada tanggal yang dipilih';
+                                try {
+                                    $dates = $get('selected_dates') ?? [];
+                                    $validDates = array_filter($dates, fn($d) => !empty($d['date']));
+
+                                    if (empty($validDates)) {
+                                        return 'Belum ada tanggal yang dipilih';
+                                    }
+
+                                    $count = count($validDates);
+                                    $sortedDates = collect($validDates)->pluck('date')->sort()->values();
+                                    $firstDate = Carbon::parse($sortedDates->first())->locale('id')->isoFormat('dddd, D MMM Y');
+                                    $lastDate  = Carbon::parse($sortedDates->last())->locale('id')->isoFormat('dddd, D MMM Y');
+
+                                    return "📅 Total: **{$count} booking**\n\n📆 Periode: {$firstDate} — {$lastDate}";
+                                } catch (\Throwable $e) {
+                                    return 'Pilih tanggal untuk melihat preview';
                                 }
-
-                                $count = count($validDates);
-                                $sortedDates = collect($validDates)
-                                    ->pluck('date')
-                                    ->sort()
-                                    ->values();
-
-                                $firstDate = Carbon::parse($sortedDates->first())->format('d M Y');
-                                $lastDate = Carbon::parse($sortedDates->last())->format('d M Y');
-
-                                return "📅 Total: **{$count} booking**\n\n📆 Periode: {$firstDate} - {$lastDate}";
                             })
                             ->visible(fn (Forms\Get $get): bool => $get('recurring_mode') === 'custom'),
                     ])->columns(1),
@@ -362,8 +567,12 @@ class RecurringBookingResource extends Resource
 
                 Tables\Columns\TextColumn::make('booking_date')
                     ->label('Tanggal')
-                    ->date('d M Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) =>
+                        $state
+                            ? \Carbon\Carbon::parse($state)->locale('id')->isoFormat('dddd, D MMM Y')
+                            : '-'
+                    ),
 
                 Tables\Columns\TextColumn::make('venue_type')
                     ->label('Venue')

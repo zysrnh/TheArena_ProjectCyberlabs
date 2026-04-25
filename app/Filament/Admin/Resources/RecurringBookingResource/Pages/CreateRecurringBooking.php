@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources\RecurringBookingResource\Pages;
 
 use App\Filament\Admin\Resources\RecurringBookingResource;
 use App\Models\Booking;
-use App\Models\BookedTimeSlot;
 use App\Models\Client;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
@@ -15,387 +14,548 @@ use Illuminate\Support\Facades\Log;
 class CreateRecurringBooking extends CreateRecord
 {
     protected static string $resource = RecurringBookingResource::class;
+    protected static string $view     = 'filament.admin.resources.recurring-booking.create';
+    protected static ?string $title   = 'Buat Booking Member';
 
-    protected function getRedirectUrl(): string
+    // ─── Customer ────────────────────────────────────────────────────────────
+    public string $customerType        = 'manual';
+    public string $customerNameManual  = '';
+    public string $customerPhoneManual = '';
+    public $clientId                   = null;
+    public array  $clientOptions       = [];
+
+    // ─── Booking detail ───────────────────────────────────────────────────────
+    public string $venueType          = 'cibadak_a';
+    public array  $timeSlotsSelection = [];
+    public string $status             = 'confirmed';
+    public string $paymentStatus      = 'paid';
+    public bool   $isPaid             = true;
+    public string $notes              = '';
+
+    // ─── Mode ─────────────────────────────────────────────────────────────────
+    public string $recurringMode = 'weekly_flex'; // default ke weekly_flex (fitur utama)
+
+    // ─── Mingguan Rutin ───────────────────────────────────────────────────────
+    public array  $weeklyDays      = [];
+    public string $weeklyStartDate = '';
+    public int    $weeklyDuration  = 4;
+
+    // ─── Mingguan Fleksibel ───────────────────────────────────────────────────
+    public string $flexRangeStart = '';
+    public string $flexRangeEnd   = '';
+    public array  $weekSchedule   = []; // [{label, week_start, week_end, days:[{date,day_name,day_num,month,checked,is_past}]}]
+
+    // ─── Bulanan per Hari ─────────────────────────────────────────────────────
+    public array $monthlySchedule = []; // [{month_start, days_of_week:[]}]
+
+    // ─── Custom ───────────────────────────────────────────────────────────────
+    public array $customDates = []; // ['Y-m-d', ...]
+
+    // ─── UI State ─────────────────────────────────────────────────────────────
+    public bool   $isSubmitting    = false;
+    public array  $validationErrors = [];
+    public string $backUrl          = '';
+
+    // ─── Internal lookup tables (constants, bukan Livewire properties) ─────────
+    protected const MONTH_SHORT = [
+        1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',5=>'Mei',6=>'Jun',
+        7=>'Jul',8=>'Agu',9=>'Sep',10=>'Okt',11=>'Nov',12=>'Des',
+    ];
+    protected const DAY_NAMES = [
+        0=>'Minggu',1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu',
+    ];
+    protected const DAY_SHORT = [
+        0=>'Min',1=>'Sen',2=>'Sel',3=>'Rab',4=>'Kam',5=>'Jum',6=>'Sab',
+    ];
+
+    public function mount(): void
     {
-        return $this->getResource()::getUrl('index');
+        $this->weeklyStartDate = now()->format('Y-m-d');
+        $this->flexRangeStart  = now()->startOfMonth()->format('Y-m-d');
+        $this->flexRangeEnd    = now()->endOfMonth()->format('Y-m-d');
+        $this->backUrl         = RecurringBookingResource::getUrl('index');
+
+        // Load client options
+        $this->clientOptions = Client::orderBy('name')->get()
+            ->mapWithKeys(fn($c) => [$c->id => $c->name . ($c->phone ? ' (' . $c->phone . ')' : '')])
+            ->toArray();
     }
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        return $data;
-    }
-
+    // ✅ Required by CreateRecord — tidak dipakai karena kita punya save() sendiri
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
+        return new Booking();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Weekly Flex: generate weeks from date range
+    // ──────────────────────────────────────────────────────────────────────────
+    public function generateWeeks(): void
+    {
+        if (!$this->flexRangeStart || !$this->flexRangeEnd) {
+            Notification::make()->warning()->title('Lengkapi Tanggal')->body('Pilih tanggal mulai dan selesai.')->send();
+            return;
+        }
+
+        $startDate = Carbon::parse($this->flexRangeStart);
+        $endDate   = Carbon::parse($this->flexRangeEnd);
+
+        if ($startDate->gt($endDate)) {
+            Notification::make()->warning()->title('Tanggal Tidak Valid')->body('Tanggal mulai harus sebelum tanggal selesai.')->send();
+            return;
+        }
+
+        $weeks     = [];
+        $weekStart = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+
+        while ($weekStart->lte($endDate)) {
+            $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SUNDAY);
+
+            // Clip effective range to user's selected range
+            $effStart = $weekStart->gte($startDate) ? $weekStart->copy() : $startDate->copy();
+            $effEnd   = $weekEnd->lte($endDate) ? $weekEnd->copy() : $endDate->copy();
+
+            $days = [];
+            $cur  = $effStart->copy();
+            while ($cur->lte($effEnd)) {
+                $days[] = [
+                    'date'          => $cur->format('Y-m-d'),
+                    'day_name'      => self::DAY_NAMES[$cur->dayOfWeek],
+                    'day_short'     => self::DAY_SHORT[$cur->dayOfWeek],
+                    'day_of_week'   => $cur->dayOfWeek,
+                    'day_num'       => (int)$cur->format('d'),
+                    'month_short'   => self::MONTH_SHORT[$cur->month],
+                    'checked'       => false,
+                    'is_past'       => $cur->lt(now()->startOfDay()),
+                ];
+                $cur->addDay();
+            }
+
+            $wLabel = $effStart->format('d') . ' ' . (self::MONTH_SHORT[$effStart->month] ?? '')
+                    . ' – ' . $effEnd->format('d') . ' ' . (self::MONTH_SHORT[$effEnd->month] ?? '')
+                    . ' ' . $effEnd->format('Y');
+
+            $weeks[] = [
+                'week_start' => $weekStart->format('Y-m-d'),
+                'week_end'   => $weekEnd->format('Y-m-d'),
+                'label'      => $wLabel,
+                'days'       => $days,
+                'collapsed'  => false,
+            ];
+
+            $weekStart->addWeek();
+        }
+
+        $this->weekSchedule = $weeks;
+
+        Notification::make()->success()
+            ->title(count($weeks) . ' minggu berhasil di-generate!')
+            ->body('Sekarang centang tanggal yang ingin dibooking di setiap minggu.')
+            ->send();
+    }
+
+    public function toggleDay(int $weekIdx, int $dayIdx): void
+    {
+        if (isset($this->weekSchedule[$weekIdx]['days'][$dayIdx])) {
+            $current = $this->weekSchedule[$weekIdx]['days'][$dayIdx]['checked'] ?? false;
+            $this->weekSchedule[$weekIdx]['days'][$dayIdx]['checked'] = !$current;
+        }
+    }
+
+    public function toggleWeekCollapse(int $weekIdx): void
+    {
+        if (isset($this->weekSchedule[$weekIdx])) {
+            $this->weekSchedule[$weekIdx]['collapsed'] = !($this->weekSchedule[$weekIdx]['collapsed'] ?? false);
+        }
+    }
+
+    public function selectAllDaysInWeek(int $weekIdx): void
+    {
+        if (!isset($this->weekSchedule[$weekIdx])) return;
+        foreach ($this->weekSchedule[$weekIdx]['days'] as $di => $day) {
+            if (!$day['is_past']) {
+                $this->weekSchedule[$weekIdx]['days'][$di]['checked'] = true;
+            }
+        }
+    }
+
+    public function clearAllDaysInWeek(int $weekIdx): void
+    {
+        if (!isset($this->weekSchedule[$weekIdx])) return;
+        foreach ($this->weekSchedule[$weekIdx]['days'] as $di => $day) {
+            $this->weekSchedule[$weekIdx]['days'][$di]['checked'] = false;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Monthly Schedule helpers
+    // ──────────────────────────────────────────────────────────────────────────
+    public function addMonthlyEntry(): void
+    {
+        $this->monthlySchedule[] = ['month_start' => now()->startOfMonth()->format('Y-m-d'), 'days_of_week' => []];
+    }
+
+    public function removeMonthlyEntry(int $idx): void
+    {
+        unset($this->monthlySchedule[$idx]);
+        $this->monthlySchedule = array_values($this->monthlySchedule);
+    }
+
+    public function toggleMonthlyDay(int $idx, int $day): void
+    {
+        $current = $this->monthlySchedule[$idx]['days_of_week'] ?? [];
+        if (in_array($day, $current)) {
+            $this->monthlySchedule[$idx]['days_of_week'] = array_values(array_filter($current, fn($d) => $d !== $day));
+        } else {
+            $this->monthlySchedule[$idx]['days_of_week'][] = $day;
+        }
+    }
+
+    public function toggleTimeSlot(string $slot): void
+    {
+        if (in_array($slot, $this->timeSlotsSelection)) {
+            $this->timeSlotsSelection = array_values(array_filter($this->timeSlotsSelection, fn($s) => $s !== $slot));
+        } else {
+            $this->timeSlotsSelection[] = $slot;
+        }
+    }
+
+    public function toggleWeeklyDay(int $day): void
+    {
+        if (in_array($day, $this->weeklyDays)) {
+            $this->weeklyDays = array_values(array_filter($this->weeklyDays, fn($d) => $d !== $day));
+        } else {
+            $this->weeklyDays[] = $day;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Custom dates helpers
+    // ──────────────────────────────────────────────────────────────────────────
+    public function addCustomDate(): void
+    {
+        $this->customDates[] = now()->format('Y-m-d');
+    }
+
+    public function removeCustomDate(int $idx): void
+    {
+        unset($this->customDates[$idx]);
+        $this->customDates = array_values($this->customDates);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Submit / Save
+    // ──────────────────────────────────────────────────────────────────────────
+    public function save(): void
+    {
+        set_time_limit(300);
+
+        // Build $data array compatible with existing generator methods
+        $data = [
+            'customer_type'          => $this->customerType,
+            'customer_name_manual'   => $this->customerNameManual,
+            'customer_phone_manual'  => $this->customerPhoneManual,
+            'client_id'              => $this->clientId,
+            'venue_type'             => $this->venueType,
+            'time_slots_selection'   => $this->timeSlotsSelection,
+            'status'                 => $this->status,
+            'payment_status'         => $this->paymentStatus,
+            'is_paid'                => $this->isPaid,
+            'notes'                  => $this->notes,
+            'recurring_mode'         => $this->recurringMode,
+            'weekly_days'            => $this->weeklyDays,
+            'weekly_start_date'      => $this->weeklyStartDate,
+            'weekly_duration'        => $this->weeklyDuration,
+            'weekly_flex_schedule'   => $this->buildFlexScheduleForGenerator(),
+            'monthly_schedule'       => $this->monthlySchedule,
+            'selected_dates'         => array_map(fn($d) => ['date' => $d], $this->customDates),
+        ];
+
+        // Validate
+        $errors = $this->runValidation($data);
+        if (!empty($errors)) {
+            $this->validationErrors = $errors;
+            return;
+        }
+        $this->validationErrors = [];
+
         DB::beginTransaction();
-        
         try {
-            // ✅ Generate dates based on recurring mode
             $selectedDates = $this->generateRecurringDates($data);
 
             if (empty($selectedDates)) {
-                throw new \RuntimeException('Tidak ada tanggal yang berhasil di-generate');
+                Notification::make()->warning()->title('Tidak Ada Tanggal')->body('Tidak ada tanggal valid yang dipilih.')->send();
+                return;
             }
 
-            // ✅ Check conflicts untuk semua tanggal
-            $conflicts = $this->checkConflicts(
-                $selectedDates,
-                $data['venue_type'],
-                $data['time_slots_selection']
-            );
-
+            // Conflict check (bulk, 1 query)
+            $conflicts = $this->checkConflicts($selectedDates, $data['venue_type'], $data['time_slots_selection']);
             if (!empty($conflicts)) {
+                $sample = implode(', ', array_map(fn($d) => Carbon::parse($d)->format('d M'), array_slice($conflicts, 0, 5)));
+                $msg    = count($conflicts) > 5 ? count($conflicts) . ' tanggal konflik. Contoh: ' . $sample . '...' : 'Tanggal konflik: ' . $sample;
+                Notification::make()->danger()->title('Ada Konflik Booking!')->body($msg)->persistent()->send();
                 DB::rollBack();
-                
-                $conflictDates = implode(', ', array_map(function($date) {
-                    return Carbon::parse($date)->format('d M');
-                }, array_slice($conflicts, 0, 5)));
-                
-                $totalConflicts = count($conflicts);
-                $message = $totalConflicts > 5 
-                    ? "Ada {$totalConflicts} tanggal konflik. Contoh: {$conflictDates}..."
-                    : "Tanggal konflik: {$conflictDates}";
-                
-                Notification::make()
-                    ->title('Ada Konflik Booking!')
-                    ->danger()
-                    ->body($message)
-                    ->persistent()
-                    ->send();
-                
-                $this->halt();
-                throw new \RuntimeException('Booking conflict detected');
+                return;
             }
 
-            // ✅ FIX: Handle manual customer dengan cari by nama+phone, bukan email tetap
-            $clientId = null;
-            
-            if ($data['customer_type'] === 'manual') {
-                $guestClient = Client::firstOrCreate(
-                    [
-                        'name' => $data['customer_name_manual'],
-                        'phone' => $data['customer_phone_manual'] ?? null,
-                    ],
-                    [
-                        'email' => 'manual_' . time() . '_' . rand(100, 999) . '@thearena.local',
-                        'password' => bcrypt('dummy_password_' . time()),
-                    ]
-                );
-                
-                $clientId = $guestClient->id;
-            } else {
-                $clientId = $data['client_id'];
-            }
+            // Resolve client
+            $clientId = $this->resolveClient($data);
 
-            // ✅ Build notes dengan pattern info
-            $notes = $this->buildNotesWithPattern($data);
-
-            $createdCount = 0;
+            // Build notes
+            $notes   = $this->buildNotes($data);
+            $now     = now()->toDateTimeString();
+            $slots2insert = [];
             $firstBooking = null;
-            $totalPrice = 0;
+            $total   = 0;
+            $count   = 0;
 
-            // ✅ Create booking untuk setiap tanggal yang di-generate
             foreach ($selectedDates as $date) {
-                $timeSlots = $this->formatTimeSlots(
-                    $data['time_slots_selection'], 
-                    $data['venue_type'],
-                    $date
-                );
+                $timeSlots    = $this->formatTimeSlots($data['time_slots_selection'], $data['venue_type'], $date);
                 $bookingPrice = array_sum(array_column($timeSlots, 'price'));
-                $totalPrice += $bookingPrice;
+                $total       += $bookingPrice;
 
                 $booking = Booking::create([
-                    'client_id' => $clientId,
-                    'venue_id' => $this->getVenueId($data['venue_type']),
-                    'booking_date' => $date,
-                    'venue_type' => $data['venue_type'],
-                    'time_slots' => $timeSlots,
-                    'total_price' => $bookingPrice,
-                    'status' => $data['status'] ?? 'confirmed',
-                    'payment_status' => $data['payment_status'] ?? 'paid',
-                    'is_paid' => $data['is_paid'] ?? true,
-                    'booking_type' => 'recurring',
-                    'notes' => $notes,
+                    'client_id'      => $clientId,
+                    'venue_id'       => $this->getVenueId($data['venue_type']),
+                    'booking_date'   => $date,
+                    'venue_type'     => $data['venue_type'],
+                    'time_slots'     => $timeSlots,
+                    'total_price'    => $bookingPrice,
+                    'status'         => $data['status'],
+                    'payment_status' => $data['payment_status'],
+                    'is_paid'        => $data['is_paid'],
+                    'booking_type'   => 'recurring',
+                    'notes'          => $notes,
                 ]);
 
-                // ✅ Create booked time slots
                 foreach ($timeSlots as $slot) {
-                    BookedTimeSlot::create([
+                    $slots2insert[] = [
                         'booking_id' => $booking->id,
-                        'date' => $date,
-                        'time_slot' => $slot['time'],
+                        'date'       => $date,
+                        'time_slot'  => $slot['time'],
                         'venue_type' => $data['venue_type'],
-                    ]);
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
 
-                if (!$firstBooking) {
-                    $firstBooking = $booking;
-                }
-                
-                $createdCount++;
+                if (!$firstBooking) $firstBooking = $booking;
+                $count++;
+            }
+
+            // Batch insert booked_time_slots
+            foreach (array_chunk($slots2insert, 100) as $chunk) {
+                DB::table('booked_time_slots')->insert($chunk);
             }
 
             DB::commit();
 
-            // ✅ Success notification
-            $firstDate = Carbon::parse($selectedDates[0])->format('d M Y');
-            $lastDate = Carbon::parse(end($selectedDates))->format('d M Y');
-            
-            $customerName = $data['customer_type'] === 'manual' 
-                ? $data['customer_name_manual'] 
-                : 'Selected Customer';
+            $fDate = Carbon::parse($selectedDates[0])->locale('id')->isoFormat('D MMM Y');
+            $lDate = Carbon::parse(end($selectedDates))->locale('id')->isoFormat('D MMM Y');
+            $name  = $this->customerType === 'manual' ? $this->customerNameManual : 'Customer';
 
-            $patternInfo = $this->getPatternDescription($data);
-
-            Notification::make()
+            Notification::make()->success()
                 ->title('Booking Member Berhasil!')
-                ->success()
-                ->body("✅ {$customerName}\n📅 {$createdCount} booking ({$patternInfo})\n💰 Total: Rp " . number_format($totalPrice, 0, ',', '.') . "\n📆 {$firstDate} - {$lastDate}")
+                ->body("✅ {$name} | 📅 {$count} booking | 💰 Rp " . number_format($total, 0, ',', '.') . " | 📆 {$fDate} – {$lDate}")
                 ->send();
 
-            return $firstBooking;
+            $this->redirect(RecurringBookingResource::getUrl('index'));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            Log::error('Failed to create recurring booking', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            Notification::make()
-                ->title('Gagal Membuat Booking')
-                ->danger()
-                ->body('Error: ' . $e->getMessage())
-                ->persistent()
-                ->send();
-            
-            $this->halt();
-            throw $e;
+            Log::error('CreateRecurringBooking failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Notification::make()->danger()->title('Gagal')->body($e->getMessage())->persistent()->send();
         }
     }
 
-    protected function generateRecurringDates(array $data): array
+    // ──────────────────────────────────────────────────────────────────────────
+    // Internal helpers
+    // ──────────────────────────────────────────────────────────────────────────
+    private function buildFlexScheduleForGenerator(): array
     {
-        $mode = $data['recurring_mode'] ?? 'custom';
-        
-        switch ($mode) {
-            case 'weekly':
-                return $this->generateWeeklyDates($data);
-            case 'monthly_date':
-                return $this->generateMonthlyDates($data);
+        $result = [];
+        foreach ($this->weekSchedule as $week) {
+            $selectedDays = collect($week['days'] ?? [])
+                ->filter(fn($d) => !empty($d['checked']))
+                ->pluck('day_of_week')
+                ->unique()->values()->toArray();
+
+            if (!empty($selectedDays)) {
+                $result[] = ['week_of' => $week['week_start'], 'days_of_week' => $selectedDays];
+            }
+        }
+        return $result;
+    }
+
+    private function runValidation(array $data): array
+    {
+        $errors = [];
+        if ($data['customer_type'] === 'manual' && empty(trim($data['customer_name_manual']))) {
+            $errors[] = 'Nama customer harus diisi.';
+        }
+        if ($data['customer_type'] === 'existing' && empty($data['client_id'])) {
+            $errors[] = 'Pilih customer terlebih dahulu.';
+        }
+        if (empty($data['venue_type'])) $errors[] = 'Pilih venue.';
+        if (empty($data['time_slots_selection'])) $errors[] = 'Pilih minimal 1 waktu main.';
+
+        $dates = $this->generateRecurringDates($data);
+        if (empty($dates)) $errors[] = 'Tidak ada tanggal yang dipilih/di-generate.';
+
+        return $errors;
+    }
+
+    private function generateRecurringDates(array $data): array
+    {
+        switch ($data['recurring_mode']) {
+            case 'weekly':       return $this->generateWeeklyDates($data);
+            case 'weekly_flex':  return $this->generateFlexibleWeeklyDates($data);
+            case 'monthly_day':  return $this->generateMonthlyDayDates($data);
             case 'custom':
-            default:
-                return $this->generateCustomDates($data);
+            default:             return $this->generateCustomDatesFromData($data);
         }
     }
 
-    protected function generateWeeklyDates(array $data): array
+    private function generateWeeklyDates(array $data): array
     {
-        $dates = [];
+        $dates       = [];
         $selectedDays = $data['weekly_days'] ?? [];
-        $startDate = Carbon::parse($data['weekly_start_date'] ?? now());
-        $duration = (int)($data['weekly_duration'] ?? 4);
-        
+        $startDate   = Carbon::parse($data['weekly_start_date'] ?? now());
+        $duration    = (int)($data['weekly_duration'] ?? 4);
         if (empty($selectedDays)) return [];
 
-        $currentDate = $startDate->copy()->startOfWeek();
-        $endDate = $startDate->copy()->addWeeks($duration);
-
-        while ($currentDate->lt($endDate)) {
-            $dayOfWeek = $currentDate->dayOfWeek;
-            if (in_array($dayOfWeek, $selectedDays) && $currentDate->gte($startDate)) {
-                $dates[] = $currentDate->format('Y-m-d');
+        $cur = $startDate->copy()->startOfWeek(Carbon::MONDAY);
+        $end = $startDate->copy()->addWeeks($duration);
+        while ($cur->lt($end)) {
+            if (in_array($cur->dayOfWeek, $selectedDays) && $cur->gte($startDate)) {
+                $dates[] = $cur->format('Y-m-d');
             }
-            $currentDate->addDay();
+            $cur->addDay();
         }
-
         return $dates;
     }
 
-    protected function generateMonthlyDates(array $data): array
+    private function generateFlexibleWeeklyDates(array $data): array
     {
-        $dates = [];
-        $selectedDates = $data['monthly_dates'] ?? [];
-        $startDate = Carbon::parse($data['monthly_start_date'] ?? now())->startOfMonth();
-        $duration = (int)($data['monthly_duration'] ?? 3);
-        
-        if (empty($selectedDates)) return [];
-
-        for ($i = 0; $i < $duration; $i++) {
-            $currentMonth = $startDate->copy()->addMonths($i);
-            
-            foreach ($selectedDates as $day) {
-                try {
-                    $date = $currentMonth->copy()->day((int)$day);
-                    if ($date->gte(now()->startOfDay())) {
-                        $dates[] = $date->format('Y-m-d');
-                    }
-                } catch (\Exception $e) {
-                    continue;
+        $dates    = [];
+        $schedule = $data['weekly_flex_schedule'] ?? [];
+        foreach ($schedule as $item) {
+            $daysOfWeek = array_map('intval', $item['days_of_week'] ?? []);
+            if (empty($daysOfWeek) || empty($item['week_of'])) continue;
+            $ws  = Carbon::parse($item['week_of'])->startOfWeek(Carbon::MONDAY);
+            $we  = $ws->copy()->endOfWeek(Carbon::SUNDAY);
+            $cur = $ws->copy();
+            while ($cur->lte($we)) {
+                if (in_array($cur->dayOfWeek, $daysOfWeek) && $cur->gte(now()->startOfDay())) {
+                    $dates[] = $cur->format('Y-m-d');
                 }
+                $cur->addDay();
             }
         }
-
         sort($dates);
-        return $dates;
+        return array_values(array_unique($dates));
     }
 
-    protected function generateCustomDates(array $data): array
+    private function generateMonthlyDayDates(array $data): array
+    {
+        $dates    = [];
+        $schedule = $data['monthly_schedule'] ?? [];
+        foreach ($schedule as $item) {
+            $daysOfWeek = array_map('intval', $item['days_of_week'] ?? []);
+            if (empty($daysOfWeek) || empty($item['month_start'])) continue;
+            $start = Carbon::parse($item['month_start'])->startOfMonth();
+            $end   = $start->copy()->endOfMonth();
+            $cur   = $start->copy();
+            while ($cur->lte($end)) {
+                if (in_array($cur->dayOfWeek, $daysOfWeek) && $cur->gte(now()->startOfDay())) {
+                    $dates[] = $cur->format('Y-m-d');
+                }
+                $cur->addDay();
+            }
+        }
+        sort($dates);
+        return array_values(array_unique($dates));
+    }
+
+    private function generateCustomDatesFromData(array $data): array
     {
         return collect($data['selected_dates'] ?? [])
-            ->pluck('date')
-            ->filter()
-            ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
-            ->unique()
-            ->sort()
-            ->values()
-            ->toArray();
+            ->pluck('date')->filter()
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->unique()->sort()->values()->toArray();
     }
 
-    protected function buildNotesWithPattern(array $data): string
+    private function resolveClient(array $data): int
+    {
+        if ($data['customer_type'] === 'manual') {
+            $client = Client::firstOrCreate(
+                ['name' => $data['customer_name_manual'], 'phone' => $data['customer_phone_manual'] ?? null],
+                ['email' => 'manual_' . time() . '_' . rand(100, 999) . '@thearena.local', 'password' => bcrypt('dummy_' . time())]
+            );
+            return $client->id;
+        }
+        return (int)$data['client_id'];
+    }
+
+    private function buildNotes(array $data): string
     {
         $notes = $data['notes'] ?? '';
-        
         if ($data['customer_type'] === 'manual') {
-            $customerInfo = "Customer Manual: {$data['customer_name_manual']}";
-            if (!empty($data['customer_phone_manual'])) {
-                $customerInfo .= " | Phone: {$data['customer_phone_manual']}";
-            }
-            $notes = $customerInfo . ($notes ? " | " . $notes : '');
+            $notes = 'Customer Manual: ' . $data['customer_name_manual']
+                . ($data['customer_phone_manual'] ? ' | Phone: ' . $data['customer_phone_manual'] : '')
+                . ($notes ? ' | ' . $notes : '');
         }
-
-        $patternInfo = $this->getPatternDescription($data);
-        $notes .= " | Booking Member ({$patternInfo})";
-        $notes .= " | Generated: " . Carbon::now()->format('d M Y H:i');
-
+        $notes .= ' | Booking Member | Generated: ' . Carbon::now()->format('d M Y H:i');
         return $notes;
     }
 
-    protected function getPatternDescription(array $data): string
+    private function checkConflicts(array $dates, string $venueType, array $timeSlots): array
     {
-        $mode = $data['recurring_mode'] ?? 'custom';
-        
-        switch ($mode) {
-            case 'weekly':
-                $days = collect($data['weekly_days'] ?? [])->map(function($d) {
-                    $names = [0 => 'Minggu', 1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 
-                             4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'];
-                    return $names[$d] ?? '';
-                })->filter()->join(', ');
-                $duration = $data['weekly_duration'] ?? 4;
-                return "Setiap {$days} selama {$duration} minggu";
-            
-            case 'monthly_date':
-                $dates = collect($data['monthly_dates'] ?? [])->sort()->join(', ');
-                $duration = $data['monthly_duration'] ?? 3;
-                return "Tanggal {$dates} tiap bulan selama {$duration} bulan";
-            
-            case 'custom':
-            default:
-                $count = count($data['selected_dates'] ?? []);
-                return "{$count} tanggal custom";
-        }
+        return DB::table('booked_time_slots')
+            ->join('bookings', 'booked_time_slots.booking_id', '=', 'bookings.id')
+            ->whereIn('booked_time_slots.date', $dates)
+            ->where('booked_time_slots.venue_type', $venueType)
+            ->whereIn('booked_time_slots.time_slot', $timeSlots)
+            ->where(function ($q) {
+                $q->where('bookings.payment_status', 'paid')
+                  ->orWhere('bookings.status', 'confirmed')
+                  ->orWhere('bookings.is_paid', true);
+            })
+            ->pluck('booked_time_slots.date')->unique()->values()->toArray();
     }
 
-    protected function calculatePrice($venueType, $date, $timeSlot): int
+    private function calculatePrice(string $venueType, string $date, string $timeSlot): int
     {
-        $dayOfWeek = Carbon::parse($date)->dayOfWeek;
-        $isWeekend = in_array($dayOfWeek, [0, 6]);
-
-        preg_match('/^(\d{2})\./', $timeSlot, $matches);
-        $startHour = isset($matches[1]) ? (int)$matches[1] : 0;
+        $isWeekend = in_array(Carbon::parse($date)->dayOfWeek, [0, 6]);
+        preg_match('/^(\d{2})\./', $timeSlot, $m);
+        $h = isset($m[1]) ? (int)$m[1] : 0;
 
         if ($venueType === 'pvj') {
-            if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 16) return 700000;
-                elseif ($startHour >= 16 && $startHour < 20) return 700000;
-                elseif ($startHour >= 20 && $startHour < 24) return 500000;
-            } else {
-                if ($startHour >= 6 && $startHour < 16) return 350000;
-                elseif ($startHour >= 16 && $startHour < 20) return 700000;
-                elseif ($startHour >= 20 && $startHour < 24) return 500000;
-            }
+            if ($isWeekend)  return ($h >= 6 && $h < 20) ? 700000 : 500000;
+            else             return ($h >= 6 && $h < 16) ? 350000 : (($h < 20) ? 700000 : 500000);
         }
-
         if ($venueType === 'cibadak_a') {
-            if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) return 700000;
-                elseif ($startHour >= 20 && $startHour < 24) return 500000;
-            } else {
-                if ($startHour >= 6 && $startHour < 16) return 350000;
-                elseif ($startHour >= 16 && $startHour < 24) return 700000;
-            }
+            if ($isWeekend)  return ($h >= 6 && $h < 20) ? 700000 : 500000;
+            else             return ($h >= 6 && $h < 16) ? 350000 : 700000;
         }
-
         if ($venueType === 'cibadak_b') {
-            if ($isWeekend) {
-                if ($startHour >= 6 && $startHour < 20) return 550000;
-                elseif ($startHour >= 20 && $startHour < 24) return 450000;
-            } else {
-                if ($startHour >= 6 && $startHour < 16) return 300000;
-                elseif ($startHour >= 16 && $startHour < 20) return 550000;
-                elseif ($startHour >= 20 && $startHour < 24) return 450000;
-            }
+            if ($isWeekend)  return ($h >= 6 && $h < 20) ? 550000 : 450000;
+            else             return ($h >= 6 && $h < 16) ? 300000 : (($h < 20) ? 550000 : 450000);
         }
-
         if ($venueType === 'urban') {
-            if ($isWeekend) return 550000;
-            else {
-                if ($startHour >= 6 && $startHour < 16) return 300000;
-                elseif ($startHour >= 16 && $startHour < 24) return 550000;
-            }
+            if ($isWeekend)  return 550000;
+            else             return ($h >= 6 && $h < 16) ? 300000 : 550000;
         }
-
         return 350000;
     }
 
-    protected function checkConflicts(array $dates, string $venueType, array $timeSlots): array
+    private function formatTimeSlots(array $selectedSlots, string $venueType, string $date): array
     {
-        $conflicts = [];
-
-        foreach ($dates as $date) {
-            $hasConflict = BookedTimeSlot::where('date', $date)
-                ->where('venue_type', $venueType)
-                ->whereIn('time_slot', $timeSlots)
-                ->whereHas('booking', function ($query) {
-                    $query->where(function($q) {
-                        $q->where('payment_status', 'paid')
-                          ->orWhere('status', 'confirmed')
-                          ->orWhere('is_paid', true);
-                    });
-                })
-                ->exists();
-
-            if ($hasConflict) {
-                $conflicts[] = $date;
-            }
-        }
-
-        return $conflicts;
+        return array_map(fn($t) => ['time' => $t, 'duration' => 120, 'price' => $this->calculatePrice($venueType, $date, $t)], $selectedSlots);
     }
 
-    protected function formatTimeSlots(array $selectedSlots, string $venueType, string $date): array
+    private function getVenueId(string $venueType): int
     {
-        return array_map(function ($time) use ($venueType, $date) {
-            return [
-                'time' => $time,
-                'duration' => 120,
-                'price' => $this->calculatePrice($venueType, $date, $time),
-            ];
-        }, $selectedSlots);
-    }
-
-    protected function getVenueId(string $venueType): int
-    {
-        $venueMap = [
-            'cibadak_a' => 1,
-            'cibadak_b' => 2,
-            'pvj' => 3,
-            'urban' => 4,
-        ];
-
-        return $venueMap[$venueType] ?? 1;
+        return ['cibadak_a' => 1, 'cibadak_b' => 2, 'pvj' => 3, 'urban' => 4][$venueType] ?? 1;
     }
 }

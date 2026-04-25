@@ -12,18 +12,26 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         }
         
+        /* Sembunyikan Filament default page header karena kita punya custom header sendiri */
+        .fi-header,
+        .fi-page-header {
+            display: none !important;
+        }
+
         .full-calendar-wrapper {
-            margin: -2rem -2rem 0 -2rem;
+            margin: 0 -1.5rem;
             min-height: 100vh;
-            background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+            background: #f1f5f9;
         }
         
         .calendar-header-section {
             background: linear-gradient(135deg, #013064 0%, #024a8f 100%);
-            padding: 2.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px rgba(1, 48, 100, 0.25);
             position: relative;
             overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
         }
 
         .calendar-header-section::before {
@@ -47,30 +55,30 @@
 
         /* ✅ VENUE SECTION - Improved spacing and sizing */
         .venue-section {
-            margin-bottom: 3.5rem; /* Increased from 2.5rem */
+            margin-bottom: 2rem;
             page-break-inside: avoid;
         }
 
         .venue-header {
             background: linear-gradient(135deg, #013064 0%, #024a8f 100%);
-            padding: 1.5rem 2rem; /* Increased from 1.25rem */
+            padding: 1rem 1.5rem;
             border-radius: 12px 12px 0 0;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .venue-title {
-            font-size: 1.65rem; /* Increased from 1.5rem */
+            font-size: 1.25rem;
             font-weight: 800;
             color: white;
             letter-spacing: -0.02em;
             display: flex;
             align-items: center;
-            gap: 1rem; /* Increased from 0.75rem */
+            gap: 0.75rem;
         }
 
         .venue-icon {
-            width: 2.5rem; /* Increased from 2rem */
-            height: 2.5rem;
+            width: 2rem;
+            height: 2rem;
             background: rgba(255, 210, 47, 0.2);
             border-radius: 8px;
             display: flex;
@@ -330,32 +338,32 @@
 
         .date-header {
             text-align: center;
-            padding: 1rem 0.5rem;
+            padding: 1.125rem 0.5rem;
         }
 
         .day-name {
-            font-size: 10px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            margin-bottom: 8px;
-            opacity: 0.8;
+            letter-spacing: 1.4px;
+            margin-bottom: 6px;
+            opacity: 0.9;
         }
 
         .date-number {
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 800;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             letter-spacing: -0.02em;
         }
 
         .month-name {
-            font-size: 11px;
-            font-weight: 500;
-            opacity: 0.7;
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.75;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
         }
 
         .filter-button {
@@ -871,18 +879,25 @@
     <div class="full-calendar-wrapper">
         {{-- HEADER SECTION --}}
         <div class="calendar-header-section" style="position: relative; z-index: 1;">
-            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-5">
+            {{-- Title Row --}}
+            <div class="flex items-center justify-between mb-4">
                 <div>
-                    <p class="page-subtitle">
-                        @php
-                            $bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-                            $namaHari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-                        @endphp
+                    @php
+                        $bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                        $namaHari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                    @endphp
+                    <div style="font-size:0.8125rem; font-weight:600; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.25rem;">Kalender Booking</div>
+                    <div style="font-size:1.5rem; font-weight:800; color:white; letter-spacing:-0.02em;">
                         {{ $namaHari[now()->dayOfWeek] }}, {{ now()->format('d') }} {{ $bulan[now()->month - 1] }} {{ now()->format('Y') }}
-                    </p>
+                    </div>
                 </div>
+            </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-2 w-full lg:w-auto flex-wrap">
+            {{-- Controls: grouped in one row --}}
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:0.625rem;">
+
+                {{-- GROUP 1: Filters --}}
+                <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.08); padding:0.375rem; border-radius:14px;">
 
                     {{-- ✅ Venue Filter - Custom Alpine Dropdown --}}
                     <div class="custom-dropdown" x-data="{
@@ -945,68 +960,110 @@
                         </div>
                     </div>
 
-                    {{-- Quick Nav Buttons --}}
-                    <div class="flex gap-1.5">
-                        <button wire:click="setPrevWeek" class="filter-button whitespace-nowrap" title="Minggu Lalu" style="min-width:auto; padding: 0.875rem 1rem;">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                    {{-- ✅ Pilih Hari (Day of Week Filter) --}}
+                    <div class="custom-dropdown" x-data="{ open: false }" x-on:click.outside="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            :class="{'open': open}"
+                            class="custom-dropdown-trigger"
+                        >
+                            <svg class="w-4 h-4 flex-shrink-0 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span>
+                                @if(empty($selectedDays) || $selectedDays === [])
+                                    Pilih Hari
+                                @else
+                                    @php
+                                        $dn = [1=>'Sen',2=>'Sel',3=>'Rab',4=>'Kam',5=>'Jum',6=>'Sab',0=>'Min'];
+                                        echo collect($selectedDays)->map(fn($d) => $dn[$d])->join(', ');
+                                    @endphp
+                                @endif
+                            </span>
+                            <svg class="dropdown-arrow w-4 h-4 text-[#013064]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </button>
-                        <button wire:click="setCurrentDay" class="filter-button whitespace-nowrap" title="Hari Ini" style="min-width:auto; padding: 0.875rem 1rem;">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                        </button>
-                        <button wire:click="setCurrentWeek" class="filter-button whitespace-nowrap" style="min-width:auto;">
-                            <span>Minggu Ini</span>
-                        </button>
-                        <button wire:click="setNextWeek" class="filter-button whitespace-nowrap" title="Minggu Depan" style="min-width:auto; padding: 0.875rem 1rem;">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
-                        </button>
+                        <div x-show="open" x-transition.opacity class="custom-dropdown-menu" style="min-width:180px;">
+                            <div style="padding:0.375rem 0.75rem 0.5rem; font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.06em;">Filter Hari</div>
+                            @foreach([1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu',0=>'Minggu'] as $dayNum => $dayLabel)
+                                <button
+                                    wire:click="toggleDayFilter({{ $dayNum }})"
+                                    @click.stop
+                                    class="custom-dropdown-item"
+                                    style="{{ in_array($dayNum, $selectedDays ?? []) ? 'background:#013064; color:white;' : '' }}"
+                                >
+                                    @if(in_array($dayNum, $selectedDays ?? []))
+                                        <svg style="width:14px;height:14px;margin-right:6px;display:inline;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    @endif
+                                    {{ $dayLabel }}
+                                </button>
+                            @endforeach
+                            @if(!empty($selectedDays))
+                                <div style="border-top:1px solid #f0f2f5; margin-top:4px; padding-top:4px;">
+                                    <button wire:click="clearDayFilter" @click="open=false" class="custom-dropdown-item" style="color:#dc2626; font-weight:700;">
+                                        ✕ Hapus Filter Hari
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
                     </div>
+                </div>{{-- END GROUP 1: Filters --}}
 
+                {{-- DIVIDER --}}
+                <div style="width:1px; height:32px; background:rgba(255,255,255,0.2); flex-shrink:0;"></div>
+
+                {{-- GROUP 2: Time Navigation --}}
+                <div style="display:flex; align-items:center; gap:0.375rem; background:rgba(255,255,255,0.08); padding:0.375rem; border-radius:14px;">
+                    <button wire:click="setPrevWeek" class="filter-button" title="Minggu Lalu" style="min-width:auto; padding:0.625rem 0.875rem; min-height:40px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button wire:click="setCurrentDay" class="filter-button" title="Hari Ini" style="min-width:auto; padding:0.625rem 0.875rem; min-height:40px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    </button>
+                    <button wire:click="setCurrentWeek" class="filter-button" style="min-width:auto; padding:0.625rem 1rem; min-height:40px; font-size:13px;">
+                        <span>Minggu Ini</span>
+                    </button>
+                    <button wire:click="setCurrentMonth" class="filter-button" style="min-width:auto; padding:0.625rem 1rem; min-height:40px; font-size:13px;">
+                        <span>Bulan Ini</span>
+                    </button>
+                    <button wire:click="setNextWeek" class="filter-button" title="Minggu Depan" style="min-width:auto; padding:0.625rem 0.875rem; min-height:40px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                    </button>
                     <button
                         x-data
                         x-on:click="$dispatch('open-modal', { id: 'date-range-modal' })"
-                        class="filter-button whitespace-nowrap"
+                        class="filter-button" style="min-width:auto; padding:0.625rem 1rem; min-height:40px; font-size:13px;"
                     >
-                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
                         <span>Pilih Tanggal</span>
                     </button>
+                </div>{{-- END GROUP 2 --}}
 
-                    <button
-                        wire:click="setCurrentMonth"
-                        class="filter-button whitespace-nowrap"
-                    >
-                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <span>Bulan Ini</span>
-                    </button>
+                {{-- DIVIDER --}}
+                <div style="width:1px; height:32px; background:rgba(255,255,255,0.2); flex-shrink:0;"></div>
 
-                    {{-- Export Matrix Button --}}
-                    <button
-                        wire:click="exportToCSV"
-                        class="export-button whitespace-nowrap"
-                        title="Export format matrix seperti kalender"
-                    >
-                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {{-- GROUP 3: Export --}}
+                <div style="display:flex; align-items:center; gap:0.375rem;">
+                    <button wire:click="exportToCSV" class="export-button" title="Export matrix" style="padding:0.625rem 1rem; min-height:40px; font-size:13px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                         </svg>
-                        <span>Export Matrix</span>
+                        <span>Matrix</span>
                     </button>
-
-                    {{-- Export By Color Button --}}
-                    <button
-                        wire:click="exportToCSVByColor"
-                        class="export-color-button whitespace-nowrap"
-                        title="Export dengan pemisahan berdasarkan warna/kategori"
-                    >
-                        <svg class="filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button wire:click="exportToCSVByColor" class="export-color-button" title="Export by color" style="padding:0.625rem 1rem; min-height:40px; font-size:13px;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
                         </svg>
-                        <span>Export by Color</span>
+                        <span>By Color</span>
                     </button>
-                </div>
-            </div>
+                </div>{{-- END GROUP 3: Export --}}
+
+            </div>{{-- END Controls Row --}}
+        </div>
 
             {{-- ✅ IMPROVED LEGEND SECTION --}}
             <div class="legend-container">
@@ -1081,10 +1138,30 @@
                     @endif
                 </div>
             @endif
-        </div>
 
-        {{-- Rest of the calendar content remains the same --}}
-        <div style="padding: 2rem;">
+            {{-- Active Day Filter Tags --}}
+            @if(!empty($selectedDays))
+                @php $dn = [0=>'Minggu',1=>'Senin',2=>'Selasa',3=>'Rabu',4=>'Kamis',5=>'Jumat',6=>'Sabtu']; @endphp
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach($selectedDays as $sd)
+                        <span class="active-filter-tag">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            {{ $dn[$sd] ?? '' }}
+                            <button wire:click="toggleDayFilter({{ $sd }})" class="remove-filter-btn">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+        </div>{{-- END .calendar-header-section --}}
+
+        {{-- Rest of the calendar content --}}
+        <div style="padding: 0 1.5rem 2rem;">
             @if($selectedVenue === 'all')
                 @foreach($schedulesByVenue as $venueData)
                     <div class="venue-section">

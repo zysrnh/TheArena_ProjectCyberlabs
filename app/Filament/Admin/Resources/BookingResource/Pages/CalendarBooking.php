@@ -27,6 +27,7 @@ class CalendarBooking extends Page
     #[Url] public $startDate = null;
     #[Url] public $endDate = null;
     #[Url] public $selectedTimeSlot = 'all'; // Filter jam
+    #[Url] public array $selectedDays = [];  // Filter hari (0=Min,1=Sen,...,6=Sab)
     public $dateRangeText = null;
     public $showBookingTypeModal = false;
     public $selectedDate = null;
@@ -549,6 +550,21 @@ class CalendarBooking extends Page
         $this->selectedTimeSlot = $slot;
     }
 
+    // ✅ Toggle filter hari (multi-select)
+    public function toggleDayFilter(int $day): void
+    {
+        if (in_array($day, $this->selectedDays)) {
+            $this->selectedDays = array_values(array_filter($this->selectedDays, fn($d) => $d !== $day));
+        } else {
+            $this->selectedDays = [...$this->selectedDays, $day];
+        }
+    }
+
+    public function clearDayFilter(): void
+    {
+        $this->selectedDays = [];
+    }
+
     public function openBookingTypeModal($date, $timeSlot, $venue = null)
     {
         $this->selectedDate = $date;
@@ -646,13 +662,18 @@ class CalendarBooking extends Page
         $schedules = [];
 
         for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+            // ✅ Filter hari: skip jika tidak termasuk hari yang dipilih
+            if (!empty($this->selectedDays) && !in_array($date->dayOfWeek, $this->selectedDays)) {
+                continue;
+            }
+
             $daySchedule = [
-                'date' => $date->format('Y-m-d'),
-                'day_name' => $this->getIndonesianDayName($date),
+                'date'        => $date->format('Y-m-d'),
+                'day_name'    => $this->getIndonesianDayName($date),
                 'date_number' => $date->format('d'),
-                'month' => $this->getIndonesianMonthName($date),
-                'is_today' => $date->isToday(),
-                'bookings' => []
+                'month'       => $this->getIndonesianMonthName($date),
+                'is_today'    => $date->isToday(),
+                'bookings'    => []
             ];
 
             $query = DB::table('bookings')
@@ -764,13 +785,18 @@ private function determineBookingType($booking): string
             $schedules = [];
 
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                // ✅ Filter hari
+                if (!empty($this->selectedDays) && !in_array($date->dayOfWeek, $this->selectedDays)) {
+                    continue;
+                }
+
                 $daySchedule = [
-                    'date' => $date->format('Y-m-d'),
-                    'day_name' => $this->getIndonesianDayName($date),
+                    'date'        => $date->format('Y-m-d'),
+                    'day_name'    => $this->getIndonesianDayName($date),
                     'date_number' => $date->format('d'),
-                    'month' => $this->getIndonesianMonthName($date),
-                    'is_today' => $date->isToday(),
-                    'bookings' => []
+                    'month'       => $this->getIndonesianMonthName($date),
+                    'is_today'    => $date->isToday(),
+                    'bookings'    => []
                 ];
 
                 $bookings = DB::table('bookings')

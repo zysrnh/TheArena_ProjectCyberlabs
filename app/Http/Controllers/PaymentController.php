@@ -461,7 +461,7 @@ class PaymentController extends Controller
                 };
 
                 $timeSlotsList = collect($booking->time_slots);
-                $timeSlotsText = $timeSlotsList->pluck('time')->join("\n⏱️ ");
+                $timeSlotsText = $timeSlotsList->pluck('time')->join("\n- ");
 
                 $originalPrice = $booking->original_price ?? $booking->total_price;
                 $discountAmount = $booking->discount_amount ?? 0;
@@ -471,25 +471,25 @@ class PaymentController extends Controller
                 $separator = str_repeat('─', 30);
 
                 // === PESAN KE ADMIN ===
-                $messageAdmin  = "🏀 *KONFIRMASI BOOKING THE ARENA* 🏀\n";
+                $messageAdmin  = "*KONFIRMASI BOOKING THE ARENA*\n";
                 $messageAdmin .= $separator . "\n\n";
-                $messageAdmin .= "👤 *INFORMASI PELANGGAN*\n";
+                $messageAdmin .= "*INFORMASI PELANGGAN*\n";
                 $messageAdmin .= "Nama     : *{$client->name}*\n";
                 $messageAdmin .= "No. HP   : " . ($client->phone ?? '-') . "\n";
                 $messageAdmin .= "Email    : " . ($client->email ?? '-') . "\n\n";
-                $messageAdmin .= "🏟️ *DETAIL BOOKING*\n";
+                $messageAdmin .= "*DETAIL BOOKING*\n";
                 $messageAdmin .= "Lapangan : *{$venueName}*\n";
                 $messageAdmin .= "Alamat   : {$venueAddress}\n";
                 $messageAdmin .= "Tanggal  : *{$bookingDateFormatted}*\n";
-                $messageAdmin .= "Jam      :\n⏱️ {$timeSlotsText}\n\n";
-                $messageAdmin .= "💳 *PEMBAYARAN*\n";
-                $messageAdmin .= "No. Bill : `{$booking->bill_no}`\n";
+                $messageAdmin .= "Jam      :\n- {$timeSlotsText}\n\n";
+                $messageAdmin .= "*PEMBAYARAN*\n";
+                $messageAdmin .= "No. Bill : {$booking->bill_no}\n";
                 if ($discountAmount > 0) {
-                    $messageAdmin .= "Harga    : ~~{$originalPriceText}~~\n";
+                    $messageAdmin .= "Harga    : ~{$originalPriceText}~\n";
                     $messageAdmin .= "Diskon   : -Rp " . number_format($discountAmount, 0, ',', '.') . "\n";
                 }
                 $messageAdmin .= "Total    : *{$totalPrice}*\n";
-                $messageAdmin .= "Status   : ✅ *LUNAS*\n\n";
+                $messageAdmin .= "Status   : *LUNAS*\n\n";
                 $messageAdmin .= $separator . "\n";
                 $messageAdmin .= "_Booking dikonfirmasi otomatis oleh sistem The Arena._";
 
@@ -497,22 +497,22 @@ class PaymentController extends Controller
                 $whatsappUrlAdmin = "https://wa.me/{$adminWaNumber}?text=" . urlencode($messageAdmin);
 
                 // === STRUK UNTUK USER (SELF REMINDER) ===
-                $messageUser  = "🏀 *STRUK BOOKING THE ARENA* 🏀\n";
+                $messageUser  = "*STRUK BOOKING THE ARENA*\n";
                 $messageUser .= $separator . "\n\n";
-                $messageUser .= "Terima kasih, *{$client->name}*! 🎉\n";
+                $messageUser .= "Terima kasih, *{$client->name}!*\n";
                 $messageUser .= "Booking Anda telah *DIKONFIRMASI*.\n\n";
-                $messageUser .= "🏟️ *{$venueName}*\n";
-                $messageUser .= "📍 {$venueAddress}\n\n";
-                $messageUser .= "📅 *{$bookingDateFormatted}*\n";
-                $messageUser .= "⏰ Jam:\n⏱️ {$timeSlotsText}\n\n";
-                $messageUser .= "🧾 No. Bill: `{$booking->bill_no}`\n";
-                $messageUser .= "💰 Total: *{$totalPrice}* ✅ Lunas\n\n";
+                $messageUser .= "*{$venueName}*\n";
+                $messageUser .= "Alamat: {$venueAddress}\n\n";
+                $messageUser .= "Tanggal: *{$bookingDateFormatted}*\n";
+                $messageUser .= "Jam:\n- {$timeSlotsText}\n\n";
+                $messageUser .= "No. Bill: {$booking->bill_no}\n";
+                $messageUser .= "Total: *{$totalPrice}* (Lunas)\n\n";
                 $messageUser .= $separator . "\n";
-                $messageUser .= "📌 *Informasi Penting:*\n";
-                $messageUser .= "• Harap datang 10 menit sebelum jam booking\n";
-                $messageUser .= "• Gunakan sepatu olahraga/basket\n";
-                $messageUser .= "• Tunjukkan bukti ini kepada petugas\n\n";
-                $messageUser .= "Sampai jumpa di lapangan! 🏀🔥";
+                $messageUser .= "*Informasi Penting:*\n";
+                $messageUser .= "- Harap datang 10 menit sebelum jam booking\n";
+                $messageUser .= "- Gunakan sepatu olahraga/basket\n";
+                $messageUser .= "- Tunjukkan bukti ini kepada petugas\n\n";
+                $messageUser .= "Sampai jumpa di lapangan!";
 
                 Log::info('✅✅✅ PAYMENT SUCCESS - Redirecting with WhatsApp URL');
 
@@ -571,7 +571,7 @@ class PaymentController extends Controller
         };
 
         $timeSlotsCollection = collect($booking->time_slots);
-        $timeSlotsText = $timeSlotsCollection->pluck('time')->join("\n⏱️ ");
+        $timeSlotsText = $timeSlotsCollection->pluck('time')->join("\n- ");
         $timeSlotsDisplay = $timeSlotsCollection->pluck('time')->toArray();
 
         $originalPrice = $booking->original_price ?? $booking->total_price;
@@ -581,45 +581,45 @@ class PaymentController extends Controller
         $originalPriceText = 'Rp ' . number_format($originalPrice, 0, ',', '.');
 
         // === PESAN KE ADMIN ===
-        $messageAdmin  = "🏀 *KONFIRMASI BOOKING THE ARENA* 🏀\n";
+        $messageAdmin  = "*KONFIRMASI BOOKING THE ARENA*\n";
         $messageAdmin .= $separator . "\n\n";
-        $messageAdmin .= "👤 *INFORMASI PELANGGAN*\n";
+        $messageAdmin .= "*INFORMASI PELANGGAN*\n";
         $messageAdmin .= "Nama     : *{$client->name}*\n";
         $messageAdmin .= "No. HP   : " . ($client->phone ?? '-') . "\n";
         $messageAdmin .= "Email    : " . ($client->email ?? '-') . "\n\n";
-        $messageAdmin .= "🏟️ *DETAIL BOOKING*\n";
+        $messageAdmin .= "*DETAIL BOOKING*\n";
         $messageAdmin .= "Lapangan : *{$venueName}*\n";
         $messageAdmin .= "Alamat   : {$venueAddress}\n";
         $messageAdmin .= "Tanggal  : *{$bookingDateFormatted}*\n";
-        $messageAdmin .= "Jam      :\n⏱️ {$timeSlotsText}\n\n";
-        $messageAdmin .= "💳 *PEMBAYARAN*\n";
-        $messageAdmin .= "No. Bill : `{$booking->bill_no}`\n";
+        $messageAdmin .= "Jam      :\n- {$timeSlotsText}\n\n";
+        $messageAdmin .= "*PEMBAYARAN*\n";
+        $messageAdmin .= "No. Bill : {$booking->bill_no}\n";
         if ($discountAmount > 0) {
-            $messageAdmin .= "Harga    : ~~{$originalPriceText}~~\n";
+            $messageAdmin .= "Harga    : ~{$originalPriceText}~\n";
             $messageAdmin .= "Diskon   : -Rp " . number_format($discountAmount, 0, ',', '.') . "\n";
         }
         $messageAdmin .= "Total    : *{$totalPriceText}*\n";
-        $messageAdmin .= "Status   : ✅ *LUNAS*\n\n";
+        $messageAdmin .= "Status   : *LUNAS*\n\n";
         $messageAdmin .= $separator . "\n";
         $messageAdmin .= "_Booking dikonfirmasi otomatis oleh sistem The Arena._";
 
         // === STRUK UNTUK USER (simpan ke no sendiri) ===
-        $messageUser  = "🏀 *STRUK BOOKING THE ARENA* 🏀\n";
+        $messageUser  = "*STRUK BOOKING THE ARENA*\n";
         $messageUser .= $separator . "\n\n";
-        $messageUser .= "Terima kasih, *{$client->name}*! 🎉\n";
+        $messageUser .= "Terima kasih, *{$client->name}!*\n";
         $messageUser .= "Booking Anda telah *DIKONFIRMASI*.\n\n";
-        $messageUser .= "🏟️ *{$venueName}*\n";
-        $messageUser .= "📍 {$venueAddress}\n\n";
-        $messageUser .= "📅 *{$bookingDateFormatted}*\n";
-        $messageUser .= "⏰ Jam:\n⏱️ {$timeSlotsText}\n\n";
-        $messageUser .= "🧾 No. Bill: `{$booking->bill_no}`\n";
-        $messageUser .= "💰 Total: *{$totalPriceText}* ✅ Lunas\n\n";
+        $messageUser .= "*{$venueName}*\n";
+        $messageUser .= "Alamat: {$venueAddress}\n\n";
+        $messageUser .= "Tanggal: *{$bookingDateFormatted}*\n";
+        $messageUser .= "Jam:\n- {$timeSlotsText}\n\n";
+        $messageUser .= "No. Bill: {$booking->bill_no}\n";
+        $messageUser .= "Total: *{$totalPriceText}* (Lunas)\n\n";
         $messageUser .= $separator . "\n";
-        $messageUser .= "📌 *Informasi Penting:*\n";
-        $messageUser .= "• Harap datang 10 menit sebelum jam booking\n";
-        $messageUser .= "• Gunakan sepatu olahraga/basket\n";
-        $messageUser .= "• Tunjukkan bukti ini kepada petugas\n\n";
-        $messageUser .= "Sampai jumpa di lapangan! 🏀🔥";
+        $messageUser .= "*Informasi Penting:*\n";
+        $messageUser .= "- Harap datang 10 menit sebelum jam booking\n";
+        $messageUser .= "- Gunakan sepatu olahraga/basket\n";
+        $messageUser .= "- Tunjukkan bukti ini kepada petugas\n\n";
+        $messageUser .= "Sampai jumpa di lapangan!";
 
         $adminWaNumber = env('ADMIN_WA_NUMBER', '6281222977985');
         $userPhone = preg_replace('/[^0-9]/', '', $client->phone ?? '');
