@@ -356,11 +356,37 @@ class Booking extends Model
 
     /**
      * ✅ AUTO DELETE booked_time_slots saat booking dihapus
+     * Serta kirim notifikasi Fonnte otomatis saat booking dibayar
      */
     protected static function booted()
     {
         static::deleting(function ($booking) {
             $booking->bookedTimeSlots()->delete();
         });
+
+        static::updated(function ($booking) {
+            if ($booking->isDirty('payment_status') && $booking->payment_status === 'paid') {
+                if (!app()->runningInConsole()) {
+                    try {
+                        app(\App\Services\FonnteService::class)->sendBookingNotifications($booking);
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Fonnte notification updated hook failed: ' . $e->getMessage());
+                    }
+                }
+            }
+        });
+
+        static::created(function ($booking) {
+            if ($booking->payment_status === 'paid') {
+                if (!app()->runningInConsole()) {
+                    try {
+                        app(\App\Services\FonnteService::class)->sendBookingNotifications($booking);
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Fonnte notification created hook failed: ' . $e->getMessage());
+                    }
+                }
+            }
+        });
     }
+
 }
