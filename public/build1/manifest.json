@@ -1,0 +1,390 @@
+{
+  "_Contact-B8uoZW-7.js": {
+    "file": "assets/Contact-B8uoZW-7.js",
+    "name": "Contact",
+    "imports": [
+      "resources/js/app.jsx",
+      "_phone-DBVEkRDB.js"
+    ]
+  },
+  "_Footer-CS3GdJ50.js": {
+    "file": "assets/Footer-CS3GdJ50.js",
+    "name": "Footer",
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_Navigation-BoVsfGi0.js": {
+    "file": "assets/Navigation-BoVsfGi0.js",
+    "name": "Navigation",
+    "imports": [
+      "resources/js/app.jsx"
+    ]
+  },
+  "_arrow-left-DmCr5WqU.js": {
+    "file": "assets/arrow-left-DmCr5WqU.js",
+    "name": "arrow-left",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_calendar-D6e43W7U.js": {
+    "file": "assets/calendar-D6e43W7U.js",
+    "name": "calendar",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_chevron-left-kFTYtozo.js": {
+    "file": "assets/chevron-left-kFTYtozo.js",
+    "name": "chevron-left",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_chevron-right-DMUdPOms.js": {
+    "file": "assets/chevron-right-DMUdPOms.js",
+    "name": "chevron-right",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_circle-alert-B7D1VkgL.js": {
+    "file": "assets/circle-alert-B7D1VkgL.js",
+    "name": "circle-alert",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_circle-check-big-CWIAw4vz.js": {
+    "file": "assets/circle-check-big-CWIAw4vz.js",
+    "name": "circle-check-big",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_lock-DFVBPWRJ.js": {
+    "file": "assets/lock-DFVBPWRJ.js",
+    "name": "lock",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_mail--K0WpUD8.js": {
+    "file": "assets/mail--K0WpUD8.js",
+    "name": "mail",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_map-pin-pl4GfS8P.js": {
+    "file": "assets/map-pin-pl4GfS8P.js",
+    "name": "map-pin",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_phone-DBVEkRDB.js": {
+    "file": "assets/phone-DBVEkRDB.js",
+    "name": "phone",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_search-DS-uZS6t.js": {
+    "file": "assets/search-DS-uZS6t.js",
+    "name": "search",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "_user-q_2GVb19.js": {
+    "file": "assets/user-q_2GVb19.js",
+    "name": "user",
+    "imports": [
+      "_Navigation-BoVsfGi0.js"
+    ]
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-CQoc0bpK.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/Pages/About/About.jsx": {
+    "file": "assets/About-BevpNco7.js",
+    "name": "About",
+    "src": "resources/js/Pages/About/About.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Footer-CS3GdJ50.js",
+      "_Navigation-BoVsfGi0.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/Auth/Login.jsx": {
+    "file": "assets/Login-CP4F9xxi.js",
+    "name": "Login",
+    "src": "resources/js/Pages/Auth/Login.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_circle-check-big-CWIAw4vz.js",
+      "_circle-alert-B7D1VkgL.js",
+      "_mail--K0WpUD8.js",
+      "_lock-DFVBPWRJ.js",
+      "_user-q_2GVb19.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/Auth/Register.jsx": {
+    "file": "assets/Register-CWg_MXL8.js",
+    "name": "Register",
+    "src": "resources/js/Pages/Auth/Register.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_circle-check-big-CWIAw4vz.js",
+      "_circle-alert-B7D1VkgL.js",
+      "_user-q_2GVb19.js",
+      "_mail--K0WpUD8.js",
+      "_phone-DBVEkRDB.js",
+      "_lock-DFVBPWRJ.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/Contact/Contact.jsx": {
+    "file": "assets/Contact-Ce9K6NQD.js",
+    "name": "Contact",
+    "src": "resources/js/Pages/Contact/Contact.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_phone-DBVEkRDB.js",
+      "_mail--K0WpUD8.js",
+      "_map-pin-pl4GfS8P.js",
+      "_circle-check-big-CWIAw4vz.js",
+      "_circle-alert-B7D1VkgL.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/EquipmentBooking/EquipmentBooking.jsx": {
+    "file": "assets/EquipmentBooking-uwGeNF-R.js",
+    "name": "EquipmentBooking",
+    "src": "resources/js/Pages/EquipmentBooking/EquipmentBooking.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_search-DS-uZS6t.js",
+      "_chevron-right-DMUdPOms.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/EquipmentBooking/EquipmentDetail.jsx": {
+    "file": "assets/EquipmentDetail--Y9lWB3o.js",
+    "name": "EquipmentDetail",
+    "src": "resources/js/Pages/EquipmentBooking/EquipmentDetail.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_arrow-left-DmCr5WqU.js",
+      "_chevron-left-kFTYtozo.js",
+      "_chevron-right-DMUdPOms.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/HomePage/Booking/Booking.jsx": {
+    "file": "assets/Booking-CxSNuigY.js",
+    "name": "Booking",
+    "src": "resources/js/Pages/HomePage/Booking/Booking.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_arrow-left-DmCr5WqU.js",
+      "_map-pin-pl4GfS8P.js",
+      "_chevron-left-kFTYtozo.js",
+      "_chevron-right-DMUdPOms.js",
+      "_calendar-D6e43W7U.js",
+      "_circle-check-big-CWIAw4vz.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/HomePage/HomePage.jsx": {
+    "file": "assets/HomePage-B9d6_nrA.js",
+    "name": "HomePage",
+    "src": "resources/js/Pages/HomePage/HomePage.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_chevron-right-DMUdPOms.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/HomePage/News.jsx": {
+    "file": "assets/News-Dncn8p5N.js",
+    "name": "News",
+    "src": "resources/js/Pages/HomePage/News.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_search-DS-uZS6t.js",
+      "_chevron-right-DMUdPOms.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/HomePage/NewsDetail.jsx": {
+    "file": "assets/NewsDetail-BPxG7XLD.js",
+    "name": "NewsDetail",
+    "src": "resources/js/Pages/HomePage/NewsDetail.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_chevron-left-kFTYtozo.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/LivePage/LivePage.jsx": {
+    "file": "assets/LivePage-dMgoRJyv.js",
+    "name": "LivePage",
+    "src": "resources/js/Pages/LivePage/LivePage.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/MatchPage/MatchDetail.jsx": {
+    "file": "assets/MatchDetail-BcMa-Ixq.js",
+    "name": "MatchDetail",
+    "src": "resources/js/Pages/MatchPage/MatchDetail.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_Contact-B8uoZW-7.js",
+      "_chevron-left-kFTYtozo.js",
+      "_phone-DBVEkRDB.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/MatchPage/MatchPage.jsx": {
+    "file": "assets/MatchPage-B-8vi58J.js",
+    "name": "MatchPage",
+    "src": "resources/js/Pages/MatchPage/MatchPage.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_calendar-D6e43W7U.js",
+      "_chevron-left-kFTYtozo.js",
+      "_chevron-right-DMUdPOms.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/Pages/Profile/Profile.jsx": {
+    "file": "assets/Profile-D3EJQ4mg.js",
+    "name": "Profile",
+    "src": "resources/js/Pages/Profile/Profile.jsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.jsx",
+      "_Navigation-BoVsfGi0.js",
+      "_Footer-CS3GdJ50.js",
+      "_user-q_2GVb19.js",
+      "_calendar-D6e43W7U.js",
+      "_circle-check-big-CWIAw4vz.js",
+      "_circle-alert-B7D1VkgL.js",
+      "_map-pin-pl4GfS8P.js"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  },
+  "resources/js/app.jsx": {
+    "file": "assets/app-CecHNWxe.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/About/About.jsx",
+      "resources/js/Pages/Auth/Login.jsx",
+      "resources/js/Pages/Auth/Register.jsx",
+      "resources/js/Pages/Contact/Contact.jsx",
+      "resources/js/Pages/EquipmentBooking/EquipmentBooking.jsx",
+      "resources/js/Pages/EquipmentBooking/EquipmentDetail.jsx",
+      "resources/js/Pages/HomePage/Booking/Booking.jsx",
+      "resources/js/Pages/HomePage/HomePage.jsx",
+      "resources/js/Pages/HomePage/News.jsx",
+      "resources/js/Pages/HomePage/NewsDetail.jsx",
+      "resources/js/Pages/LivePage/LivePage.jsx",
+      "resources/js/Pages/MatchPage/MatchDetail.jsx",
+      "resources/js/Pages/MatchPage/MatchPage.jsx",
+      "resources/js/Pages/Profile/Profile.jsx"
+    ],
+    "css": [
+      "assets/app-CQoc0bpK.css"
+    ]
+  }
+}

@@ -7,16 +7,13 @@
     display: none !important;
 }
 
+/* ✅ FIX: Hapus margin: -1.5rem — ini penyebab text kelihatan transparan/highlight biru
+   karena konten overlap dengan elemen Filament di belakangnya yang punya background biru */
 .rb-page-wrapper {
-    margin: -1.5rem;
-    padding: 2rem;
+    margin: 0;
+    padding: 0;
     min-height: 100vh;
     background: #f1f5f9;
-    color-scheme: light !important;
-}
-
-/* Pastikan teks, input, dan form selalu mengikuti mode terang (override dark mode bawaan) */
-.rb-page-wrapper {
     color-scheme: light !important;
 }
 
@@ -29,13 +26,48 @@
 
 .rb-label { display: block; font-size: 0.8125rem; font-weight: 600; color: #475569 !important; margin-bottom: 0.4rem; letter-spacing: 0.02em; }
 
-/* Styling Input & Select Super Kuat */
-.rb-input { width: 100%; background-color: #f8fafc !important; border: 1px solid #cbd5e1 !important; border-radius: 10px; padding: 0.625rem 0.875rem; color: #0f172a !important; font-size: 0.9rem; outline: none; transition: border-color 0.2s; color-scheme: light !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important; }
-.rb-input::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
-.rb-input:focus { border-color: #3b82f6 !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05), 0 0 0 3px rgba(59,130,246,0.1) !important; }
+/* ✅ FIX: Styling Input & Select — pakai selector lebih spesifik biar menang dari Filament global CSS */
+.rb-page-wrapper .rb-input,
+.rb-page-wrapper input.rb-input,
+.rb-page-wrapper select.rb-input,
+.rb-page-wrapper textarea.rb-input {
+    width: 100%;
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px;
+    padding: 0.625rem 0.875rem;
+    color: #0f172a !important;          /* ✅ teks hitam, bukan transparan */
+    -webkit-text-fill-color: #0f172a !important; /* ✅ override WebKit autofill warna */
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    color-scheme: light !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
+    opacity: 1 !important;
+}
+.rb-page-wrapper .rb-input::placeholder { color: #94a3b8 !important; -webkit-text-fill-color: #94a3b8 !important; opacity: 1 !important; }
+.rb-page-wrapper .rb-input:focus { border-color: #3b82f6 !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05), 0 0 0 3px rgba(59,130,246,0.1) !important; }
 
-.rb-select { appearance: none !important; background-color: #f8fafc !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569' stroke-width='2'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: right 0.75rem center !important; background-size: 1rem !important; padding-right: 2.5rem !important; color: #0f172a !important; }
-.rb-select option { color: #0f172a !important; background-color: #ffffff !important; }
+/* ✅ FIX: Select khusus — Filament dark mode sering bikin teks select jadi transparan/putih */
+.rb-page-wrapper select.rb-input,
+.rb-page-wrapper .rb-select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-color: #f8fafc !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23475569' stroke-width='2'%3E%3Cpath d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 1rem !important;
+    padding-right: 2.5rem !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+.rb-page-wrapper select.rb-input option,
+.rb-page-wrapper .rb-select option {
+    color: #0f172a !important;
+    background-color: #ffffff !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
 .rb-textarea { resize: vertical; min-height: 80px; }
 .rb-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .rb-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
@@ -170,6 +202,7 @@
             <div>
                 <label class="rb-label">Venue *</label>
                 <select class="rb-input rb-select" wire:model="venueType">
+                    <option value="" disabled>— Pilih venue —</option>
                     <option value="cibadak_a">Cibadak A</option>
                     <option value="cibadak_b">Cibadak B</option>
                     <option value="pvj">PVJ Mall</option>

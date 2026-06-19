@@ -12,14 +12,15 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
         }
         
-        /* Sembunyikan Filament default page header karena kita punya custom header sendiri */
+        /* Sembunyikan Filament default page header */
         .fi-header,
         .fi-page-header {
             display: none !important;
         }
 
+        /* ✅ FIX: Hapus negative margin, biar tidak nyatu ke sidebar */
         .full-calendar-wrapper {
-            margin: 0 -1.5rem;
+            margin: 0;
             min-height: 100vh;
             background: #f1f5f9;
         }
@@ -29,7 +30,7 @@
             padding: 1.5rem 2rem;
             box-shadow: 0 4px 20px rgba(1, 48, 100, 0.25);
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* ✅ FIX: was 'hidden', dropdown ikut terpotong */
             border-radius: 12px;
             margin-bottom: 1.5rem;
         }
@@ -53,7 +54,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        /* ✅ VENUE SECTION - Improved spacing and sizing */
         .venue-section {
             margin-bottom: 2rem;
             page-break-inside: avoid;
@@ -87,7 +87,7 @@
         }
 
         .venue-icon svg {
-            width: 1.5rem; /* Explicit size for icon */
+            width: 1.5rem;
             height: 1.5rem;
         }
         
@@ -291,25 +291,24 @@
             font-weight: 800;
         }
 
-        /* ✅ LEGEND - Improved spacing and layout */
         .legend-container {
-            padding-top: 1.75rem; /* Increased from 1.25rem */
+            padding-top: 1.75rem;
             border-top: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .legend-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* More flexible */
-            gap: 1rem; /* Increased from 0.75rem */
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 0.875rem; /* Increased from 0.625rem */
-            padding: 0.875rem 1.25rem; /* Increased padding */
+            gap: 0.875rem;
+            padding: 0.875rem 1.25rem;
             background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px; /* Increased from 10px */
+            border-radius: 12px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.12);
             transition: all 0.2s ease;
@@ -322,9 +321,9 @@
         }
 
         .legend-box {
-            width: 24px; /* Increased from 20px */
+            width: 24px;
             height: 24px;
-            border-radius: 6px; /* Increased from 5px */
+            border-radius: 6px;
             flex-shrink: 0;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
         }
@@ -332,7 +331,7 @@
         .legend-text {
             color: white;
             font-weight: 600;
-            font-size: 0.9375rem; /* Slightly increased */
+            font-size: 0.9375rem;
             letter-spacing: 0.01em;
         }
 
@@ -387,14 +386,6 @@
             min-height: 48px;
         }
 
-        select.filter-button {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23013064' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.125rem;
-            padding-right: 3rem;
-        }
-
         .filter-button:hover {
             background: #f8fafc;
             border-color: #013064;
@@ -402,7 +393,6 @@
             box-shadow: 0 4px 12px rgba(1, 48, 100, 0.12);
         }
 
-        /* ✅ Custom Dropdown - replaces native <select> */
         .custom-dropdown {
             position: relative;
             display: inline-block;
@@ -459,7 +449,9 @@
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             z-index: 9999;
-            overflow: hidden;
+            overflow-y: auto;     /* ✅ FIX: was 'hidden', item terpotong */
+            overflow-x: hidden;
+            max-height: 360px;    /* ✅ FIX: scroll kalau item banyak */
             padding: 6px;
         }
 
@@ -493,7 +485,6 @@
             background: #024a8f;
         }
 
-        /* ✅ Export Button Styling */
         .export-button {
             background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
             color: white;
@@ -518,7 +509,6 @@
             box-shadow: 0 6px 18px rgba(34, 197, 94, 0.35);
         }
 
-        /* ✅ Export By Color Button Styling */
         .export-color-button {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
@@ -876,9 +866,11 @@
         }
     </style>
 
+    {{-- ✅ FIX: Wrapper tanpa negative margin --}}
     <div class="full-calendar-wrapper">
+
         {{-- HEADER SECTION --}}
-        <div class="calendar-header-section" style="position: relative; z-index: 1;">
+        <div class="calendar-header-section">
             {{-- Title Row --}}
             <div class="flex items-center justify-between mb-4">
                 <div>
@@ -899,7 +891,7 @@
                 {{-- GROUP 1: Filters --}}
                 <div style="display:flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.08); padding:0.375rem; border-radius:14px;">
 
-                    {{-- ✅ Venue Filter - Custom Alpine Dropdown --}}
+                    {{-- Venue Filter --}}
                     <div class="custom-dropdown" x-data="{
                         open: false,
                         venues: {
@@ -933,7 +925,7 @@
                         </div>
                     </div>
 
-                    {{-- ✅ Time Slot Filter - Custom Alpine Dropdown --}}
+                    {{-- Time Slot Filter --}}
                     <div class="custom-dropdown" x-data="{ open: false }" x-on:click.outside="open = false">
                         <button
                             type="button"
@@ -960,7 +952,7 @@
                         </div>
                     </div>
 
-                    {{-- ✅ Pilih Hari (Day of Week Filter) --}}
+                    {{-- Day of Week Filter --}}
                     <div class="custom-dropdown" x-data="{ open: false }" x-on:click.outside="open = false">
                         <button
                             type="button"
@@ -1009,7 +1001,7 @@
                             @endif
                         </div>
                     </div>
-                </div>{{-- END GROUP 1: Filters --}}
+                </div>{{-- END GROUP 1 --}}
 
                 {{-- DIVIDER --}}
                 <div style="width:1px; height:32px; background:rgba(255,255,255,0.2); flex-shrink:0;"></div>
@@ -1060,12 +1052,11 @@
                         </svg>
                         <span>By Color</span>
                     </button>
-                </div>{{-- END GROUP 3: Export --}}
+                </div>{{-- END GROUP 3 --}}
 
             </div>{{-- END Controls Row --}}
-        </div>
 
-            {{-- ✅ IMPROVED LEGEND SECTION --}}
+            {{-- LEGEND --}}
             <div class="legend-container">
                 <div class="legend-grid">
                     <div class="legend-item">
@@ -1087,6 +1078,7 @@
                 </div>
             </div>
 
+            {{-- Active Filters --}}
             @if($selectedVenue !== 'all' || $dateRangeText || ($selectedTimeSlot && $selectedTimeSlot !== 'all'))
                 <div class="mt-4 flex flex-wrap gap-2.5">
                     @if($selectedVenue !== 'all')
@@ -1158,10 +1150,11 @@
                     @endforeach
                 </div>
             @endif
+
         </div>{{-- END .calendar-header-section --}}
 
-        {{-- Rest of the calendar content --}}
-        <div style="padding: 0 1.5rem 2rem;">
+        {{-- CALENDAR CONTENT --}}
+        <div style="padding-bottom: 2rem;">
             @if($selectedVenue === 'all')
                 @foreach($schedulesByVenue as $venueData)
                     <div class="venue-section">
@@ -1197,18 +1190,15 @@
                                             @endforeach
                                         </tr>
                                     </thead>
-
                                     <tbody>
                                         @foreach($timeSlots as $slot)
                                             <tr>
                                                 <td class="time-cell">{{ $slot }}</td>
-
                                                 @foreach($venueData['schedules'] as $schedule)
                                                     @php
                                                         $booking = $schedule['bookings'][$slot] ?? null;
                                                         $isBooked = $booking && $booking->isNotEmpty();
                                                     @endphp
-
                                                     <td>
                                                         @if($isBooked)
                                                             <div class="booking-stack">
@@ -1219,15 +1209,14 @@
                                                                         } elseif ($item->booking_type === 'pending') {
                                                                             $colorClass = 'booking-unpaid';
                                                                         } elseif ($item->booking_type === 'member_manual') {
-                                                                            $colorClass = 'booking-member';
+                                                                            $colorClass = 'booking-manual';
                                                                         } elseif ($item->booking_type === 'manual') {
                                                                             $colorClass = 'booking-manual';
                                                                         } else {
                                                                             $colorClass = 'booking-paid';
                                                                         }
                                                                     @endphp
-                                                                    
-                                                                    <a 
+                                                                    <a
                                                                         href="{{ $item->is_recurring ? route('filament.admin.resources.recurring-bookings.edit', $item->id) : route('filament.admin.resources.bookings.edit', $item->id) }}"
                                                                         class="block {{ $colorClass }} rounded-lg px-3 py-2.5 booking-cell cursor-pointer"
                                                                     >
@@ -1256,7 +1245,7 @@
                                                                 @endforeach
                                                             </div>
                                                         @else
-                                                            <button 
+                                                            <button
                                                                 wire:click="openBookingTypeModal('{{ $schedule['date'] }}', '{{ $slot }}', '{{ $venueData['venue_key'] }}')"
                                                                 class="empty-cell w-full flex flex-col items-center justify-center rounded-lg transition group cursor-pointer"
                                                             >
@@ -1277,7 +1266,7 @@
                 @endforeach
             @else
                 {{-- Single venue view --}}
-                <div class="calendar-table-wrapper">
+                <div class="calendar-table-wrapper" style="border-radius: 12px; overflow: hidden;">
                     <div class="overflow-x-auto">
                         <table class="calendar-table">
                             <thead>
@@ -1298,18 +1287,15 @@
                                     @endforeach
                                 </tr>
                             </thead>
-
                             <tbody>
                                 @foreach($timeSlots as $slot)
                                     <tr>
                                         <td class="time-cell">{{ $slot }}</td>
-
                                         @foreach($schedules as $schedule)
                                             @php
                                                 $booking = $schedule['bookings'][$slot] ?? null;
                                                 $isBooked = $booking && $booking->isNotEmpty();
                                             @endphp
-
                                             <td>
                                                 @if($isBooked)
                                                     <div class="booking-stack">
@@ -1320,15 +1306,14 @@
                                                                 } elseif ($item->booking_type === 'pending') {
                                                                     $colorClass = 'booking-unpaid';
                                                                 } elseif ($item->booking_type === 'member_manual') {
-                                                                    $colorClass = 'booking-member';
+                                                                    $colorClass = 'booking-manual';
                                                                 } elseif ($item->booking_type === 'manual') {
                                                                     $colorClass = 'booking-manual';
                                                                 } else {
                                                                     $colorClass = 'booking-paid';
                                                                 }
                                                             @endphp
-                                                            
-                                                            <a 
+                                                            <a
                                                                 href="{{ $item->is_recurring ? route('filament.admin.resources.recurring-bookings.edit', $item->id) : route('filament.admin.resources.bookings.edit', $item->id) }}"
                                                                 class="block {{ $colorClass }} rounded-lg px-3 py-2.5 booking-cell cursor-pointer"
                                                             >
@@ -1359,11 +1344,11 @@
                                                                         <span class="booking-badge">LUNAS</span>
                                                                     @endif
                                                                 </div>
-                                            </a>
+                                                            </a>
                                                         @endforeach
                                                     </div>
                                                 @else
-                                                    <button 
+                                                    <button
                                                         wire:click="openBookingTypeModal('{{ $schedule['date'] }}', '{{ $slot }}')"
                                                         class="empty-cell w-full flex flex-col items-center justify-center rounded-lg transition group cursor-pointer"
                                                     >
@@ -1384,7 +1369,7 @@
         </div>
     </div>
 
-    {{-- Modals remain the same --}}
+    {{-- BOOKING TYPE MODAL --}}
     @if($showBookingTypeModal)
         <div class="booking-type-modal-overlay" wire:click="closeBookingTypeModal">
             <div class="booking-type-modal" wire:click.stop>
@@ -1495,7 +1480,7 @@
                         </template>
 
                         <template x-for="day in calendarDays" :key="day.date">
-                            <button 
+                            <button
                                 @click="selectDate(day.date)"
                                 :class="{
                                     'calendar-day': true,
@@ -1516,8 +1501,8 @@
                         <div class="text-center">
                             <span class="text-xs font-bold text-[#013064] uppercase tracking-wider block mb-1.5">Periode Terpilih</span>
                             <div class="text-lg font-bold text-[#013064]">
-                                <span x-text="formatDate(selectedStart)"></span> 
-                                <span class="mx-2">—</span> 
+                                <span x-text="formatDate(selectedStart)"></span>
+                                <span class="mx-2">—</span>
                                 <span x-text="formatDate(selectedEnd)"></span>
                             </div>
                         </div>
@@ -1534,7 +1519,7 @@
                     </svg>
                     Batal
                 </x-filament::button>
-                
+
                 <x-filament::button wire:click="applyDateRange" size="lg">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -1553,15 +1538,15 @@
                 selectedStart: null,
                 selectedEnd: null,
                 monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                
+
                 get calendarDays() {
                     const firstDay = new Date(this.currentYear, this.currentMonth, 1);
                     const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
                     const prevLastDay = new Date(this.currentYear, this.currentMonth, 0);
-                    
+
                     const days = [];
                     const firstDayOfWeek = firstDay.getDay();
-                    
+
                     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
                         days.push({
                             day: prevLastDay.getDate() - i,
@@ -1569,7 +1554,7 @@
                             isOtherMonth: true
                         });
                     }
-                    
+
                     for (let i = 1; i <= lastDay.getDate(); i++) {
                         days.push({
                             day: i,
@@ -1577,7 +1562,7 @@
                             isOtherMonth: false
                         });
                     }
-                    
+
                     const remainingDays = 42 - days.length;
                     for (let i = 1; i <= remainingDays; i++) {
                         days.push({
@@ -1586,10 +1571,10 @@
                             isOtherMonth: true
                         });
                     }
-                    
+
                     return days;
                 },
-                
+
                 previousMonth() {
                     if (this.currentMonth === 0) {
                         this.currentMonth = 11;
@@ -1598,7 +1583,7 @@
                         this.currentMonth--;
                     }
                 },
-                
+
                 nextMonth() {
                     if (this.currentMonth === 11) {
                         this.currentMonth = 0;
@@ -1607,7 +1592,7 @@
                         this.currentMonth++;
                     }
                 },
-                
+
                 selectDate(date) {
                     if (!this.selectedStart || (this.selectedStart && this.selectedEnd)) {
                         this.selectedStart = date;
@@ -1689,25 +1674,25 @@
                     this.currentMonth = this.selectedStart.getMonth();
                     this.currentYear = this.selectedStart.getFullYear();
                 },
-                
+
                 isStartDate(date) {
                     return this.selectedStart && date.toDateString() === this.selectedStart.toDateString();
                 },
-                
+
                 isEndDate(date) {
                     return this.selectedEnd && date.toDateString() === this.selectedEnd.toDateString();
                 },
-                
+
                 isInRange(date) {
                     if (!this.selectedStart || !this.selectedEnd) return false;
                     return date > this.selectedStart && date < this.selectedEnd;
                 },
-                
+
                 isToday(date) {
                     const today = new Date();
                     return date.toDateString() === today.toDateString();
                 },
-                
+
                 formatDate(date) {
                     if (!date) return '';
                     const day = date.getDate();
@@ -1715,7 +1700,7 @@
                     const year = date.getFullYear();
                     return `${day} ${month} ${year}`;
                 },
-                
+
                 formatDateForBackend(date) {
                     if (!date) return '';
                     const year = date.getFullYear();
