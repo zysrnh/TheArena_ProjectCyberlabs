@@ -32,9 +32,21 @@ class PlayersRelationManager extends RelationManager
                                     ->maxValue(99)
                                     ->placeholder('e.g., 10')
                                     ->helperText('Nomor jersey pemain (0-99)')
-                                    ->unique(ignorable: fn ($record) => $record)
-                                    ->validationMessages([
-                                        'unique' => 'Jersey number sudah digunakan di tim ini.',
+                                    ->rules([
+                                        fn (\Filament\Forms\Get $get, ?string $operation, ?\Illuminate\Database\Eloquent\Model $record) => function (string $attribute, $value, \Closure $fail) use ($record) {
+                                            $teamId = $this->getOwnerRecord()->id;
+                                            $query = \App\Models\Player::where('team_id', $teamId)
+                                                ->where('jersey_no', (string) $value);
+
+                                            // When editing, exclude the current record
+                                            if ($record) {
+                                                $query->where('id', '!=', $record->id);
+                                            }
+
+                                            if ($query->exists()) {
+                                                $fail('Jersey number sudah digunakan di tim ini.');
+                                            }
+                                        },
                                     ]),
 
                                 Forms\Components\Select::make('position')
