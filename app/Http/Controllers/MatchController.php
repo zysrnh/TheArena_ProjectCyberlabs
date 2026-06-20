@@ -165,6 +165,7 @@ class MatchController extends Controller
             ->orderBy('date', 'asc')
             ->orderBy('time', 'asc')
             ->paginate(6)
+            ->withQueryString()
             ->through(function ($match) {
                 $team1Logo = $this->normalizeLogoPath($match->team1->logo, $match->team1->name);
                 $team2Logo = $this->normalizeLogoPath($match->team2->logo, $match->team2->name);
