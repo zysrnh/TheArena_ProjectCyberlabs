@@ -30,6 +30,7 @@ class TeamCategoryResource extends Resource
                         Forms\Components\TextInput::make('category_name')
                             ->label('Category Name')
                             ->required()
+                            ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->placeholder('e.g., U-16 PA'),
 
